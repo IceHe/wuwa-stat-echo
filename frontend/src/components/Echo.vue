@@ -373,7 +373,7 @@ import {
   SUBSTAT,
   SUBSTAT_VALUE_MAP
 } from '@/stores/constants.ts'
-import {onMounted, ref, computed} from 'vue'
+import {onMounted, ref, computed, watch} from 'vue'
 import emitter from '@/stores/eventBus.js'
 import {useRoute, useRouter} from 'vue-router';
 import {authState} from '@/auth'
@@ -396,8 +396,10 @@ export default {
   setup: function (props) {
     const router = useRouter();
     const route = useRoute();
+    const currentOperatorId = computed(() => authState.user?.id ?? null)
+    const canManage = computed(() => authState.user?.permissions?.includes('manage') ?? false)
     const canModify = computed(() =>
-      authState.user?.id != null && echoLog.value?.operator_id === authState.user.id
+      canManage.value || (currentOperatorId.value != null && echoLog.value?.operator_id === currentOperatorId.value)
     )
     // 允许创建/结束的条件：
     // - 没有绑定声骸 id（新建）
@@ -434,11 +436,17 @@ export default {
       fetchEchoAnalysis()
     }
 
-    const getEchoLog = async (echoId = 0) => {
+    const getEchoLog = async (echoId = 0, options = {}) => {
+      const { silent = false } = options
+      const targetEchoId = Number(echoId ? echoId : echoLog.value.id)
       try {
-        const response = await axios.get(`http://${API_SERV}/echo_log/${echoId ? echoId : echoLog.value.id}?resonator=${route.query.resonator}&cost=${route.query.cost}`)
+        const response = await axios.get(`http://${API_SERV}/echo_log/${targetEchoId}?resonator=${route.query.resonator}&cost=${route.query.cost}`)
         console.log("get echo log:", response.data) // DEBUG
         if (response.data.code === 200) {
+          if (!canManage.value && currentOperatorId.value != null && response.data.data?.operator_id !== currentOperatorId.value) {
+            clearEchoEditor()
+            return false
+          }
           echoLog.value = response.data.data
           template.value.user_id = echoLog.value.user_id
           template.value.clazz = echoLog.value.clazz
@@ -457,10 +465,18 @@ export default {
         fetchEchoAnalysis()
         return true
         } else {
+          if (silent || (targetEchoId <= 0 && response.data.message === 'echo log not found')) {
+            clearEchoEditor()
+            return false
+          }
           alert('获取声骸失败')
           return false
         }
       } catch (error) {
+        if (silent || (targetEchoId <= 0 && error?.response?.data?.message === 'echo log not found')) {
+          clearEchoEditor()
+          return false
+        }
         console.error('获取声骸 请求失败:', error)
         alert('获取声骸 请求失败')
         return false
@@ -481,11 +497,7 @@ export default {
       refreshEchoLogsAnalysis()
     }
 
-    const newEchoLog = () => {
-      if (route.query.echo_id > 0) {
-        console.log("init echo log:", route.query.echo_id) // DEBUG
-        setTimeout(() => getEchoLog(route.query.echo_id), 500)
-      }
+    const buildEmptyEchoLog = () => {
       return {
         clazz: template.value.clazz,
         user_id: template.value.user_id,
@@ -506,7 +518,12 @@ export default {
         pos_total: 0,
       }
     }
+    const newEchoLog = () => buildEmptyEchoLog()
     const echoLog = ref(newEchoLog())
+    const clearEchoEditor = () => {
+      echoLog.value = buildEmptyEchoLog()
+      updateQueryParam('echo_id', 0)
+    }
     const emitSyncEchoLog = () => {
       if (!echoLog.value.id) {
         return
@@ -708,6 +725,30 @@ export default {
       echoLog.value.id = id
       getEchoLog()
     }
+    const hasInitializedEchoEditor = ref(false)
+    const initEchoEditor = () => {
+      if (hasInitializedEchoEditor.value || currentOperatorId.value == null) {
+        return
+      }
+      hasInitializedEchoEditor.value = true
+      const initialEchoId = Number(route.query.echo_id || 0)
+      getEchoLog(initialEchoId > 0 ? initialEchoId : 0, { silent: true })
+    }
+    onMounted(initEchoEditor)
+    watch(currentOperatorId, (nextOperatorId, previousOperatorId) => {
+      if (nextOperatorId !== previousOperatorId) {
+        hasInitializedEchoEditor.value = false
+      }
+      if (
+        !canManage.value &&
+        currentOperatorId.value != null &&
+        echoLog.value.id > 0 &&
+        echoLog.value.operator_id !== currentOperatorId.value
+      ) {
+        clearEchoEditor()
+      }
+      initEchoEditor()
+    })
     const setPos = (pos) => {
       if (!canCreate.value) {
         return
@@ -838,10 +879,16 @@ export default {
     }
     onMounted(fetchEchoAnalysis)
 
-    const doTune = (substat, value) => {
+    const doTune = async (substat, value) => {
       if (!echoLog.value.id) {
-        addEchoLog(() => doTune(substat, value))
-        return
+        if (!echoLog.value.user_id) {
+          alert('请先输入玩家ID')
+          return
+        }
+        if (!echoLog.value.clazz) {
+          alert('请先选择套装')
+          return
+        }
       }
       if (echoLog.value.pos === 5) {
         alert('当前声骸已结束，请先创建新声骸，或手动选择要修改的孔位')
@@ -861,49 +908,87 @@ export default {
       const tunePos = echoLog.value.pos
       console.log('add tune log, echo_id:', echoLog.value.id, ', pos:', tunePos, ', substat:', substat, ', value:', value)
       const substatDesc = SUBSTAT_VALUE_MAP[substat][value].desc_full
+      const nextEchoLog = {
+        ...echoLog.value,
+      }
       switch (tunePos) {
         case 0:
-          echoLog.value.substat1 = 1 << substat | 1 << (value + 13)
-          echoLog.value.s1_desc = substatDesc
+          nextEchoLog.substat1 = 1 << substat | 1 << (value + 13)
+          nextEchoLog.s1_desc = substatDesc
           break
         case 1:
-          echoLog.value.substat2 = 1 << substat | 1 << (value + 13)
-          echoLog.value.s2_desc = substatDesc
+          nextEchoLog.substat2 = 1 << substat | 1 << (value + 13)
+          nextEchoLog.s2_desc = substatDesc
           break
         case 2:
-          echoLog.value.substat3 = 1 << substat | 1 << (value + 13)
-          echoLog.value.s3_desc = substatDesc
+          nextEchoLog.substat3 = 1 << substat | 1 << (value + 13)
+          nextEchoLog.s3_desc = substatDesc
           break
         case 3:
-          echoLog.value.substat4 = 1 << substat | 1 << (value + 13)
-          echoLog.value.s4_desc = substatDesc
+          nextEchoLog.substat4 = 1 << substat | 1 << (value + 13)
+          nextEchoLog.s4_desc = substatDesc
           break
         case 4:
-          echoLog.value.substat5 = 1 << substat | 1 << (value + 13)
-          echoLog.value.s5_desc = substatDesc
+          nextEchoLog.substat5 = 1 << substat | 1 << (value + 13)
+          nextEchoLog.s5_desc = substatDesc
           break
         default:
           alert('请先选择孔位')
           return
       }
 
-      echoLog.value.substat_all = (
-          echoLog.value.substat1 |
-          echoLog.value.substat2 |
-          echoLog.value.substat3 |
-          echoLog.value.substat4 |
-          echoLog.value.substat5
+      nextEchoLog.substat_all = (
+          nextEchoLog.substat1 |
+          nextEchoLog.substat2 |
+          nextEchoLog.substat3 |
+          nextEchoLog.substat4 |
+          nextEchoLog.substat5
       ) & MASK
-      echoLog.value.pos = tunePos < 4 ? tunePos + 1 : 5
-      emitSyncEchoLog()
-      addSubstatLog(substat, value, tunePos)
-      updateEchoLog(() => {
+      try {
+        const response = await axios.post(`http://${API_SERV}/echo_log/tune`, {
+          id: nextEchoLog.id,
+          user_id: nextEchoLog.user_id,
+          clazz: nextEchoLog.clazz,
+          substat1: nextEchoLog.substat1,
+          substat2: nextEchoLog.substat2,
+          substat3: nextEchoLog.substat3,
+          substat4: nextEchoLog.substat4,
+          substat5: nextEchoLog.substat5,
+          substat_all: nextEchoLog.substat_all,
+          s1_desc: nextEchoLog.s1_desc,
+          s2_desc: nextEchoLog.s2_desc,
+          s3_desc: nextEchoLog.s3_desc,
+          s4_desc: nextEchoLog.s4_desc,
+          s5_desc: nextEchoLog.s5_desc,
+          position: tunePos,
+          substat,
+          value,
+        })
+        console.log('tune echo log:', response.data) // DEBUG
+        if (response.data.code !== 200) {
+          alert('添加调谐记录失败')
+          return
+        }
+
+        const savedEchoLog = response.data.data.echo_log
+        savedEchoLog.pos = 0
+        if (savedEchoLog.substat1 > 0) savedEchoLog.pos = 1
+        if (savedEchoLog.substat2 > 0) savedEchoLog.pos = 2
+        if (savedEchoLog.substat3 > 0) savedEchoLog.pos = 3
+        if (savedEchoLog.substat4 > 0) savedEchoLog.pos = 4
+        if (savedEchoLog.substat5 > 0) savedEchoLog.pos = 5
+        echoLog.value = savedEchoLog
+        updateQueryParam('echo_id', echoLog.value.id)
+        emitSyncEchoLog()
         fetchEchoAnalysis()
         emitter.emit('refreshEchoLogs')
         emitter.emit('refreshSubstatLogs')
         refreshRecentTuneStats()
         refreshEchoLogsAnalysis()
-      })
+      } catch (error) {
+        console.error('调谐声骸 请求失败:', error)
+        alert('添加调谐记录失败')
+      }
     }
 
     // 展示最近各词条出现的数量
@@ -1166,7 +1251,7 @@ export default {
 
 .substat-name-cell {
   width: 9.5%;
-  min-width: 92px;
+  min-width: 84px;
 }
 
 .suite-note {
@@ -1285,24 +1370,26 @@ export default {
 .substat-row {
   display: flex;
   align-items: flex-start;
+  gap: 8px;
 }
 
 .suite-row {
   display: flex;
   align-items: flex-start;
-  gap: 0;
+  gap: 8px;
 }
 
 .top-summary-track {
   display: flex;
-  flex: 0 0 80%;
-  width: 80%;
+  flex: 1 1 auto;
+  width: auto;
   min-width: 0;
+  gap: 10px;
 }
 
 .substat-summary-buttons {
   display: flex;
-  flex: 1;
+  flex: 1 1 auto;
   min-width: 0;
 }
 
@@ -1327,7 +1414,7 @@ export default {
 
 .score-panel-slot {
   display: flex;
-  flex: 0 0 104px;
+  flex: 0 0 96px;
   justify-content: flex-end;
 }
 
@@ -1493,8 +1580,8 @@ export default {
 .substat {
   display: inline-block;
   flex: 1 1 0;
-  min-width: 95px;
-  max-width: 92px;
+  min-width: 84px;
+  max-width: 88px;
   width: auto;
   height: 60px;
   text-align: center;

@@ -1,13 +1,10 @@
 <!-- src/components/TuneLogRow.vue -->
 <template>
-  <tr :style="`color: ${fontColor}`">
+  <tr :style="rowStyle">
     <td>{{tuneLog.echo_id}} / {{ position }} / {{ tuneLog.user_id }}</td>
     <td>{{ substat }}</td>
     <td>{{ substatValue }}</td>
     <td>{{ timestamp }}</td>
-    <td>
-      <button v-if="canEdit" @click="del" style="color: darkred">删除</button>
-    </td>
   </tr>
 </template>
 
@@ -41,11 +38,6 @@ export default {
       default: null,
     },
   },
-  computed: {
-    canEdit() {
-      return this.operatorId != null && this.tuneLog?.operator_id === this.operatorId
-    },
-  },
   setup(props) {
     const deleteTuneLog = (id) => {
       axios
@@ -75,6 +67,7 @@ export default {
     const position = props.tuneLog.position + 1
     const timestamp = moment(new Date(props.tuneLog.timestamp)).format('MM-DD HH:mm:ss')
     const fontColor = SUBSTAT[props.tuneLog.substat].font_color
+    const rowStyle = `color: ${fontColor};${props.tuneLog?.deleted === 1 ? ' text-decoration: line-through;' : ''}`
 
     return {
       substat,
@@ -83,6 +76,7 @@ export default {
       timestamp,
       del,
       fontColor,
+      rowStyle,
     }
   },
 }

@@ -1,68 +1,58 @@
 <template>
   <h1>搜索声骸</h1>
-  <div style="min-width: 750px;">
-    <div>
+  <div class="find-panel">
+    <div class="find-toolbar-row">
       <span class="name">玩家ID</span>
       <input
-        class="button"
-        style="text-align: center; font-weight: bolder; min-width: 90px;"
+        class="button user-id-input"
         type="text"
         v-model="echoLog.user_id"
         placeholder="当前玩家ID"
         @change="setUserId(echoLog.user_id)" />
-      <!--      <span class="button">调谐日期</span>-->
-      <!--      <input-->
-      <!--        class="button"-->
-      <!--        style="text-align: center; font-weight: bolder;"-->
-      <!--        type="text"-->
-      <!--        v-model="echoLog.id"-->
-      <!--        placeholder="调谐时间"-->
-      <!--        @change="setTunedAt(echoLog.id)"-->
-      <!--      />-->
-      &nbsp;
-      <span :style="`color: ${CLASS_COLORS[echoLog.clazz]}; font-weight: bolder;`">
+      <span class="clazz-chip" :style="`color: ${CLASS_COLORS[echoLog.clazz]};`">
         {{ echoLog.clazz.substring(0, 4) }}
       </span>
-      &nbsp;
-      <button class="button" style="color: red; min-width: 80px;" @click="echoLog = newEchoLog()">清空</button>
+      <button class="button clear-button" @click="echoLog = newEchoLog()">清空</button>
     </div>
-    <div>
+    <div class="find-toolbar-row">
       <span class="name">当前孔位 </span>
-      <button class="substat"
-              key="1"
-              @click="echoLog.pos = 0"
-              :style="echoLog.pos === 0 ? 'background-color: yellow; font-color: red' : ''"
-      >
-        {{ echoLog.s1_desc ? echoLog.s1_desc : "1" }}
-      </button>
-      <button class="substat"
-              key="2"
-              @click="echoLog.pos = 1"
-              :style="echoLog.pos === 1 ? 'background-color: yellow; font-color: red' : ''"
-      >
-        {{ echoLog.s2_desc ? echoLog.s2_desc : "2" }}
-      </button>
-      <button class="substat"
-              key="3"
-              @click="echoLog.pos = 2"
-              :style="echoLog.pos === 2 ? 'background-color: yellow; font-color: red' : ''"
-      >
-        {{ echoLog.s3_desc ? echoLog.s3_desc : "3" }}
-      </button>
-      <button class="substat"
-              key="4"
-              @click="echoLog.pos = 3"
-              :style="echoLog.pos === 3 ? 'background-color: yellow; font-color: red' : ''"
-      >
-        {{ echoLog.s4_desc ? echoLog.s4_desc : "4" }}
-      </button>
-      <button class="substat"
-              key="5"
-              @click="echoLog.pos = 4"
-              :style="echoLog.pos === 4 ? 'background-color: yellow; font-color: red' : ''"
-      >
-        {{ echoLog.s5_desc ? echoLog.s5_desc : "5" }}
-      </button>
+      <div class="find-position-row">
+        <button class="substat"
+                key="1"
+                @click="echoLog.pos = 0"
+                :style="echoLog.pos === 0 ? 'background-color: yellow; font-color: red' : ''"
+        >
+          {{ echoLog.s1_desc ? echoLog.s1_desc : "1" }}
+        </button>
+        <button class="substat"
+                key="2"
+                @click="echoLog.pos = 1"
+                :style="echoLog.pos === 1 ? 'background-color: yellow; font-color: red' : ''"
+        >
+          {{ echoLog.s2_desc ? echoLog.s2_desc : "2" }}
+        </button>
+        <button class="substat"
+                key="3"
+                @click="echoLog.pos = 2"
+                :style="echoLog.pos === 2 ? 'background-color: yellow; font-color: red' : ''"
+        >
+          {{ echoLog.s3_desc ? echoLog.s3_desc : "3" }}
+        </button>
+        <button class="substat"
+                key="4"
+                @click="echoLog.pos = 3"
+                :style="echoLog.pos === 3 ? 'background-color: yellow; font-color: red' : ''"
+        >
+          {{ echoLog.s4_desc ? echoLog.s4_desc : "4" }}
+        </button>
+        <button class="substat"
+                key="5"
+                @click="echoLog.pos = 4"
+                :style="echoLog.pos === 4 ? 'background-color: yellow; font-color: red' : ''"
+        >
+          {{ echoLog.s5_desc ? echoLog.s5_desc : "5" }}
+        </button>
+      </div>
     </div>
     <div class="suite-row">
       <span class="name">声骸套装</span>
@@ -85,32 +75,37 @@
         </button>
       </div>
     </div>
-    <div v-for="substat in SUBSTAT" :key="substat">
-      <span class="name">{{ substat.name.substring(0, 4) }}</span>
-      <button
-        class="button"
-        @click="addAnyTuneToFind(substat.num)"
-        :style="`color: ${substat.font_color}`"
-      >
-        不限
-      </button>
-      <button
-        class="button"
-        v-for="value in SUBSTAT_VALUE_MAP[substat.num]"
-        :key="value"
-        @click="addTuneToFind(value.substat_number, value.value_number); "
-        :style="`color: ${substat.font_color}`"
-      >
-        {{ value.desc }}
-      </button>
+    <div v-for="substat in SUBSTAT" :key="substat" class="find-substat-row">
+      <span class="name" :style="`color: ${substat.font_color}; font-weight: bolder;`">{{ substat.name.substring(0, 4) }}</span>
+      <div class="find-substat-buttons">
+        <button
+          class="button compact-button"
+          @click="addAnyTuneToFind(substat.num)"
+          :style="`color: ${substat.font_color}`"
+        >
+          不限
+        </button>
+        <button
+          class="button compact-button"
+          v-for="value in SUBSTAT_VALUE_MAP[substat.num]"
+          :key="value"
+          @click="addTuneToFind(value.substat_number, value.value_number); "
+          :style="`color: ${substat.font_color}`"
+        >
+          {{ value.desc }}
+        </button>
+      </div>
     </div>
   </div>
-  <div style="min-width: 480px">
+  <div class="find-results">
     <button @click="findEchoLog()">声骸搜索列表 - 刷新</button>
     <table class="my-table">
       <thead>
       <tr style="text-align: left;">
-        <th>玩家/声骸</th>
+        <th>
+          <div>玩家/声骸</div>
+          <div style="font-size: 10px; color: #888; font-weight: normal;">自己的声骸或管理员可修改</div>
+        </th>
         <th>套装</th>
         <th>词条1</th>
         <th>词条2</th>
@@ -118,7 +113,6 @@
         <th>词条4</th>
         <th>词条5</th>
         <th>记录于</th>
-        <th>操作</th>
       </tr>
       </thead>
       <tbody>
@@ -126,6 +120,9 @@
         v-for="echoLog in echoLogs"
         :key="echoLog.id + echoLog.updated_at + echoLog.deleted"
         :echoLog="echoLog"
+        :operatorId="operatorId"
+        :canManage="canManage"
+        :showActions="false"
       />
       </tbody>
     </table>
@@ -135,10 +132,11 @@
 <script>
 import axios from 'axios'
 import {API_SERV, CLASS_COLORS, CLASSES, SUBSTAT, SUBSTAT_VALUE_MAP} from '@/stores/constants.ts'
-import {ref} from 'vue'
+import {computed, ref} from 'vue'
 import {useRoute} from 'vue-router';
 import EchoLogRow from "@/components/EchoLogRow.vue";
 import emitter from "@/stores/eventBus.js";
+import {authState} from '@/auth'
 
 export default {
   name: 'Find Echo',
@@ -229,6 +227,8 @@ export default {
     }
 
     const echoLogs = ref([])
+    const operatorId = computed(() => authState.user?.id ?? null)
+    const canManage = computed(() => authState.user?.permissions?.includes('manage') ?? false)
     const hasDuplicatedSubstat = (substat) => (
       (1 << substat) & (
         echoLog.value.pos !== 0 ? echoLog.value.substat1 : 0 |
@@ -327,6 +327,8 @@ export default {
       addAnyTuneToFind,
       addTuneToFind,
       findEchoLog,
+      operatorId,
+      canManage,
       CLASSES,
       SUBSTAT,
       SUBSTAT_VALUE_MAP,
@@ -336,62 +338,127 @@ export default {
 </script>
 
 <style scoped>
+.find-panel,
+.find-results {
+  width: 100%;
+  max-width: 620px;
+}
+
+.find-panel {
+  margin-bottom: 16px;
+}
+
+.find-toolbar-row,
+.find-substat-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
 .name {
-  display: inline-block;
-  min-width: 70px;
-  width: 7%;
+  flex: 0 0 64px;
+  min-width: 64px;
+  padding-top: 10px;
 }
 
 .button {
-  display: inline-block;
-  min-width: 30px;
-  max-width: 120px;
-  width: 10%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 42px;
+  padding: 0 10px;
   height: 40px;
   text-align: center;
+}
+
+.user-id-input {
+  width: 120px;
+  min-width: 120px;
+  font-weight: bolder;
+}
+
+.clazz-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  font-weight: bolder;
+}
+
+.clear-button {
+  min-width: 64px;
+  color: red;
+}
+
+.find-position-row,
+.find-substat-buttons {
+  min-width: 0;
+}
+
+.find-position-row {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 0;
+}
+
+.find-substat-buttons {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 0;
+  overflow-x: visible;
 }
 
 .suite-row {
   display: flex;
   align-items: flex-start;
   gap: 8px;
+  margin-bottom: 8px;
 }
 
 .suite-scroll {
   display: flex;
-  gap: 4px;
+  gap: 0;
   overflow-x: auto;
   overflow-y: hidden;
-  max-width: 620px;
+  max-width: 100%;
   padding-bottom: 6px;
 }
 
 .suite-button {
-  flex: 0 0 44px;
-  width: 44px;
-  min-width: 44px;
-  max-width: 44px;
-  height: 90px;
+  flex: 0 0 42px;
+  width: 42px;
+  min-width: 42px;
+  max-width: 42px;
+  height: 84px;
 }
 
 .substat {
-  display: inline-block;
-  min-width: 100px;
-  max-width: 120px;
-  width: 19.4%;
+  width: 88px;
+  min-width: 88px;
+  max-width: 88px;
   height: 40px;
   text-align: center;
+}
+
+.compact-button {
+  width: 54px;
+  min-width: 54px;
+  max-width: 54px;
+  padding: 0 6px;
 }
 
 .my-table {
   width: 100%;
   border-collapse: collapse; /* 关键：合并边框 */
   border: 1px solid #e0e0e0; /* 表格边框 */
+  table-layout: fixed;
+  font-size: 12px;
 }
 
 .my-table td,
 .my-table th {
   border: 1px solid #ddd; /* 统一设置单元格边框 */
-  padding: 8px;
+  padding: 6px;
+  word-break: break-word;
 }
 </style>

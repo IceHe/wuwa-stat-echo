@@ -168,6 +168,23 @@ async def get_operator_id(request: Request) -> Optional[int]:
     return None
 
 
+async def get_permissions(request: Request) -> list[str]:
+    token = extract_token_from_request(request)
+    if not token:
+        return []
+    cache_key = f"{_TOKEN_CACHE_PREFIX}{_token_fingerprint(token)}"
+    if hasattr(request.state, cache_key):
+        return getattr(request.state, cache_key).get("permissions", [])
+    result = await validate_token(token)
+    setattr(request.state, cache_key, result)
+    return result["permissions"]
+
+
+async def can_manage(request: Request) -> bool:
+    permissions = await get_permissions(request)
+    return "manage" in permissions
+
+
 async def require_manage_permission(request: Request) -> list[str]:
     token = extract_token_from_request(request)
     if not token:

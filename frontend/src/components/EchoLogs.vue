@@ -8,7 +8,7 @@
       <tr style="text-align: left;">
         <th>
           <div>玩家/声骸</div>
-          <div style="font-size: 10px; color: #888; font-weight: normal;">点击可修改</div>
+          <div style="font-size: 10px; color: #888; font-weight: normal;">自己的声骸或管理员可修改</div>
         </th>
         <th>套装</th>
         <th>词条1</th>
@@ -26,6 +26,7 @@
         :key="echoLog.id + echoLog.updated_at + echoLog.deleted"
         :echoLog="echoLog"
         :operatorId="operatorId"
+        :canManage="canManage"
       />
       </tbody>
     </table>
@@ -116,6 +117,7 @@ export default {
 
     // 返回模板需要的数据和方法
     const operatorId = computed(() => authState.user?.id)
+    const canManage = computed(() => authState.user?.permissions?.includes('manage') ?? false)
 
     return {
       echoLogs,
@@ -123,6 +125,7 @@ export default {
       fetchEchoLogs,
       upsertEchoLog,
       operatorId,
+      canManage,
     }
   },
 }

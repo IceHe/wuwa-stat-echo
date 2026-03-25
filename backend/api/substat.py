@@ -4,9 +4,9 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Request
 from sqlmodel import func, Session, insert, select, delete
 
-from auth import require_edit_permission, require_view_permission, get_operator_id
+from auth import require_edit_permission, require_view_permission, get_operator_id, can_manage
 from db import get_session
-from model import SubstatLog
+from model import EchoLog, SubstatLog
 from response import Success, Error, Page
 
 router = APIRouter()
@@ -46,11 +46,19 @@ async def delete_substat_log(
 ):
     try:
         operator_id = await get_operator_id(request)
+        if operator_id is None:
+            return Error("operator not found", 401)
+        is_manager = await can_manage(request)
+
         tune_log = session.get(SubstatLog, id)
         if tune_log is None:
             return Error("tune log not found")
-        if tune_log.operator_id != operator_id:
-            return Error("not authorized to delete this tune log")
+        if tune_log.operator_id != operator_id and not is_manager:
+            return Error("not authorized to delete this tune log", 403)
+
+        echo_log = session.get(EchoLog, tune_log.echo_id)
+        if echo_log is not None and echo_log.operator_id != operator_id and not is_manager:
+            return Error("not authorized to delete tune log for this echo log", 403)
 
         stmt = delete(SubstatLog).where(SubstatLog.id == id)
         result = session.exec(stmt)

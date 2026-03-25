@@ -8,9 +8,9 @@ from datetime import datetime, time
 from fastapi import APIRouter, Depends, Request
 from sqlmodel import func, Session, select, update, and_, not_
 
-from auth import require_edit_permission, require_view_permission, get_operator_id
+from auth import require_edit_permission, require_view_permission, get_operator_id, can_manage
 from consts import TUNER_RECYCLED_PER_SUBSTAT, EXP, EXP_GOLD, EXP_RETURN, RESONATOR_TEMPLATES
-from custom_types import SubstatItem
+from custom_types import SubstatItem, EchoTuneRequest
 from db import get_session
 from model import EchoLog, SubstatLog
 from response import Success, Error, Page
@@ -19,6 +19,21 @@ from util import bit_count, bit_pos
 router = APIRouter()
 SessionDep = Annotated[Session, Depends(get_session)]
 SUBSTAT_TYPE_MASK = (1 << 13) - 1
+ECHO_MUTABLE_FIELDS = (
+    "substat1",
+    "substat2",
+    "substat3",
+    "substat4",
+    "substat5",
+    "substat_all",
+    "s1_desc",
+    "s2_desc",
+    "s3_desc",
+    "s4_desc",
+    "s5_desc",
+    "clazz",
+    "user_id",
+)
 
 
 def build_substat_match(column, substat_bits: int):
@@ -30,6 +45,15 @@ def build_substat_match(column, substat_bits: int):
         return column.op('&')(substat_bits) == substat_bits
 
     return column == substat_bits
+
+
+def apply_echo_changes(target: EchoLog, payload) -> None:
+    for field_name in ECHO_MUTABLE_FIELDS:
+        value = getattr(payload, field_name, None)
+        if value is not None:
+            setattr(target, field_name, value)
+
+    target.updated_at = datetime.now()
 
 
 @router.get("/echo_logs", dependencies=[Depends(require_view_permission)])
@@ -83,37 +107,113 @@ async def create_echo_log(
 @router.patch("/echo_log", dependencies=[Depends(require_edit_permission)])
 async def update_echo_log(
         session: SessionDep,
+        request: Request,
         echo_log: EchoLog,
 ):
     try:
-        echo_log.updated_at = datetime.now()
-        log_dict = echo_log.dict(exclude={
-            'id', 'deleted', 'tuned_at', 'created_at',
-        })
+        operator_id = await get_operator_id(request)
+        if operator_id is None:
+            return Error("operator not found", 401)
 
-        stmt = update(EchoLog) \
-            .where(EchoLog.id == echo_log.id) \
-            .values(**log_dict)
-        session.exec(stmt)
+        existing_echo_log = session.get(EchoLog, echo_log.id)
+        if existing_echo_log is None:
+            return Error("echo log not found", 404)
+
+        if existing_echo_log.operator_id != operator_id and not await can_manage(request):
+            return Error("not authorized to update this echo log", 403)
+
+        apply_echo_changes(existing_echo_log, echo_log)
         session.commit()
 
-        return Success(log_dict, "update echo log")
+        return Success(existing_echo_log.dict(), "update echo log")
     except Exception as e:
         print(e)
         # 打印异常堆栈
         traceback.print_exc()
+        session.rollback()
         return Error("failed to update echo log")
+
+
+@router.post("/echo_log/tune", dependencies=[Depends(require_edit_permission)])
+async def tune_echo_log(
+        session: SessionDep,
+        request: Request,
+        payload: EchoTuneRequest,
+):
+    try:
+        operator_id = await get_operator_id(request)
+        if operator_id is None:
+            return Error("operator not found", 401)
+
+        is_manager = await can_manage(request)
+        echo_log = None
+
+        if payload.id > 0:
+            echo_log = session.get(EchoLog, payload.id)
+            if echo_log is None:
+                return Error("echo log not found", 404)
+            if echo_log.operator_id != operator_id and not is_manager:
+                return Error("not authorized to tune this echo log", 403)
+        else:
+            if not payload.user_id:
+                return Error("user_id is required", 400)
+            if not payload.clazz:
+                return Error("clazz is required", 400)
+
+            echo_log = EchoLog(
+                user_id=payload.user_id,
+                clazz=payload.clazz,
+                tuned_at=datetime.now(),
+                created_at=datetime.now(),
+                updated_at=datetime.now(),
+                operator_id=operator_id,
+            )
+            session.add(echo_log)
+            session.flush()
+
+        apply_echo_changes(echo_log, payload)
+
+        tune_log = SubstatLog(
+            user_id=echo_log.user_id,
+            echo_id=echo_log.id,
+            position=payload.position,
+            substat=payload.substat,
+            value=payload.value,
+            operator_id=operator_id,
+        )
+        session.add(tune_log)
+        session.commit()
+        session.refresh(echo_log)
+        session.refresh(tune_log)
+
+        return Success({
+            "echo_log": echo_log.dict(),
+            "tune_log": tune_log.dict(),
+        }, "tune echo log")
+    except Exception as e:
+        print(e)
+        traceback.print_exc()
+        session.rollback()
+        return Error("failed to tune echo log")
 
 
 @router.delete("/echo_log/{id}", dependencies=[Depends(require_edit_permission)])
 async def delete_echo_log(
         session: SessionDep,
+        request: Request,
         id: int,
 ):
     try:
+        operator_id = await get_operator_id(request)
+        if operator_id is None:
+            return Error("operator not found", 401)
+        is_manager = await can_manage(request)
+
         echo_log = session.get(EchoLog, id)
         if echo_log is None:
             return Error("echo log not found")
+        if echo_log.operator_id != operator_id and not is_manager:
+            return Error("not authorized to delete this echo log", 403)
 
         empty_echo = (
             echo_log.substat1 == 0 and
@@ -153,12 +253,20 @@ async def delete_echo_log(
 @router.post("/echo_log/{id}/recover", dependencies=[Depends(require_edit_permission)])
 async def recover_echo_log(
         session: SessionDep,
+        request: Request,
         id: int,
 ):
     try:
+        operator_id = await get_operator_id(request)
+        if operator_id is None:
+            return Error("operator not found", 401)
+        is_manager = await can_manage(request)
+
         echo_log = session.get(EchoLog, id)
         if echo_log is None:
             return Error("echo log not found")
+        if echo_log.operator_id != operator_id and not is_manager:
+            return Error("not authorized to recover this echo log", 403)
 
         stmt = update(EchoLog) \
             .where(EchoLog.id == id) \
@@ -181,19 +289,25 @@ async def recover_echo_log(
 @router.get("/echo_log/{id}", dependencies=[Depends(require_view_permission)])
 async def get_echo_log(
         session: SessionDep,
+        request: Request,
         id: int,
 ):
     try:
+        operator_id = await get_operator_id(request)
+        if operator_id is None:
+            return Error("operator not found", 401)
+
         stmt = select(EchoLog)
         if id > 0:
             stmt = stmt.where(EchoLog.id == id)
         else:
             stmt = stmt.where(EchoLog.deleted == 0) \
+                .where(EchoLog.operator_id == operator_id) \
                 .order_by(EchoLog.updated_at.desc()) \
                 .limit(1)
         echo_log = session.exec(stmt).first()
         if echo_log is None:
-            return Error("echo log not found")
+            return Error("echo log not found", 404)
 
         pos = 0
         if echo_log.substat1:
@@ -231,15 +345,20 @@ async def get_echo_log(
 @router.post("/echo_log/find", dependencies=[Depends(require_view_permission)])
 async def find_echo_log(
         session: SessionDep,
+        request: Request,
         echo_log: EchoLog,
 ):
     if echo_log.substat1 | echo_log.substat2 | echo_log.substat3 | echo_log.substat4 | echo_log.substat5 == 0:
         return Success([], "no substat specified, return empty list")
 
     try:
+        operator_id = await get_operator_id(request)
+        if operator_id is None:
+            return Error("operator not found", 401)
+
         user_id = int(echo_log.user_id or 0)
 
-        stmt = select(EchoLog)
+        stmt = select(EchoLog).where(EchoLog.operator_id == operator_id)
         for column, substat_bits in (
                 (EchoLog.substat1, echo_log.substat1),
                 (EchoLog.substat2, echo_log.substat2),
@@ -269,14 +388,28 @@ async def find_echo_log(
 @router.delete("/echo_log/{echoId}/substat_pos/{pos}", dependencies=[Depends(require_edit_permission)])
 async def delete_substat_log(
         session: SessionDep,
+        request: Request,
         echoId: int,
         pos: int,
 ):
     try:
+        operator_id = await get_operator_id(request)
+        if operator_id is None:
+            return Error("operator not found", 401)
+        is_manager = await can_manage(request)
+
+        echo_log = session.get(EchoLog, echoId)
+        if echo_log is None:
+            return Error("echo log not found", 404)
+        if echo_log.operator_id != operator_id and not is_manager:
+            return Error("not authorized to delete substats for this echo log", 403)
+
         stmt = update(SubstatLog) \
             .where(SubstatLog.echo_id == echoId) \
-            .where(SubstatLog.position == pos) \
-            .values(deleted=1)
+            .where(SubstatLog.position == pos)
+        if not is_manager:
+            stmt = stmt.where(SubstatLog.operator_id == operator_id)
+        stmt = stmt.values(deleted=1)
         result = session.exec(stmt)
         session.commit()
         return Success(result, "delete substat log")

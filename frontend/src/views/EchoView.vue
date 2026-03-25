@@ -1,10 +1,10 @@
 <template>
   <div class="container">
-    <div>
+    <div class="left-column">
       <Echo />
       <EchoLogs />
     </div>
-    <div>
+    <div class="right-column">
       <FindEcho />
       <SubstatLogs :default-size="52" />
     </div>
@@ -20,9 +20,18 @@ import FindEcho from "@/components/FindEcho.vue";
 
 <style scoped>
 .container {
-  display: flex;
-  //justify-content: space-between; /* 左右两端对齐 */
-  justify-content: flex-start;
+  display: grid;
+  grid-template-columns: minmax(760px, 1fr) 620px;
+  align-items: start;
   gap: 20px; /* 可选：设置组件间距 */
+}
+
+.left-column {
+  min-width: 0;
+}
+
+.right-column {
+  width: 620px;
+  max-width: 620px;
 }
 </style>

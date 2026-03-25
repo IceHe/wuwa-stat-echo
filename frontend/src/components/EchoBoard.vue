@@ -233,8 +233,9 @@ export default {
     })
 
     const getEchoLog = async (echoId = 0) => {
+      const targetEchoId = Number(echoId ? echoId : echoLog.value.id)
       try {
-        const response = await axios.get(`http://${API_SERV}/echo_log/${echoId ? echoId : echoLog.value.id}`)
+        const response = await axios.get(`http://${API_SERV}/echo_log/${targetEchoId}`)
         console.log("get echo log:", response.data) // DEBUG
         if (response.data.code === 200) {
           echoLog.value = response.data.data
@@ -247,10 +248,52 @@ export default {
           if (echoLog.value.substat4 > 0) echoLog.value.pos = 4
           return true
         } else {
+          if (targetEchoId <= 0 && response.data.message === 'echo log not found') {
+            echoLog.value = {
+              ...echoLog.value,
+              clazz: '',
+              user_id: 0,
+              id: 0,
+              pos: 0,
+              substat1: 0,
+              substat2: 0,
+              substat3: 0,
+              substat4: 0,
+              substat5: 0,
+              substat_all: 0,
+              s1_desc: "",
+              s2_desc: "",
+              s3_desc: "",
+              s4_desc: "",
+              s5_desc: "",
+            }
+            return false
+          }
           alert('获取声骸失败')
           return false
         }
       } catch (error) {
+        if (targetEchoId <= 0 && error?.response?.data?.message === 'echo log not found') {
+          echoLog.value = {
+            ...echoLog.value,
+            clazz: '',
+            user_id: 0,
+            id: 0,
+            pos: 0,
+            substat1: 0,
+            substat2: 0,
+            substat3: 0,
+            substat4: 0,
+            substat5: 0,
+            substat_all: 0,
+            s1_desc: "",
+            s2_desc: "",
+            s3_desc: "",
+            s4_desc: "",
+            s5_desc: "",
+          }
+          return false
+        }
         console.error('获取声骸 请求失败:', error)
         alert('获取声骸 请求失败')
         return false

@@ -3,7 +3,7 @@
   <tr :style="echoLog?.deleted === 1 ? 'text-decoration: line-through;' : ''">
     <td>
       <button
-        v-if="echoLog?.deleted === 0"
+        v-if="canModify"
         class="echo-btn"
         @click="setEchoId(echoLog.id)"
       >
@@ -18,9 +18,9 @@
     <td :style="`color: ${getSubstatColor(echoLog.substat3)};`">{{ echoLog.s4_desc }}</td>
     <td :style="`color: ${getSubstatColor(echoLog.substat3)};`">{{ echoLog.s5_desc }}</td>
     <td style="max-width: 77px;">{{ created_at }}</td>
-    <td style="max-width: 48px;">
-      <button v-if="echoLog?.deleted === 0" @click="del" style="color: darkred">删除</button>
-      <button v-else @click="recover">恢复</button>
+    <td v-if="showActions" style="max-width: 48px;">
+      <button v-if="canDelete" @click="del" style="color: darkred">删除</button>
+      <button v-else-if="canRecover" @click="recover">恢复</button>
     </td>
   </tr>
 </template>
@@ -74,8 +74,27 @@ export default {
       required: false,
       default: null,
     },
+    canManage: {
+      type: Boolean,
+      required: false,
+      default: false,
+    },
+    showActions: {
+      type: Boolean,
+      required: false,
+      default: true,
+    },
   },
   computed: {
+    canModify() {
+      return this.canManage || (this.operatorId != null && this.echoLog?.operator_id === this.operatorId)
+    },
+    canDelete() {
+      return this.canModify && this.echoLog?.deleted === 0
+    },
+    canRecover() {
+      return this.canModify && this.echoLog?.deleted === 1
+    },
     echo() {
       return echo
     },

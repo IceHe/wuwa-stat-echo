@@ -1,5 +1,5 @@
 <template>
-  <div style="min-width: 480px">
+  <div class="substat-log-panel">
     <button @click="fetchSubstatLogs()">词条列表 - 刷新</button>
     &nbsp;
     <span>词条数量：{{substatTotal}}</span>
@@ -10,7 +10,6 @@
         <th>副词条</th>
         <th>档位</th>
         <th>记录于</th>
-        <th>操作</th>
       </tr>
       </thead>
       <tbody>
@@ -77,7 +76,6 @@ export default {
 
     // 返回模板需要的数据和方法
     const operatorId = computed(() => authState.user?.id)
-
     return {
       substatLogs,
       substatTotal,
@@ -89,15 +87,23 @@ export default {
 </script>
 
 <style scoped>
+.substat-log-panel {
+  width: 100%;
+  max-width: 620px;
+}
+
 .my-table {
   width: 100%;
   border-collapse: collapse; /* 关键：合并边框 */
   border: 1px solid #e0e0e0; /* 表格边框 */
+  table-layout: fixed;
+  font-size: 12px;
 }
 
 .my-table td,
 .my-table th {
   border: 1px solid #ddd; /* 统一设置单元格边框 */
-  padding: 8px;
+  padding: 6px;
+  word-break: break-word;
 }
 </style>

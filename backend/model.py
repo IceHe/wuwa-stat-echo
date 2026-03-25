@@ -1,6 +1,7 @@
 from datetime import datetime
 from typing import Optional
 
+from sqlalchemy import Column, DateTime, Integer, text
 from sqlmodel import Field, SQLModel
 
 
@@ -13,8 +14,14 @@ class SubstatLog(SQLModel, table=True):
     echo_id: int
     user_id: int
     operator_id: Optional[int] = None
-    timestamp: Optional[datetime]
-    deleted: Optional[int]
+    timestamp: Optional[datetime] = Field(
+        default=None,
+        sa_column=Column(DateTime(timezone=True), nullable=False, server_default=text("CURRENT_TIMESTAMP")),
+    )
+    deleted: Optional[int] = Field(
+        default=None,
+        sa_column=Column(Integer, nullable=False, server_default=text("0")),
+    )
 
 
 class EchoLog(SQLModel, table=True):

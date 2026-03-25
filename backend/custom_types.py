@@ -1,4 +1,5 @@
 from collections import defaultdict
+from sqlmodel import SQLModel
 
 
 class SubstatItem:
@@ -46,3 +47,23 @@ class SubstatValuePositionStat:
         self.position = position
         self.total = 0
         self.percent = 0.0
+
+
+class EchoTuneRequest(SQLModel):
+    id: int = 0
+    user_id: int = 0
+    clazz: str = ""
+    substat1: int = 0
+    substat2: int = 0
+    substat3: int = 0
+    substat4: int = 0
+    substat5: int = 0
+    substat_all: int = 0
+    s1_desc: str = ""
+    s2_desc: str = ""
+    s3_desc: str = ""
+    s4_desc: str = ""
+    s5_desc: str = ""
+    position: int = 0
+    substat: int = 0
+    value: int = 0
