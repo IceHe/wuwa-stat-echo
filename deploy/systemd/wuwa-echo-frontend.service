@@ -1,0 +1,15 @@
+[Unit]
+Description=Wuwa Echo Frontend Service
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/wuwa/echo/frontend
+ExecStartPre=/usr/bin/npm run build-only
+ExecStart=/usr/bin/npm run preview -- --host 0.0.0.0 --port 3000
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
