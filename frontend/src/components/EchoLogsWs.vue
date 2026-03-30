@@ -33,7 +33,7 @@
 import {ref, onMounted} from 'vue'
 import EchoLogRow from "@/components/EchoLogRow.vue";
 import axios from 'axios'
-import {API_SERV} from '@/stores/constants.js'
+import {API_BASE_URL} from '@/stores/constants.js'
 
 export default {
   name: 'EchoLogs',
@@ -56,7 +56,7 @@ export default {
         size = props.defaultSize
       }
       try {
-        const response = await axios.get(`http://${API_SERV}/echo_logs?page_size=${size}`)
+        const response = await axios.get(`${API_BASE_URL}/echo_logs?page_size=${size}`)
         console.log('listEchoLog: ', response.data)
         if (response.data.code === 200) {
           echoLogs.value = response.data.data

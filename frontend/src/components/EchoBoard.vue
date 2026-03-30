@@ -190,8 +190,7 @@
 
 <script>
 import axios from 'axios'
-import {
-  API_SERV,
+import { API_BASE_URL,
   CLASS_COLORS,
   CLASSES,
   getSubstatColor,
@@ -235,7 +234,7 @@ export default {
     const getEchoLog = async (echoId = 0) => {
       const targetEchoId = Number(echoId ? echoId : echoLog.value.id)
       try {
-        const response = await axios.get(`http://${API_SERV}/echo_log/${targetEchoId}`)
+        const response = await axios.get(`${API_BASE_URL}/echo_log/${targetEchoId}`)
         console.log("get echo log:", response.data) // DEBUG
         if (response.data.code === 200) {
           echoLog.value = response.data.data
@@ -324,14 +323,14 @@ export default {
     })
     const refreshEchoLogsAnalysis = async (size = 0) => {
       try {
-        const response = await axios.get(`http://${API_SERV}/echo_logs/analysis?size=${size}&user_id=${echoLog.value.user_id}&target_bits=${targetSubstatBitmap.value}`)
+        const response = await axios.get(`${API_BASE_URL}/echo_logs/analysis?size=${size}&user_id=${echoLog.value.user_id}&target_bits=${targetSubstatBitmap.value}`)
         console.log('current user: ', response.data) // DEBUG
         currentUser.value = response.data.data
       } catch (error) {
         console.error('请求失败:', error)
       }
       try {
-        const response = await axios.get(`http://${API_SERV}/echo_logs/analysis?page_size=${size}&target_bits=${targetSubstatBitmap.value}`)
+        const response = await axios.get(`${API_BASE_URL}/echo_logs/analysis?page_size=${size}&target_bits=${targetSubstatBitmap.value}`)
         console.log('all users: ', response.data) // DEBUG
         allUsers.value = response.data.data
       } catch (error) {
@@ -353,7 +352,7 @@ export default {
     })
     const refreshRecentTuneStats = async (size = 52) => {
       try {
-        const response = await axios.get(`http://${API_SERV}/tune_stats?size=${size}&user_id=${echoLog.value.user_id}`)
+        const response = await axios.get(`${API_BASE_URL}/tune_stats?size=${size}&user_id=${echoLog.value.user_id}`)
         console.log("refreshRecentTuneStats: ", response.data) // DEBUG
         recentTuneStats.value = response.data.data
       } catch (error) {

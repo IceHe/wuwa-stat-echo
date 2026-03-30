@@ -1,11 +1,12 @@
 const API_PORT = '8888'
+const IS_PUBLIC_ECHO_HOST = typeof window !== 'undefined' && window.location.hostname === 'echo.icehe.life'
 const API_HOST = typeof window === 'undefined'
     ? '127.0.0.1'
-    : (window.location.hostname === 'wuwa.icehe.life' ? 'api.icehe.life' : window.location.hostname)
+    : window.location.hostname
 
-export const API_SERV = typeof window !== 'undefined' && API_HOST === 'api.icehe.life'
-    ? API_HOST
-    : `${API_HOST}:${API_PORT}`
+export const API_BASE_URL = IS_PUBLIC_ECHO_HOST
+    ? `${window.location.origin}/api`
+    : `${window.location.protocol}//${API_HOST}:${API_PORT}`
 
 export const getSubstatColor = (bits: number) => {
     for (let i = 0; i < 13; i++) {

@@ -27,7 +27,7 @@
 </template>
 
 <script lang="ts">
-import {API_SERV, SUBSTAT, SUBSTAT_VALUE_MAP} from '@/stores/constants.ts'
+import {API_BASE_URL, SUBSTAT, SUBSTAT_VALUE_MAP} from '@/stores/constants.ts'
 import {onMounted, ref} from 'vue'
 import axios from 'axios'
 import {useRoute} from "vue-router";
@@ -53,7 +53,7 @@ export default {
       const after_id = route.query.after_id || 0
       const before_id = route.query.before_id || 0
       axios
-          .get(`http://${API_SERV}/counts/echo_dcrit?after_id=${after_id}&before_id=${before_id}`)
+          .get(`${API_BASE_URL}/counts/echo_dcrit?after_id=${after_id}&before_id=${before_id}`)
           .then((response) => {
             console.log(response.data) // DEBUG
             echo_dcrit_count.value = response.data.data

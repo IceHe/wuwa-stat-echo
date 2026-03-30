@@ -57,7 +57,7 @@
 <script>
 import moment from 'moment'
 import axios from 'axios'
-import {API_SERV, CLASS_COLORS, getSubstatColor} from '@/stores/constants.ts'
+import {API_BASE_URL, CLASS_COLORS, getSubstatColor} from '@/stores/constants.ts'
 import echoLogs from "@/components/EchoLogs.vue";
 import emitter from "@/stores/eventBus.js";
 import echo from "@/components/Echo.vue";
@@ -108,7 +108,7 @@ export default {
   setup(props) {
     const recoverTuneLog = (id) => {
       axios
-        .post(`http://${API_SERV}/echo_log/${id}/recover`, {
+        .post(`${API_BASE_URL}/echo_log/${id}/recover`, {
           id: props.echoLog.id,
         })
         .then((response) => {
@@ -127,7 +127,7 @@ export default {
 
     const deleteEchoLog = (id) => {
       axios
-        .delete(`http://${API_SERV}/echo_log/${id}`, {
+        .delete(`${API_BASE_URL}/echo_log/${id}`, {
           id: props.echoLog.id,
         })
         .then((response) => {

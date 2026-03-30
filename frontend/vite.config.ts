@@ -15,12 +15,12 @@ export default defineConfig({
   server: {
     host: '0.0.0.0',
     port: 3000,
-    allowedHosts: ['wuwa.icehe.life'],
+    allowedHosts: ['echo.icehe.life'],
   },
   preview: {
     host: '0.0.0.0',
     port: 3000,
-    allowedHosts: ['wuwa.icehe.life'],
+    allowedHosts: ['echo.icehe.life'],
   },
   resolve: {
     alias: {

@@ -31,7 +31,7 @@
 
 <script>
 import axios from 'axios'
-import { API_SERV, SUBSTAT, SUBSTAT_VALUE_MAP } from '@/stores/constants.ts'
+import { API_BASE_URL, SUBSTAT, SUBSTAT_VALUE_MAP } from '@/stores/constants.ts'
 import {onMounted, ref} from 'vue'
 import emitter from '@/stores/eventBus.js'
 
@@ -54,7 +54,7 @@ export default {
     const refreshRecentTuneStats = () => {
       const size = 39;
       axios
-        .get(`http://${API_SERV}/tune_stats?size=${size}`)
+        .get(`${API_BASE_URL}/tune_stats?size=${size}`)
         .then((response) => {
           console.log('recent tune stats: ', response.data) // DEBUG
           recentTuneStats.value = response.data.data
@@ -68,7 +68,7 @@ export default {
     const addTuneLog = (substat, value, position) => {
       console.log('substat:', substat, 'value:', value, 'pos:', position)
       axios
-        .post(`http://${API_SERV}/tune_log`, {
+        .post(`${API_BASE_URL}/tune_log`, {
           substat: substat,
           value: value,
           position: position,

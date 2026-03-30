@@ -1,7 +1,7 @@
 import axios from 'axios'
 import { reactive } from 'vue'
 
-import { API_SERV } from '@/stores/constants'
+import { API_BASE_URL } from '@/stores/constants'
 
 
 const AUTH_TOKEN_KEY = 'wuwa_auth_token'
@@ -92,7 +92,7 @@ export const installAxiosAuth = () => {
 
 export const loginWithToken = async (token: string): Promise<AuthUser> => {
   const trimmed = token.trim()
-  const response = await axios.post<AuthUser>(`http://${API_SERV}/auth/login`, { token: trimmed })
+  const response = await axios.post<AuthUser>(`${API_BASE_URL}/auth/login`, { token: trimmed })
   setStoredAuthToken(trimmed)
   authState.user = response.data
   return response.data
@@ -113,7 +113,7 @@ export const fetchCurrentUser = async (forceRefresh = false): Promise<AuthUser> 
   }
 
   currentUserPromise = axios
-    .get<AuthUser>(`http://${API_SERV}/auth/me`)
+    .get<AuthUser>(`${API_BASE_URL}/auth/me`)
     .then((response) => {
       authState.user = response.data
       authState.token = token

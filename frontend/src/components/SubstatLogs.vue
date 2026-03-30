@@ -30,7 +30,7 @@ import {ref, onMounted, computed} from 'vue'
 import axios from 'axios'
 import TuneLogRow from '@/components/SubstatLogRow.vue'
 import emitter from '../stores/eventBus'
-import {API_SERV} from '@/stores/constants.js'
+import {API_BASE_URL} from '@/stores/constants.js'
 import {authState} from '@/auth'
 
 export default {
@@ -59,7 +59,7 @@ export default {
         size = props.defaultSize
       }
       axios
-        .get(`http://${API_SERV}/substat_logs?page_size=${size}`)
+        .get(`${API_BASE_URL}/substat_logs?page_size=${size}`)
         .then((response) => {
           // 更新用户数据
           console.log("tune logs: ", response.data) // DEBUG

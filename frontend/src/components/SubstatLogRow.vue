@@ -19,7 +19,7 @@
 <script>
 import moment from 'moment'
 import axios from 'axios'
-import { API_SERV, SUBSTAT, SUBSTAT_VALUE_MAP } from '@/stores/constants.ts'
+import { API_BASE_URL, SUBSTAT, SUBSTAT_VALUE_MAP } from '@/stores/constants.ts'
 
 export default {
   name: 'TuneLogRow',
@@ -41,7 +41,7 @@ export default {
   setup(props) {
     const deleteTuneLog = (id) => {
       axios
-        .post(`http://${API_SERV}/tune_log/${id}/delete`, {
+        .post(`${API_BASE_URL}/tune_log/${id}/delete`, {
           id: props.tuneLog.id,
         })
         .then((response) => {

@@ -365,8 +365,7 @@
 
 <script>
 import axios from 'axios'
-import {
-  API_SERV,
+import { API_BASE_URL,
   CLASS_COLORS,
   CLASSES, ECHO_COST,
   getSubstatColor, RESONATORS,
@@ -440,7 +439,7 @@ export default {
       const { silent = false } = options
       const targetEchoId = Number(echoId ? echoId : echoLog.value.id)
       try {
-        const response = await axios.get(`http://${API_SERV}/echo_log/${targetEchoId}?resonator=${route.query.resonator}&cost=${route.query.cost}`)
+        const response = await axios.get(`${API_BASE_URL}/echo_log/${targetEchoId}?resonator=${route.query.resonator}&cost=${route.query.cost}`)
         console.log("get echo log:", response.data) // DEBUG
         if (response.data.code === 200) {
           if (!canManage.value && currentOperatorId.value != null && response.data.data?.operator_id !== currentOperatorId.value) {
@@ -546,7 +545,7 @@ export default {
       }
       try {
         const response = await axios
-            .post(`http://${API_SERV}/echo_log`, {
+            .post(`${API_BASE_URL}/echo_log`, {
               user_id: echoLog.value.user_id,
               clazz: echoLog.value.clazz,
               // tuned_at: echoLog.value.tuned_at, // FIXME
@@ -581,7 +580,7 @@ export default {
       }
       try {
         const response = await axios
-            .patch(`http://${API_SERV}/echo_log`, {
+            .patch(`${API_BASE_URL}/echo_log`, {
               id: echoLog.value.id,
               substat1: echoLog.value.substat1,
               substat2: echoLog.value.substat2,
@@ -618,7 +617,7 @@ export default {
         return
       }
       axios
-          .delete(`http://${API_SERV}/echo_log/${echoId}/substat_pos/${pos}`)
+          .delete(`${API_BASE_URL}/echo_log/${echoId}/substat_pos/${pos}`)
           .then((response) => {
             console.log('delSubstatLog:', response.data) // DEBUG
             const code = response.data.code
@@ -659,7 +658,7 @@ export default {
       const activeUserId = getActiveUserId()
       if (activeUserId > 0) {
         axios
-            .get(`http://${API_SERV}/echo_logs/analysis?size=${size}&user_id=${activeUserId}&target_bits=${targetSubstatBitmap.value}&substat_since_date=${template.value.substat_since_date}`)
+            .get(`${API_BASE_URL}/echo_logs/analysis?size=${size}&user_id=${activeUserId}&target_bits=${targetSubstatBitmap.value}&substat_since_date=${template.value.substat_since_date}`)
             .then((response) => {
               console.log('current user: ', response.data) // DEBUG
               currentUser.value = response.data.data
@@ -681,7 +680,7 @@ export default {
         }
       }
       axios
-          .get(`http://${API_SERV}/echo_logs/analysis?size=${size}&target_bits=${targetSubstatBitmap.value}`)
+          .get(`${API_BASE_URL}/echo_logs/analysis?size=${size}&target_bits=${targetSubstatBitmap.value}`)
           .then((response) => {
             console.log('all users: ', response.data) // DEBUG
             allUsers.value = response.data.data
@@ -827,7 +826,7 @@ export default {
       }
       try {
         const response = await axios
-            .post(`http://${API_SERV}/tune_log`, {
+            .post(`${API_BASE_URL}/tune_log`, {
               substat: substat,
               value: value,
               position: position,
@@ -866,7 +865,7 @@ export default {
     })
     const fetchEchoAnalysis = () => {
       axios
-          .post(`http://${API_SERV}/analyze_echo?resonator=${scoreTemplate.value.resonator}&cost=${scoreTemplate.value.cost}`, {
+          .post(`${API_BASE_URL}/analyze_echo?resonator=${scoreTemplate.value.resonator}&cost=${scoreTemplate.value.cost}`, {
             ...echoLog.value
           })
           .then((response) => {
@@ -945,7 +944,7 @@ export default {
           nextEchoLog.substat5
       ) & MASK
       try {
-        const response = await axios.post(`http://${API_SERV}/echo_log/tune`, {
+        const response = await axios.post(`${API_BASE_URL}/echo_log/tune`, {
           id: nextEchoLog.id,
           user_id: nextEchoLog.user_id,
           clazz: nextEchoLog.clazz,
@@ -999,7 +998,7 @@ export default {
     })
     const refreshRecentTuneStats = (size = 39) => {
       axios
-          .get(`http://${API_SERV}/tune_stats?size=${size}&user_id=${template.value.user_id}`)
+          .get(`${API_BASE_URL}/tune_stats?size=${size}&user_id=${template.value.user_id}`)
           .then((response) => {
             console.log(response.data) // DEBUG
             recentTuneStats.value = response.data.data
@@ -1184,7 +1183,7 @@ export default {
     })
     const fetchTuneStats = () => {
       axios
-          .get(`http://${API_SERV}/tune_stats?`)
+          .get(`${API_BASE_URL}/tune_stats?`)
           .then((response) => {
             console.log("tune_stats:", response.data) // DEBUG
             tuneStats.value = response.data.data

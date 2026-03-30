@@ -94,7 +94,7 @@
 </template>
 
 <script lang="ts">
-import { API_SERV, SUBSTAT, SUBSTAT_VALUE_MAP } from '@/stores/constants.ts'
+import { API_BASE_URL, SUBSTAT, SUBSTAT_VALUE_MAP } from '@/stores/constants.ts'
 import { onMounted, ref } from 'vue'
 import axios from 'axios'
 import {useRoute} from "vue-router";
@@ -116,7 +116,7 @@ export default {
       const user_id = route.query.user_id ?? 0
       const after_id = route.query.after_id ?? ''
       const before_id = route.query.before_id ?? ''
-      let url = `http://${API_SERV}/tune_stats?foo=bar`;
+      let url = `${API_BASE_URL}/tune_stats?foo=bar`;
       if (user_id) {
         url += `&user_id=${user_id}`
       }
@@ -128,7 +128,7 @@ export default {
       }
       axios
         .get(url)
-        // .get(`http://${API_SERV}/tune_stats?`)
+        // .get(`${API_BASE_URL}/tune_stats?`)
         .then((response) => {
           console.log(response.data) // DEBUG
           tuneStats.value = response.data.data

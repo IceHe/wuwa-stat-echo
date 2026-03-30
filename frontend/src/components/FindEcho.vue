@@ -131,7 +131,7 @@
 
 <script>
 import axios from 'axios'
-import {API_SERV, CLASS_COLORS, CLASSES, SUBSTAT, SUBSTAT_VALUE_MAP} from '@/stores/constants.ts'
+import {API_BASE_URL, CLASS_COLORS, CLASSES, SUBSTAT, SUBSTAT_VALUE_MAP} from '@/stores/constants.ts'
 import {computed, ref} from 'vue'
 import {useRoute} from 'vue-router';
 import EchoLogRow from "@/components/EchoLogRow.vue";
@@ -202,7 +202,7 @@ export default {
 
     const findEchoLog = async (nextPos = true) => {
       try {
-        const response = await axios.post(`http://${API_SERV}/echo_log/find?page_size=20`, {
+        const response = await axios.post(`${API_BASE_URL}/echo_log/find?page_size=20`, {
           user_id: normalizeUserId(echoLog.value.user_id),
           clazz: echoLog.value.clazz,
           substat1: echoLog.value.substat1,
@@ -291,7 +291,7 @@ export default {
       if (!setSubstatToCurrentPos(1 << substat | 1 << (value + 13), substatDesc)) {
         return
       }
-      // axios.post(`http://${API_SERV}/echo_log/find`, {
+      // axios.post(`${API_BASE_URL}/echo_log/find`, {
       //   user_id: echoLog.value.user_id,
       //   clazz: echoLog.value.clazz,
       //   substat1: echoLog.value.substat1,
