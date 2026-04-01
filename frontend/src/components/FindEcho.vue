@@ -9,10 +9,17 @@
         v-model="echoLog.user_id"
         placeholder="当前玩家ID"
         @change="setUserId(echoLog.user_id)" />
+      <input
+        class="button keyword-input"
+        type="text"
+        v-model.trim="echoLog.keyword"
+        placeholder="玩家ID / 声骸ID / 套装 / 词条"
+        @keyup.enter="findEchoLog(false)" />
       <span class="clazz-chip" :style="`color: ${CLASS_COLORS[echoLog.clazz]};`">
         {{ echoLog.clazz.substring(0, 4) }}
       </span>
-      <button class="button clear-button" @click="echoLog = newEchoLog()">清空</button>
+      <button class="button clear-button" @click="resetEchoLog()">清空</button>
+      <button class="button search-button" @click="findEchoLog(false)">搜索</button>
     </div>
     <div class="find-toolbar-row">
       <span class="name">当前孔位 </span>
@@ -165,6 +172,7 @@ export default {
       clazz: template.value.clazz,
       user_id: template.value.user_id,
       id: 0,
+      keyword: "",
       pos: 0, // 当前孔位
       substat1: 0,
       substat2: 0,
@@ -180,6 +188,10 @@ export default {
     })
 
     const echoLog = ref(newEchoLog())
+    const resetEchoLog = () => {
+      echoLog.value = newEchoLog()
+      echoLogs.value = []
+    }
     const normalizeUserId = (userId) => {
       if (userId === '' || userId === null || userId === undefined) {
         return 0
@@ -203,8 +215,10 @@ export default {
     const findEchoLog = async (nextPos = true) => {
       try {
         const response = await axios.post(`${API_BASE_URL}/echo_log/find?page_size=20`, {
+          id: Number(echoLog.value.id || 0),
           user_id: normalizeUserId(echoLog.value.user_id),
           clazz: echoLog.value.clazz,
+          keyword: echoLog.value.keyword?.trim() || '',
           substat1: echoLog.value.substat1,
           substat2: echoLog.value.substat2,
           substat3: echoLog.value.substat3,
@@ -324,6 +338,7 @@ export default {
       setClazz,
       setUserId,
       newEchoLog,
+      resetEchoLog,
       addAnyTuneToFind,
       addTuneToFind,
       findEchoLog,
@@ -378,6 +393,12 @@ export default {
   font-weight: bolder;
 }
 
+.keyword-input {
+  flex: 1 1 180px;
+  min-width: 180px;
+  justify-content: flex-start;
+}
+
 .clazz-chip {
   display: inline-flex;
   align-items: center;
@@ -388,6 +409,10 @@ export default {
 .clear-button {
   min-width: 64px;
   color: red;
+}
+
+.search-button {
+  min-width: 64px;
 }
 
 .find-position-row,

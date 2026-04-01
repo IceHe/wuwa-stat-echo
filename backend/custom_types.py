@@ -67,3 +67,15 @@ class EchoTuneRequest(SQLModel):
     position: int = 0
     substat: int = 0
     value: int = 0
+
+
+class EchoFindRequest(SQLModel):
+    id: int = 0
+    user_id: int = 0
+    clazz: str = ""
+    keyword: str = ""
+    substat1: int = 0
+    substat2: int = 0
+    substat3: int = 0
+    substat4: int = 0
+    substat5: int = 0

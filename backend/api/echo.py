@@ -6,11 +6,12 @@ from typing import Annotated
 from datetime import datetime, time
 
 from fastapi import APIRouter, Depends, Request
+from sqlalchemy import String, cast, or_
 from sqlmodel import func, Session, select, update, and_, not_
 
 from auth import require_edit_permission, require_view_permission, get_operator_id, can_manage
 from consts import TUNER_RECYCLED_PER_SUBSTAT, EXP, EXP_GOLD, EXP_RETURN, RESONATOR_TEMPLATES
-from custom_types import SubstatItem, EchoTuneRequest
+from custom_types import SubstatItem, EchoTuneRequest, EchoFindRequest
 from db import get_session
 from model import EchoLog, SubstatLog
 from response import Success, Error, Page
@@ -346,19 +347,31 @@ async def get_echo_log(
 async def find_echo_log(
         session: SessionDep,
         request: Request,
-        echo_log: EchoLog,
+        echo_log: EchoFindRequest,
+        page_size: int = 20,
 ):
-    if echo_log.substat1 | echo_log.substat2 | echo_log.substat3 | echo_log.substat4 | echo_log.substat5 == 0:
-        return Success([], "no substat specified, return empty list")
+    has_substat_filter = (
+        echo_log.substat1 | echo_log.substat2 | echo_log.substat3 | echo_log.substat4 | echo_log.substat5
+    ) != 0
+    keyword = (echo_log.keyword or "").strip()
+    if (
+            not has_substat_filter and
+            int(echo_log.id or 0) <= 0 and
+            int(echo_log.user_id or 0) <= 0 and
+            echo_log.clazz == '' and
+            keyword == ''
+    ):
+        return Success([], "no search condition specified, return empty list")
 
     try:
-        operator_id = await get_operator_id(request)
-        if operator_id is None:
-            return Error("operator not found", 401)
-
+        echo_id = int(echo_log.id or 0)
         user_id = int(echo_log.user_id or 0)
 
-        stmt = select(EchoLog).where(EchoLog.operator_id == operator_id)
+        stmt = select(EchoLog).where(EchoLog.deleted == 0)
+
+        if echo_id > 0:
+            stmt = stmt.where(EchoLog.id == echo_id)
+
         for column, substat_bits in (
                 (EchoLog.substat1, echo_log.substat1),
                 (EchoLog.substat2, echo_log.substat2),
@@ -370,11 +383,26 @@ async def find_echo_log(
             if filter_expr is not None:
                 stmt = stmt.where(and_(filter_expr))
 
-        stmt = stmt.where(EchoLog.deleted == 0)
         if user_id > 0:
             stmt = stmt.where(EchoLog.user_id == user_id)
         if echo_log.clazz != '':
             stmt = stmt.where(EchoLog.clazz == echo_log.clazz)
+        if keyword:
+            keyword_pattern = f"%{keyword}%"
+            keyword_filters = [
+                EchoLog.clazz.ilike(keyword_pattern),
+                EchoLog.s1_desc.ilike(keyword_pattern),
+                EchoLog.s2_desc.ilike(keyword_pattern),
+                EchoLog.s3_desc.ilike(keyword_pattern),
+                EchoLog.s4_desc.ilike(keyword_pattern),
+                EchoLog.s5_desc.ilike(keyword_pattern),
+                cast(EchoLog.user_id, String).ilike(keyword_pattern),
+                cast(EchoLog.id, String).ilike(keyword_pattern),
+            ]
+            stmt = stmt.where(or_(*keyword_filters))
+
+        normalized_page_size = max(1, min(page_size, 100))
+        stmt = stmt.order_by(EchoLog.updated_at.desc()).limit(normalized_page_size)
 
         data = session.exec(stmt).all()
         return Success(data, "find echo logs")
