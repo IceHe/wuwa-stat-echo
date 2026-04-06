@@ -1,7 +1,7 @@
 from contextlib import asynccontextmanager
 
 import uvicorn
-from fastapi import FastAPI
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from starlette.middleware.cors import CORSMiddleware
 
 from api.auth import router as auth_router
@@ -12,6 +12,7 @@ from api.db_data import router as db_data_router
 from api.predict import router as predict_router
 from api.counts import router as test_router
 from shared import init_tune_stats
+from ws import manager
 import asyncio
 
 
@@ -42,6 +43,19 @@ app.include_router(db_data_router)
 app.include_router(predict_router)
 app.include_router(test_router)
 app.include_router(auth_router)
+
+
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket, operator_id: str):
+    """WebSocket 端点，接收 operator_id 查询参数"""
+    await manager.connect(websocket, operator_id)
+    try:
+        while True:
+            # 保持连接，接收心跳消息
+            data = await websocket.receive_text()
+            # 可以处理客户端发送的消息，暂时只保持连接
+    except WebSocketDisconnect:
+        manager.disconnect(websocket, operator_id)
 
 
 if __name__ == "__main__":

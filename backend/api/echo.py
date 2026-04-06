@@ -16,6 +16,7 @@ from db import get_session
 from model import EchoLog, SubstatLog
 from response import Success, Error, Page
 from util import bit_count, bit_pos
+from ws import manager
 
 router = APIRouter()
 SessionDep = Annotated[Session, Depends(get_session)]
@@ -98,6 +99,13 @@ async def create_echo_log(
         session.add(echo_log)
         session.commit()
         session.refresh(echo_log)
+
+        # 推送创建消息到 WebSocket
+        await manager.send_to_operator({
+            "type": "create_echo_log",
+            "data": echo_log.dict()
+        }, echo_log.operator_id)
+
         return Success(echo_log.dict(), "create echo log")
     except Exception as e:
         print(e)
@@ -125,6 +133,13 @@ async def update_echo_log(
 
         apply_echo_changes(existing_echo_log, echo_log)
         session.commit()
+        session.refresh(existing_echo_log)
+
+        # 推送更新消息到 WebSocket
+        await manager.send_to_operator({
+            "type": "update_echo_log",
+            "data": existing_echo_log.dict()
+        }, existing_echo_log.operator_id)
 
         return Success(existing_echo_log.dict(), "update echo log")
     except Exception as e:
@@ -187,6 +202,15 @@ async def tune_echo_log(
         session.refresh(echo_log)
         session.refresh(tune_log)
 
+        # 推送调谐消息到 WebSocket
+        await manager.send_to_operator({
+            "type": "tune_echo_log",
+            "data": {
+                "echo_log": echo_log.dict(),
+                "tune_log": tune_log.dict()
+            }
+        }, operator_id)
+
         return Success({
             "echo_log": echo_log.dict(),
             "tune_log": tune_log.dict(),
@@ -244,6 +268,13 @@ async def delete_echo_log(
             session.exec(stmt2)
 
         session.commit()
+
+        # 推送删除消息到 WebSocket
+        await manager.send_to_operator({
+            "type": "delete_echo_log",
+            "data": {"id": id, "deleted": "hard" if empty_echo else "soft"}
+        }, echo_log.operator_id)
+
         return Success(result, "delete echo log")
     except Exception as e:
         print(e)

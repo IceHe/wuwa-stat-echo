@@ -7,7 +7,7 @@ Type=simple
 User=root
 WorkingDirectory=/root/wuwa/echo/backend
 EnvironmentFile=-/root/wuwa/echo/backend/.env
-ExecStart=/root/wuwa/echo/backend/.venv/bin/python -m uvicorn main:app --host 0.0.0.0 --port 8888
+ExecStart=/root/wuwa/echo/backend/bin/wuwa-echo-backend
 Restart=always
 RestartSec=3
 

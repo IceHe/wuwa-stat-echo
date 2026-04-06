@@ -386,7 +386,12 @@ export default {
       return CLASS_COLORS
     }
   },
-  props: {},
+  props: {
+    syncEchoIdQuery: {
+      type: Boolean,
+      default: true,
+    },
+  },
   created() {
     emitter.on('getEchoLog', (echoId) => {
       this.getEchoLog(echoId)
@@ -418,6 +423,12 @@ export default {
           [key]: value,
         },
       });
+    }
+    const updateEchoIdQuery = (value) => {
+      if (!props.syncEchoIdQuery) {
+        return
+      }
+      updateQueryParam('echo_id', value)
     }
 
     const scoreTemplate = ref({
@@ -459,7 +470,8 @@ export default {
         if (echoLog.value.substat3 > 0) echoLog.value.pos = 3
         if (echoLog.value.substat4 > 0) echoLog.value.pos = 4
         if (echoLog.value.substat5 > 0) echoLog.value.pos = 5
-        updateQueryParam('echo_id', echoLog.value.id)
+        updateEchoIdQuery(echoLog.value.id)
+        refreshRecentTuneStats()
         refreshEchoLogsAnalysis()
         fetchEchoAnalysis()
         return true
@@ -521,7 +533,7 @@ export default {
     const echoLog = ref(newEchoLog())
     const clearEchoEditor = () => {
       echoLog.value = buildEmptyEchoLog()
-      updateQueryParam('echo_id', 0)
+      updateEchoIdQuery(0)
     }
     const emitSyncEchoLog = () => {
       if (!echoLog.value.id) {
@@ -557,9 +569,9 @@ export default {
             ...response.data.data,
             pos: echoLog.value.pos,
           }
-          updateQueryParam('echo_id', echoLog.value.id)
+          updateEchoIdQuery(echoLog.value.id)
           emitSyncEchoLog()
-          updateQueryParam('echo_id', echoLog.value.id)
+          updateEchoIdQuery(echoLog.value.id)
           doIfSuccess()
           return true
         } else {
@@ -720,7 +732,7 @@ export default {
       }
     }
     const setEchoId = (id) => {
-      updateQueryParam('echo_id', id)
+      updateEchoIdQuery(id)
       echoLog.value.id = id
       getEchoLog()
     }
@@ -730,7 +742,7 @@ export default {
         return
       }
       hasInitializedEchoEditor.value = true
-      const initialEchoId = Number(route.query.echo_id || 0)
+      const initialEchoId = props.syncEchoIdQuery ? Number(route.query.echo_id || 0) : 0
       getEchoLog(initialEchoId > 0 ? initialEchoId : 0, { silent: true })
     }
     onMounted(initEchoEditor)
@@ -977,7 +989,7 @@ export default {
         if (savedEchoLog.substat4 > 0) savedEchoLog.pos = 4
         if (savedEchoLog.substat5 > 0) savedEchoLog.pos = 5
         echoLog.value = savedEchoLog
-        updateQueryParam('echo_id', echoLog.value.id)
+        updateEchoIdQuery(echoLog.value.id)
         emitSyncEchoLog()
         fetchEchoAnalysis()
         emitter.emit('refreshEchoLogs')
@@ -1388,8 +1400,14 @@ export default {
 
 .substat-summary-buttons {
   display: flex;
-  flex: 1 1 auto;
+  flex: 0 1 616px;
+  width: 616px;
   min-width: 0;
+  gap: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  max-width: calc(100% - 104px);
+  padding-bottom: 6px;
 }
 
 .suite-scroll {
@@ -1427,9 +1445,12 @@ export default {
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  width: 88px;
   min-width: 88px;
+  max-width: 88px;
   height: 100px;
   padding: 0 8px;
+  box-sizing: border-box;
   border-radius: 10px;
   background: rgba(0, 0, 0, 0.04);
   font-size: 13px;

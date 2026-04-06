@@ -3,6 +3,7 @@ import { getStoredAuthToken } from '@/auth'
 import HomeView from '@/views/HomeView.vue'
 import AnalysisView from '@/views/AnalysisView.vue'
 import EchoView from "@/views/EchoView.vue";
+import EchoViewerView from "@/views/EchoViewerView.vue";
 import SubstatView from "@/views/SubstatView.vue";
 import EchoBoardView from "@/views/EchoBoardView.vue";
 import EchoDcritCountView from "@/views/EchoDcritCountView.vue";
@@ -50,6 +51,12 @@ const router = createRouter({
             path: '/echo_dcrit_count',
             name: 'echo_dcrit_count',
             component: EchoDcritCountView,
+        },
+        {
+            path: '/echo-viewer',
+            name: 'echo-viewer',
+            component: EchoViewerView,
+            meta: { public: true },
         },
     ],
 })
