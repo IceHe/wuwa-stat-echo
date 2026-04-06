@@ -101,6 +101,7 @@ wuwa-fastapi/
 - [数据字段文档](docs/DATA_FIELDS.md) - 核心实体与统计返回字段
 - [副词条文档](docs/ECHO_SUBSTATS.md) - 鸣潮声骸副词条与编码规则
 - [需求说明](docs/REQUIREMENTS.md) - 功能需求和业务规则
+- [高级统计路线图](docs/ROADMAP_ADVANCED_STATS.md) - 聚合表、增量统计、决策支持与模拟器规划
 
 ## API 示例
 

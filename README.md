@@ -98,6 +98,7 @@ npm run dev
 - `backend/docs/ARCHITECTURE.md`：系统架构与模块划分
 - `backend/docs/API.md`：主要 API 说明
 - `backend/docs/REQUIREMENTS.md`：业务需求说明
+- `backend/docs/ROADMAP_ADVANCED_STATS.md`：高级统计、决策支持与模拟器路线图
 - `frontend/README.md`：前端页面结构与开发说明
 
 ## 适合后续补齐的文档
