@@ -387,7 +387,8 @@ import { API_BASE_URL,
   SUBSTAT_VALUE_MAP
 } from '@/stores/constants.ts'
 import { buildDecisionQueryFromEncoded } from '@/views/decisionSupport.ts'
-import {onMounted, ref, computed, watch} from 'vue'
+import { publishScoreTemplateChange as publishScoreTemplateCrossTab } from '@/stores/scoreTemplateSync'
+import {onMounted, onUnmounted, ref, computed, watch} from 'vue'
 import emitter from '@/stores/eventBus.js'
 import {useRoute, useRouter} from 'vue-router';
 import {authState} from '@/auth'
@@ -457,12 +458,43 @@ export default {
       const normalized = Number(userId)
       return Number.isNaN(normalized) ? 0 : normalized
     }
+    const publishScoreTemplateChange = (field, value) => {
+      const payload = {
+        field,
+        value,
+        resonator: scoreTemplate.value.resonator || '',
+        cost: scoreTemplate.value.cost || '',
+      }
+      emitter.emit('scoreTemplateChanged', payload)
+      publishScoreTemplateCrossTab(payload)
+      if (!props.syncEchoIdQuery || currentOperatorId.value == null) {
+        return
+      }
+      axios.post(`${API_BASE_URL}/viewer/score_template_sync`, payload).catch((error) => {
+        console.error('同步评分模板到实时查看失败:', error)
+      })
+    }
+    const applyScoreTemplate = (payload = {}) => {
+      const nextResonator = typeof payload.resonator === 'string' ? payload.resonator : scoreTemplate.value.resonator
+      const nextCost = typeof payload.cost === 'string' ? payload.cost : scoreTemplate.value.cost
+      const resonatorChanged = scoreTemplate.value.resonator !== nextResonator
+      const costChanged = scoreTemplate.value.cost !== nextCost
+      if (!resonatorChanged && !costChanged) {
+        return
+      }
+      updateQueryParam('resonator', nextResonator || undefined)
+      updateQueryParam('cost', nextCost || undefined)
+      scoreTemplate.value.resonator = nextResonator
+      scoreTemplate.value.cost = nextCost
+      fetchEchoAnalysis()
+    }
     const setResonator = (resonator) => {
       if (scoreTemplate.value.resonator === resonator) {
         return
       }
       updateQueryParam('resonator', resonator)
       scoreTemplate.value.resonator = resonator
+      publishScoreTemplateChange('resonator', resonator)
       fetchEchoAnalysis()
     }
     const setCost = (cost) => {
@@ -471,6 +503,7 @@ export default {
       }
       updateQueryParam('cost', cost)
       scoreTemplate.value.cost = cost
+      publishScoreTemplateChange('cost', cost)
       fetchEchoAnalysis()
     }
 
@@ -1287,6 +1320,7 @@ export default {
       tuneStats,
       echoAnalysis,
       scoreTemplate,
+      applyScoreTemplate,
       template,
       setResonator,
       setCost,

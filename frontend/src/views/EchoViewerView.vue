@@ -34,6 +34,10 @@ import Echo from '@/components/Echo.vue'
 import EchoLogs from '@/components/EchoLogs.vue'
 import { API_BASE_URL } from '@/stores/constants'
 import emitter from '@/stores/eventBus'
+import {
+  subscribeScoreTemplateChange,
+  type ScoreTemplateChangeEvent,
+} from '@/stores/scoreTemplateSync'
 
 const route = useRoute()
 const operatorId = ref('')
@@ -43,6 +47,7 @@ const echoRef = ref<any>(null)
 const wsLogs = ref<Array<{time: string, type: 'info' | 'error' | 'message', message: string}>>([])
 const logContentRef = ref<HTMLElement | null>(null)
 let refreshTimer: number | null = null
+let unsubscribeScoreTemplateSync: (() => void) | null = null
 
 const extractEchoId = (message: any): number => {
   const echoIdFromEchoLog = Number(message?.data?.echo_log?.id || 0)
@@ -92,6 +97,20 @@ const addLog = (type: 'info' | 'error' | 'message', message: string) => {
   })
 }
 
+const handleScoreTemplateChanged = (payload: ScoreTemplateChangeEvent) => {
+  const label = payload.field === 'resonator' ? '评分模板' : 'Cost主词条'
+  const templateName = payload.resonator || '未设置'
+  const cost = payload.cost || '未设置'
+  addLog('info', `${label}切换为 ${payload.value}，当前评分上下文: ${templateName} / ${cost}`)
+}
+
+const applyRemoteScoreTemplateChange = (payload: ScoreTemplateChangeEvent) => {
+  if (echoRef.value?.applyScoreTemplate) {
+    echoRef.value.applyScoreTemplate(payload)
+  }
+  handleScoreTemplateChanged(payload)
+}
+
 const connectWebSocket = () => {
   if (!operatorId.value) {
     addLog('error', 'URL参数中缺少 operator_id')
@@ -121,6 +140,11 @@ const connectWebSocket = () => {
       addLog('message', `收到消息: ${message.type} - ${JSON.stringify(message.data)}`)
       console.log('Received WebSocket message:', message)
 
+      if (message.type === 'score_template_changed') {
+        applyRemoteScoreTemplateChange(message.data)
+        return
+      }
+
       // 局部刷新数据，避免整页 reload 闪屏
       addLog('info', '正在局部刷新数据（不重载页面）')
       refreshViewerData(message)
@@ -146,6 +170,8 @@ const connectWebSocket = () => {
 }
 
 onMounted(() => {
+  emitter.on('scoreTemplateChanged', handleScoreTemplateChanged)
+  unsubscribeScoreTemplateSync = subscribeScoreTemplateChange(applyRemoteScoreTemplateChange)
   operatorId.value = route.query.operator_id as string
   if (operatorId.value) {
     connectWebSocket()
@@ -156,6 +182,11 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
+  emitter.off('scoreTemplateChanged', handleScoreTemplateChanged)
+  if (unsubscribeScoreTemplateSync) {
+    unsubscribeScoreTemplateSync()
+    unsubscribeScoreTemplateSync = null
+  }
   if (ws.value) {
     ws.value.close()
   }

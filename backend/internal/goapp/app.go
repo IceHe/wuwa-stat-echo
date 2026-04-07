@@ -120,6 +120,13 @@ type EchoFindRequest struct {
 	Substat5 int64  `json:"substat5"`
 }
 
+type ScoreTemplateSyncRequest struct {
+	Field     string `json:"field"`
+	Value     string `json:"value"`
+	Resonator string `json:"resonator"`
+	Cost      string `json:"cost"`
+}
+
 type SuccessResponse struct {
 	Code    int         `json:"code"`
 	Message string      `json:"message"`
@@ -302,6 +309,7 @@ func (a *App) Handler() http.Handler {
 	mux.HandleFunc("POST /echo_log/find", a.withPermission("view", a.handleFindEchoLog))
 	mux.HandleFunc("DELETE /echo_log/{echoId}/substat_pos/{pos}", a.withPermission("edit", a.handleDeleteSubstatByEchoPos))
 	mux.HandleFunc("GET /echo_logs/analysis", a.withPermission("view", a.handleEchoLogsAnalysis))
+	mux.HandleFunc("/viewer/score_template_sync", a.withPermission("view", a.handleViewerScoreTemplateSync))
 	return a.cors(mux)
 }
 
@@ -875,24 +883,59 @@ func (wsm *wsManager) handle(operatorID string, conn *wsConn) {
 		_ = conn.conn.Close()
 	}()
 	for {
-		if err := conn.readLoop(); err != nil {
+		message, err := conn.readLoop()
+		if err != nil {
 			if err != io.EOF {
 				log.Printf("websocket receive: %v", err)
 			}
 			return
 		}
+		if message == "" {
+			continue
+		}
+		wsm.handleClientMessage(operatorID, message)
 	}
 }
 
 func (wsm *wsManager) send(operatorID int64, payload any) {
+	wsm.sendToOperator(strconv.FormatInt(operatorID, 10), payload)
+}
+
+func (wsm *wsManager) sendToOperator(operatorID string, payload any) {
 	body, err := json.Marshal(payload)
 	if err != nil {
 		return
 	}
 	wsm.mu.RLock()
 	defer wsm.mu.RUnlock()
-	for conn := range wsm.connections[strconv.FormatInt(operatorID, 10)] {
+	for conn := range wsm.connections[operatorID] {
 		_ = conn.writeText(string(body))
+	}
+}
+
+func (wsm *wsManager) handleClientMessage(operatorID string, raw string) {
+	var envelope struct {
+		Type string          `json:"type"`
+		Data json.RawMessage `json:"data"`
+	}
+	if err := json.Unmarshal([]byte(raw), &envelope); err != nil {
+		return
+	}
+	switch envelope.Type {
+	case "score_template_changed":
+		var payload struct {
+			Field     string `json:"field"`
+			Value     string `json:"value"`
+			Resonator string `json:"resonator"`
+			Cost      string `json:"cost"`
+		}
+		if err := json.Unmarshal(envelope.Data, &payload); err != nil {
+			return
+		}
+		wsm.sendToOperator(operatorID, map[string]any{
+			"type": "score_template_changed",
+			"data": payload,
+		})
 	}
 }
 
@@ -2093,6 +2136,45 @@ func (a *App) handleEchoLogsAnalysis(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, success("echo logs analysis", resp))
 }
 
+func (a *App) handleViewerScoreTemplateSync(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var payload ScoreTemplateSyncRequest
+	if err := readJSON(r, &payload); err != nil {
+		writeJSON(w, appError("failed to sync score template", 400))
+		return
+	}
+	operatorID := operatorIDFromContext(r.Context())
+	if operatorID == nil {
+		writeJSON(w, appError("operator not found", 401))
+		return
+	}
+	field := strings.TrimSpace(payload.Field)
+	value := strings.TrimSpace(payload.Value)
+	if field == "" || value == "" {
+		writeJSON(w, appError("field and value are required", 400))
+		return
+	}
+	switch field {
+	case "resonator", "cost":
+	default:
+		writeJSON(w, appError("invalid field", 400))
+		return
+	}
+	a.ws.send(*operatorID, map[string]any{
+		"type": "score_template_changed",
+		"data": map[string]any{
+			"field":     field,
+			"value":     value,
+			"resonator": strings.TrimSpace(payload.Resonator),
+			"cost":      strings.TrimSpace(payload.Cost),
+		},
+	})
+	writeJSON(w, success("viewer score template synced", map[string]any{}))
+}
+
 func (a *App) loadEchoLogsAnalysisItems(ctx context.Context, userID int64, effectiveSize int, targetBits int64, window statsWindow, substatSinceDate string) ([]EchoLog, int64, error) {
 	selectSQL := "select id, substat1, substat2, substat3, substat4, substat5, substat_all, s1_desc, s2_desc, s3_desc, s4_desc, s5_desc, clazz, user_id, operator_id, deleted, tuned_at, created_at, updated_at from wuwa_echo_log where deleted = 0"
 	countSQL := "select count(id) from wuwa_echo_log where deleted = 0"
@@ -2364,14 +2446,14 @@ func (c *wsConn) writeText(message string) error {
 	return err
 }
 
-func (c *wsConn) readLoop() error {
+func (c *wsConn) readLoop() (string, error) {
 	first, err := c.br.ReadByte()
 	if err != nil {
-		return err
+		return "", err
 	}
 	second, err := c.br.ReadByte()
 	if err != nil {
-		return err
+		return "", err
 	}
 	opcode := first & 0x0f
 	masked := second&0x80 != 0
@@ -2380,11 +2462,11 @@ func (c *wsConn) readLoop() error {
 	case 126:
 		b1, err := c.br.ReadByte()
 		if err != nil {
-			return err
+			return "", err
 		}
 		b2, err := c.br.ReadByte()
 		if err != nil {
-			return err
+			return "", err
 		}
 		payloadLen = int(b1)<<8 | int(b2)
 	case 127:
@@ -2392,7 +2474,7 @@ func (c *wsConn) readLoop() error {
 		for i := 0; i < 8; i++ {
 			b, err := c.br.ReadByte()
 			if err != nil {
-				return err
+				return "", err
 			}
 			size = (size << 8) | uint64(b)
 		}
@@ -2401,12 +2483,12 @@ func (c *wsConn) readLoop() error {
 	var mask [4]byte
 	if masked {
 		if _, err := io.ReadFull(c.br, mask[:]); err != nil {
-			return err
+			return "", err
 		}
 	}
 	payload := make([]byte, payloadLen)
 	if _, err := io.ReadFull(c.br, payload); err != nil {
-		return err
+		return "", err
 	}
 	if masked {
 		for i := range payload {
@@ -2415,11 +2497,13 @@ func (c *wsConn) readLoop() error {
 	}
 	switch opcode {
 	case 0x8:
-		return io.EOF
+		return "", io.EOF
 	case 0x9:
-		return c.writeControl(0xA, payload)
+		return "", c.writeControl(0xA, payload)
+	case 0x1:
+		return string(payload), nil
 	default:
-		return nil
+		return "", nil
 	}
 }
 
