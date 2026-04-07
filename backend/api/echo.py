@@ -58,6 +58,14 @@ def apply_echo_changes(target: EchoLog, payload) -> None:
     target.updated_at = datetime.now()
 
 
+def sync_substat_user_id(session: Session, echo_id: int, user_id: int) -> None:
+    session.exec(
+        update(SubstatLog)
+        .where(SubstatLog.echo_id == echo_id)
+        .values(user_id=user_id)
+    )
+
+
 @router.get("/echo_logs", dependencies=[Depends(require_view_permission)])
 async def list_echo_log(
         session: SessionDep,
@@ -131,7 +139,10 @@ async def update_echo_log(
         if existing_echo_log.operator_id != operator_id and not await can_manage(request):
             return Error("not authorized to update this echo log", 403)
 
+        previous_user_id = existing_echo_log.user_id
         apply_echo_changes(existing_echo_log, echo_log)
+        if existing_echo_log.user_id != previous_user_id:
+            sync_substat_user_id(session, existing_echo_log.id, existing_echo_log.user_id)
         session.commit()
         session.refresh(existing_echo_log)
 
@@ -170,6 +181,7 @@ async def tune_echo_log(
                 return Error("echo log not found", 404)
             if echo_log.operator_id != operator_id and not is_manager:
                 return Error("not authorized to tune this echo log", 403)
+            previous_user_id = echo_log.user_id
         else:
             if not payload.user_id:
                 return Error("user_id is required", 400)
@@ -186,8 +198,11 @@ async def tune_echo_log(
             )
             session.add(echo_log)
             session.flush()
+            previous_user_id = echo_log.user_id
 
         apply_echo_changes(echo_log, payload)
+        if payload.id > 0 and echo_log.user_id != previous_user_id:
+            sync_substat_user_id(session, echo_log.id, echo_log.user_id)
 
         tune_log = SubstatLog(
             user_id=echo_log.user_id,
