@@ -9,8 +9,16 @@
           <span class="home-link-path">/echo</span>
         </RouterLink>
         <RouterLink class="home-link" to="/analysis">
-          <span class="home-link-title">统计分析</span>
+          <span class="home-link-title">高级统计</span>
           <span class="home-link-path">/analysis</span>
+        </RouterLink>
+        <RouterLink class="home-link" to="/decision-lab">
+          <span class="home-link-title">Decision Lab</span>
+          <span class="home-link-path">/decision-lab</span>
+        </RouterLink>
+        <RouterLink class="home-link" to="/simulator">
+          <span class="home-link-title">Simulator</span>
+          <span class="home-link-path">/simulator</span>
         </RouterLink>
         <RouterLink class="home-link" to="/echo_dcrit_count">
           <span class="home-link-title">双暴统计</span>

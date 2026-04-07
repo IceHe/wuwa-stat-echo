@@ -8,6 +8,71 @@
 - 高级统计分析，支持置信区间、滚动窗口和显著性判断
 - 用户进阶能力，支持养成决策和模拟器
 
+## 实施清单
+
+### 第一阶段：统计底座
+
+- [x] 新增 `agg_tune_substat_counts` 迁移文件和运行时建表保障
+- [x] 新增 tune stats 聚合全量重建逻辑
+- [x] 新增管理端重建入口 `POST /admin/stats/rebuild/tune`
+- [x] `/tune_stats` 在 `size=0` 且无 `after_id/before_id` 时优先走聚合查询
+- [x] `tune_log` 新增、删除、恢复相关链路增量维护 `agg_tune_substat_counts`
+- [x] 新增 `agg_echo_dcrit_counts` 聚合表和 `/counts/echo_dcrit` 聚合查询
+- [x] 新增 `agg_echo_summary` 聚合表和 `/echo_logs/analysis` 聚合查询
+- [x] 新增聚合一致性校验和重建任务记录
+
+最新完成记录（2026-04-06）：
+
+- 已完成 `agg_echo_dcrit_counts` 迁移、运行时建表、全量重建入口 `POST /admin/stats/rebuild/dcrit`
+- `/counts/echo_dcrit` 在 `size=0` 且无 `after_id/before_id` 时优先走聚合查询，`echo_log` 的新增、更新、调谐、删除、恢复链路会增量维护该聚合
+- 已验证 `POST /admin/stats/rebuild/dcrit` 返回 200，聚合查询与强制原始扫描返回一致，现有 `go run ./cmd/e2e` 通过
+- 已完成 `agg_echo_summary` 迁移、运行时建表、全量重建入口 `POST /admin/stats/rebuild/echo_summary`
+- `/echo_logs/analysis` 在 `size=0` 且无 `substat_since_date` 时优先走聚合查询，`echo_log` 的新增、更新、调谐、删除、恢复链路会增量维护该聚合
+- 已验证 `POST /admin/stats/rebuild/echo_summary` 返回 200，全站和单用户聚合查询与强制原始扫描返回一致，现有 `go run ./cmd/e2e` 通过
+- 已完成 `agg_rebuild_jobs` 迁移、运行时建表，以及三个重建入口的任务记录：`POST /admin/stats/rebuild/tune`、`POST /admin/stats/rebuild/dcrit`、`POST /admin/stats/rebuild/echo_summary`
+- 已新增任务查询接口 `GET /admin/stats/rebuild/{jobID}` 和一致性校验接口 `POST /admin/stats/reconcile`
+- 已验证重建响应会返回成功 job，`GET /admin/stats/rebuild/1` 可查询任务记录，`POST /admin/stats/reconcile?target_bits=3` 返回三张聚合均一致，现有 `go run ./cmd/e2e` 通过
+- 已完成统一比例统计结构 `count / total / rate / ci95_low / ci95_high`，并覆盖 `/tune_stats`、`/counts/echo_dcrit`、`/echo_logs/analysis`
+- `tune_stats` 的副词条、档位和孔位主比例项新增 `proportion` 字段，`/counts/echo_dcrit` 新增 `dcrit_rate_stats`，`/echo_logs/analysis` 新增 `sample_size` 和 `target_rate_stats`
+- 已验证三类接口均返回置信区间字段，且 aggregate/raw 返回一致，现有 `go run ./cmd/e2e` 通过
+- 已完成统一窗口参数 `window`，支持 `all / last_100 / last_500 / last_1000 / day_7 / day_30`，并覆盖 `/tune_stats`、`/counts/echo_dcrit`、`/echo_logs/analysis`
+- `all` 口径仍优先走聚合；`last_*` 和 `day_*` 口径走实时小范围查询，响应中会返回 `window`
+- 已验证 `window=last_100` 与旧 `size=100` 的核心统计结果一致，`day_7/day_30` 查询可正常返回，现有 `go run ./cmd/e2e` 通过
+- 已完成个人 vs 全站基线对比：当传入 `user_id` 时，`/tune_stats`、`/counts/echo_dcrit`、`/echo_logs/analysis` 会额外返回 `baseline_compare`
+- `/tune_stats` 返回 `substat_rate_delta`，`/counts/echo_dcrit` 返回 `baseline_compare.dcrit_rate`，`/echo_logs/analysis` 返回 `baseline_compare.target_rate`，均包含 `user / global / delta_rate`
+- 已验证全量和窗口场景下的个人 vs 全站对比均正常返回，现有 `go run ./cmd/e2e` 通过
+- 已完成显著性与偏差提示：各类 `baseline_compare` 现在都会返回 `significance` 和 `bias_hint`
+- `significance` 包含 `significant / sample_enough / p_value / z_score / effect_size_pp / direction`，`bias_hint` 会给出“显著高于 / 显著低于 / 差异不显著 / 样本过小”等提示
+- `/tune_stats` 的 `baseline_compare` 额外返回 `highlights`，用于列出偏差最明显的副词条；已验证接口正常返回新增字段，现有 `go run ./cmd/e2e` 通过
+- 已完成 `/analysis` 高级统计页面升级：新增窗口选择、用户维度对比、双暴率卡片、目标命中卡片、显著性提示、偏差高亮，并保留调谐分布明细表
+- 首页 `/analysis` 入口文案已更新为“高级统计”；前端 `vite build` 通过
+- 当前仓库仍存在与本次改动无关的旧前端 TypeScript 报错，`npm run build` 会在 `vue-tsc` 阶段失败，但本次新增页面可通过 `npm run build-only` 打包
+
+### 第二阶段：高级统计
+
+- [x] 为主要比例指标增加样本量和 95% 置信区间
+- [x] 支持 `all / last_100 / last_500 / last_1000 / day_7 / day_30` 统计窗口
+- [x] 增加个人 vs 全站基线对比
+- [x] 增加显著性与偏差提示
+- [x] 新增高级统计页面
+
+### 第三阶段：决策支持与模拟器
+
+- [x] 新增 `POST /decision/echo-next-step`
+- [x] 新增 `POST /simulator/echo-future`
+- [x] 新增 `POST /simulator/echo-compare`
+- [x] 新增 Decision Lab 页面
+- [x] 新增 Simulator 页面
+
+最新完成记录（2026-04-07）：
+
+- 已新增 `POST /decision/echo-next-step`，基于当前词条评分、同阶段历史分位、下一手命中概率和继续到底达标率返回 `recommendation / reasons`
+- 已新增 `POST /simulator/echo-future`，支持基于历史样本分布的 Monte Carlo 风格未来调谐模拟，返回 `hit_prob / high_roll_prob / expected_score / expected_tuner_cost / expected_exp_cost / result_buckets`
+- 已新增 `POST /simulator/echo-compare`，可对比 `stop_now / continue_once / continue_to_end` 三种策略
+- 已补充 `backend/cmd/e2e` 对三条新接口的链路调用，`env GOCACHE=/tmp/go-build go test ./...` 通过
+- 已新增前端页面 `/decision-lab` 和 `/simulator`，支持填写当前词条、目标模板、窗口与预算参数，并展示建议卡片与策略对比
+- 首页与顶栏已新增入口，`npm run build-only` 通过；当前仍存在仓库旧 CSS `//` 注释警告，但不影响打包
+
 ## 总体策略
 
 建议按以下顺序推进：

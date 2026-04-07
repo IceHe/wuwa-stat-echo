@@ -16,10 +16,10 @@ type substatDef struct {
 }
 
 type resonatorTemplate struct {
-	Name             string
-	EchoMaxScore     map[string]float64
-	MainstatMaxScore map[string]float64
-	SubstatWeight    map[string]float64
+	Name             string             `json:"name"`
+	EchoMaxScore     map[string]float64 `json:"echo_max_score"`
+	MainstatMaxScore map[string]float64 `json:"mainstat_max_score"`
+	SubstatWeight    map[string]float64 `json:"substat_weight"`
 }
 
 var substatDefs = []substatDef{

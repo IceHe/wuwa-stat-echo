@@ -2,8 +2,10 @@ import {createRouter, createWebHistory} from 'vue-router'
 import { getStoredAuthToken } from '@/auth'
 import HomeView from '@/views/HomeView.vue'
 import AnalysisView from '@/views/AnalysisView.vue'
+import DecisionLabView from '@/views/DecisionLabView.vue'
 import EchoView from "@/views/EchoView.vue";
 import EchoViewerView from "@/views/EchoViewerView.vue";
+import SimulatorView from '@/views/SimulatorView.vue'
 import SubstatView from "@/views/SubstatView.vue";
 import EchoBoardView from "@/views/EchoBoardView.vue";
 import EchoDcritCountView from "@/views/EchoDcritCountView.vue";
@@ -41,6 +43,16 @@ const router = createRouter({
             path: '/analysis',
             name: 'analysis',
             component: AnalysisView,
+        },
+        {
+            path: '/decision-lab',
+            name: 'decision-lab',
+            component: DecisionLabView,
+        },
+        {
+            path: '/simulator',
+            name: 'simulator',
+            component: SimulatorView,
         },
         {
             path: '/echo_board',

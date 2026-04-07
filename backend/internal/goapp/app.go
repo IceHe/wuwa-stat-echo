@@ -142,10 +142,11 @@ type PageResponse struct {
 }
 
 type SubstatValuePositionStat struct {
-	Position   int     `json:"position"`
-	Total      int     `json:"total"`
-	Percent    any     `json:"percent"`
-	PercentAll float64 `json:"percent_all,omitempty"`
+	Position   int             `json:"position"`
+	Total      int             `json:"total"`
+	Percent    any             `json:"percent"`
+	PercentAll float64         `json:"percent_all,omitempty"`
+	Proportion *ProportionStat `json:"proportion,omitempty"`
 }
 
 type SubstatValueStat struct {
@@ -156,6 +157,7 @@ type SubstatValueStat struct {
 	Percent        any                                  `json:"percent"`
 	PercentSubstat float64                              `json:"percent_substat,omitempty"`
 	PositionDict   map[string]*SubstatValuePositionStat `json:"position_dict"`
+	Proportion     *ProportionStat                      `json:"proportion,omitempty"`
 }
 
 type SubstatItem struct {
@@ -166,6 +168,7 @@ type SubstatItem struct {
 	Percent       float64                      `json:"percent"`
 	ValueDict     map[string]*SubstatValueStat `json:"value_dict"`
 	CurPosPercent string                       `json:"cur_pos_percent"`
+	Proportion    *ProportionStat              `json:"proportion,omitempty"`
 }
 
 type EchoScore struct {
@@ -180,13 +183,16 @@ type EchoScore struct {
 }
 
 type TuneStatsResponse struct {
-	DataTotal       int64                   `json:"data_total"`
-	SubstatDict     map[string]*SubstatItem `json:"substat_dict"`
-	SubstatDistance []int                   `json:"substat_distance"`
-	SubstatPosTotal [][]int                 `json:"substat_pos_total"`
-	PositionTotal   []int                   `json:"position_total"`
-	Score           *EchoScore              `json:"score,omitempty"`
-	TwoCritPercent  float64                 `json:"two_crit_percent,omitempty"`
+	DataTotal         int64                   `json:"data_total"`
+	SubstatDict       map[string]*SubstatItem `json:"substat_dict"`
+	SubstatDistance   []int                   `json:"substat_distance"`
+	SubstatPosTotal   [][]int                 `json:"substat_pos_total"`
+	PositionTotal     []int                   `json:"position_total"`
+	Score             *EchoScore              `json:"score,omitempty"`
+	ResonatorTemplate *resonatorTemplate      `json:"resonator_template,omitempty"`
+	TwoCritPercent    float64                 `json:"two_crit_percent,omitempty"`
+	Window            string                  `json:"window,omitempty"`
+	BaselineCompare   map[string]any          `json:"baseline_compare,omitempty"`
 }
 
 type wsManager struct {
@@ -198,6 +204,12 @@ type wsConn struct {
 	conn net.Conn
 	br   *bufio.Reader
 	mu   sync.Mutex
+}
+
+type statsWindow struct {
+	Name  string
+	Limit int
+	Days  int
 }
 
 func New() (*App, error) {
@@ -232,6 +244,18 @@ func New() (*App, error) {
 		},
 	}
 
+	if err := app.ensureTuneStatsAggregateReady(context.Background()); err != nil {
+		log.Printf("init tune stats aggregate failed: %v", err)
+	}
+	if err := app.ensureAggRebuildJobsReady(context.Background()); err != nil {
+		log.Printf("init agg rebuild jobs failed: %v", err)
+	}
+	if err := app.ensureEchoDcritAggregateReady(context.Background()); err != nil {
+		log.Printf("init echo dcrit aggregate failed: %v", err)
+	}
+	if err := app.ensureEchoSummaryAggregateReady(context.Background()); err != nil {
+		log.Printf("init echo summary aggregate failed: %v", err)
+	}
 	if err := app.refreshCachedTuneStats(context.Background()); err != nil {
 		log.Printf("init tune stats failed: %v", err)
 	}
@@ -258,6 +282,14 @@ func (a *App) Handler() http.Handler {
 	mux.HandleFunc("GET /counts/echo_dcrit", a.withPermission("view", a.handleEchoDcrit))
 	mux.HandleFunc("GET /test/0", a.withPermission("view", a.handleTestZero))
 	mux.HandleFunc("POST /predict/echo_substat", a.withPermission("view", a.handlePredictEchoSubstat))
+	mux.HandleFunc("POST /decision/echo-next-step", a.withPermission("view", a.handleDecisionEchoNextStep))
+	mux.HandleFunc("POST /simulator/echo-future", a.withPermission("view", a.handleSimulatorEchoFuture))
+	mux.HandleFunc("POST /simulator/echo-compare", a.withPermission("view", a.handleSimulatorEchoCompare))
+	mux.HandleFunc("POST /admin/stats/rebuild/tune", a.withPermission("manage", a.handleRebuildTuneStatsAggregate))
+	mux.HandleFunc("POST /admin/stats/rebuild/dcrit", a.withPermission("manage", a.handleRebuildEchoDcritAggregate))
+	mux.HandleFunc("POST /admin/stats/rebuild/echo_summary", a.withPermission("manage", a.handleRebuildEchoSummaryAggregate))
+	mux.HandleFunc("GET /admin/stats/rebuild/{jobID}", a.withPermission("manage", a.handleGetAggRebuildJob))
+	mux.HandleFunc("POST /admin/stats/reconcile", a.withPermission("manage", a.handleReconcileAggregates))
 	mux.HandleFunc("GET /db/echo_logs/write_substat_all", a.withPermission("manage", a.handleWriteEchoSubstatAll))
 	mux.HandleFunc("GET /db/substat_logs/write_user_id", a.withPermission("manage", a.handleWriteSubstatUserID))
 	mux.HandleFunc("GET /echo_logs", a.withPermission("view", a.handleListEchoLogs))
@@ -534,7 +566,13 @@ func newSubstatValueStat(valueNumber int, valueDesc, full string) *SubstatValueS
 }
 
 func (a *App) refreshCachedTuneStats(ctx context.Context) error {
-	stats, err := a.computeTuneStats(ctx, 0, 0, 0, 0)
+	stats, err := a.loadTuneStatsFromAggregate(ctx, 0)
+	if err != nil {
+		return err
+	}
+	if stats == nil {
+		stats, err = a.computeTuneStats(ctx, 0, 0, 0, 0, parseStatsWindow(""))
+	}
 	if err != nil {
 		return err
 	}
@@ -550,7 +588,7 @@ func (a *App) getCachedTuneStats() *TuneStatsResponse {
 	return cloneTuneStats(a.cachedStats)
 }
 
-func (a *App) computeTuneStats(ctx context.Context, size int, userID int64, afterID int64, beforeID int64) (*TuneStatsResponse, error) {
+func (a *App) computeTuneStats(ctx context.Context, size int, userID int64, afterID int64, beforeID int64, window statsWindow) (*TuneStatsResponse, error) {
 	substatDict := newSubstatDict()
 
 	countSQL := "select count(id) from wuwa_tune_log where deleted = 0"
@@ -575,9 +613,13 @@ func (a *App) computeTuneStats(ctx context.Context, size int, userID int64, afte
 	if beforeID > 0 {
 		addFilter("id <", beforeID)
 	}
+	if since := window.sinceTime(); since != nil {
+		addFilter("timestamp >=", *since)
+	}
 	querySQL += " order by id desc"
-	if size > 0 {
-		querySQL += fmt.Sprintf(" limit %d", size)
+	effectiveSize := window.applyLimit(size)
+	if effectiveSize > 0 {
+		querySQL += fmt.Sprintf(" limit %d", effectiveSize)
 	}
 
 	var logsTotal int64
@@ -599,7 +641,7 @@ func (a *App) computeTuneStats(ctx context.Context, size int, userID int64, afte
 		}
 		logs = append(logs, logItem)
 	}
-	if size > 0 {
+	if effectiveSize > 0 {
 		logsTotal = int64(len(logs))
 	}
 
@@ -644,10 +686,16 @@ func (a *App) computeTuneStats(ctx context.Context, size int, userID int64, afte
 
 	for _, substat := range substatDict {
 		allStat := substat.ValueDict["all"]
+		substat.Proportion = newProportionStat(int64(substat.Total), logsTotal)
 		if logsTotal > 0 {
 			substat.Percent = rounded(float64(substat.Total)/float64(logsTotal)*100, 2)
 		}
 		for key, value := range substat.ValueDict {
+			denominator := int64(allStat.Total)
+			if key == "all" {
+				denominator = logsTotal
+			}
+			value.Proportion = newProportionStat(int64(value.Total), denominator)
 			if substat.Total > 0 {
 				value.PercentSubstat = rounded(float64(value.Total)/float64(substat.Total)*100, 2)
 			}
@@ -660,6 +708,14 @@ func (a *App) computeTuneStats(ctx context.Context, size int, userID int64, afte
 			}
 			for posKey, posStat := range value.PositionDict {
 				base := allStat.PositionDict[posKey].Total
+				positionDenominator := int64(base)
+				if key == "all" {
+					posIndex, _ := strconv.Atoi(posKey)
+					if posIndex >= 0 && posIndex < len(positionTotal) {
+						positionDenominator = int64(positionTotal[posIndex])
+					}
+				}
+				posStat.Proportion = newProportionStat(int64(posStat.Total), positionDenominator)
 				if posStat.Total > 0 && base > 0 {
 					posStat.Percent = rounded(float64(posStat.Total)/float64(base)*100, 2)
 				} else {
@@ -687,6 +743,7 @@ func (a *App) computeTuneStats(ctx context.Context, size int, userID int64, afte
 		SubstatDistance: distances,
 		SubstatPosTotal: substatPosTotal,
 		PositionTotal:   positionTotal,
+		Window:          window.Name,
 	}, nil
 }
 
@@ -975,8 +1032,25 @@ func (a *App) handleDeleteTuneLogByID(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, appError("not authorized to delete tune log for this echo log", 403))
 		return
 	}
-	tag, err := a.db.Exec(r.Context(), "delete from wuwa_tune_log where id = $1", id)
+	tx, err := a.db.Begin(r.Context())
 	if err != nil {
+		writeJSON(w, appError(fmt.Sprintf("failed to delete tune log %d", id), 500))
+		return
+	}
+	defer tx.Rollback(r.Context())
+
+	if tuneLog.Deleted == 0 {
+		if err := a.applyTuneStatsDelta(r.Context(), tx, []SubstatLog{tuneLog}, -1); err != nil {
+			writeJSON(w, appError(fmt.Sprintf("failed to delete tune log %d", id), 500))
+			return
+		}
+	}
+	tag, err := tx.Exec(r.Context(), "delete from wuwa_tune_log where id = $1", id)
+	if err != nil {
+		writeJSON(w, appError(fmt.Sprintf("failed to delete tune log %d", id), 500))
+		return
+	}
+	if err := tx.Commit(r.Context()); err != nil {
 		writeJSON(w, appError(fmt.Sprintf("failed to delete tune log %d", id), 500))
 		return
 	}
@@ -995,8 +1069,24 @@ func (a *App) handleAddTuneLog(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, appError("operator not found", 401))
 		return
 	}
-	_, err := a.db.Exec(r.Context(), "insert into wuwa_tune_log (user_id, echo_id, position, substat, value, operator_id) values ($1, $2, $3, $4, $5, $6)", payload.UserID, payload.EchoID, payload.Position, payload.Substat, payload.Value, *operatorID)
+	tx, err := a.db.Begin(r.Context())
 	if err != nil {
+		writeJSON(w, appError("failed to add tune log", 500))
+		return
+	}
+	defer tx.Rollback(r.Context())
+
+	var created SubstatLog
+	err = tx.QueryRow(r.Context(), "insert into wuwa_tune_log (user_id, echo_id, position, substat, value, operator_id) values ($1, $2, $3, $4, $5, $6) returning id, substat, value, position, echo_id, user_id, operator_id, timestamp, deleted", payload.UserID, payload.EchoID, payload.Position, payload.Substat, payload.Value, *operatorID).Scan(&created.ID, &created.Substat, &created.Value, &created.Position, &created.EchoID, &created.UserID, &created.OperatorID, &created.Timestamp, &created.Deleted)
+	if err != nil {
+		writeJSON(w, appError("failed to add tune log", 500))
+		return
+	}
+	if err := a.applyTuneStatsDelta(r.Context(), tx, []SubstatLog{created}, 1); err != nil {
+		writeJSON(w, appError("failed to add tune log", 500))
+		return
+	}
+	if err := tx.Commit(r.Context()); err != nil {
 		writeJSON(w, appError("failed to add tune log", 500))
 		return
 	}
@@ -1005,16 +1095,47 @@ func (a *App) handleAddTuneLog(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *App) handleTuneStats(w http.ResponseWriter, r *http.Request) {
-	stats, err := a.computeTuneStats(r.Context(), parseIntDefault(r.URL.Query().Get("size"), 0), parseInt64Default(r.URL.Query().Get("user_id"), 0), parseInt64Default(r.URL.Query().Get("after_id"), 0), parseInt64Default(r.URL.Query().Get("before_id"), 0))
+	size := parseIntDefault(r.URL.Query().Get("size"), 0)
+	userID := parseInt64Default(r.URL.Query().Get("user_id"), 0)
+	afterID := parseInt64Default(r.URL.Query().Get("after_id"), 0)
+	beforeID := parseInt64Default(r.URL.Query().Get("before_id"), 0)
+	window := parseStatsWindow(r.URL.Query().Get("window"))
+
+	var (
+		stats *TuneStatsResponse
+		err   error
+	)
+	if window.isAll() && size == 0 && afterID == 0 && beforeID == 0 {
+		stats, err = a.loadTuneStatsFromAggregate(r.Context(), userID)
+	}
+	if stats == nil && err == nil {
+		stats, err = a.computeTuneStats(r.Context(), size, userID, afterID, beforeID, window)
+	}
 	if err != nil {
 		writeJSON(w, appError("failed to get stats", 500))
 		return
+	}
+	if stats != nil {
+		stats.Window = window.Name
+	}
+	if userID > 0 {
+		var globalStats *TuneStatsResponse
+		if window.isAll() && size == 0 && afterID == 0 && beforeID == 0 {
+			globalStats, err = a.loadTuneStatsFromAggregate(r.Context(), 0)
+		} else {
+			globalStats, err = a.computeTuneStats(r.Context(), size, 0, afterID, beforeID, window)
+		}
+		if err != nil {
+			writeJSON(w, appError("failed to get stats", 500))
+			return
+		}
+		stats.BaselineCompare = buildTuneStatsBaselineCompare(stats, globalStats)
 	}
 	writeJSON(w, success("tune stats", stats))
 }
 
 func (a *App) handleSubstatDistanceAnalysis(w http.ResponseWriter, r *http.Request) {
-	stats, err := a.computeTuneStats(r.Context(), parseIntDefault(r.URL.Query().Get("size"), 0), 0, 0, 0)
+	stats, err := a.computeTuneStats(r.Context(), parseIntDefault(r.URL.Query().Get("size"), 0), 0, 0, 0, parseStatsWindow(""))
 	if err != nil {
 		writeJSON(w, appError("failed to get stats", 500))
 		return
@@ -1032,7 +1153,13 @@ func (a *App) handleAnalyzeEcho(w http.ResponseWriter, r *http.Request) {
 	if stats == nil {
 		stats = &TuneStatsResponse{SubstatDict: newSubstatDict(), PositionTotal: make([]int, 5), SubstatPosTotal: make([][]int, 13)}
 	}
-	stats.Score = scoreEcho(payload, r.URL.Query().Get("resonator"), r.URL.Query().Get("cost"))
+	resonator := r.URL.Query().Get("resonator")
+	template, ok := resonatorTemplates[resonator]
+	if !ok {
+		template = defaultResonatorTemplate()
+	}
+	stats.ResonatorTemplate = &template
+	stats.Score = scoreEcho(payload, resonator, r.URL.Query().Get("cost"))
 	pos := currentPos(payload)
 	critCount := bitCount(payload.SubstatAll & 0b11)
 	if pos >= 0 && pos < len(twoCritPercent) && critCount >= 0 && critCount < len(twoCritPercent[pos]) {
@@ -1045,9 +1172,33 @@ func (a *App) handleEchoDcrit(w http.ResponseWriter, r *http.Request) {
 	size := parseIntDefault(r.URL.Query().Get("size"), 0)
 	beforeID := parseInt64Default(r.URL.Query().Get("before_id"), 0)
 	afterID := parseInt64Default(r.URL.Query().Get("after_id"), 0)
+	userID := parseInt64Default(r.URL.Query().Get("user_id"), 0)
+	window := parseStatsWindow(r.URL.Query().Get("window"))
+	if window.isAll() && size == 0 && beforeID == 0 && afterID == 0 {
+		if data, err := a.loadEchoDcritFromAggregate(r.Context(), userID); err == nil && data != nil {
+			if userID > 0 {
+				if globalData, globalErr := a.loadEchoDcritFromAggregate(r.Context(), 0); globalErr == nil && globalData != nil {
+					data["baseline_compare"] = map[string]any{
+						"dcrit_rate": buildRateComparison(
+							data["dcrit_rate_stats"].(*ProportionStat),
+							globalData["dcrit_rate_stats"].(*ProportionStat),
+						),
+					}
+				}
+			}
+			data["window"] = window.Name
+			writeJSON(w, success("test", data))
+			return
+		}
+	}
 	query := "select id, substat1, substat2, substat3, substat4, substat5 from wuwa_echo_log where deleted = 0"
 	var args []any
 	arg := 1
+	if userID > 0 {
+		query += fmt.Sprintf(" and user_id = $%d", arg)
+		args = append(args, userID)
+		arg++
+	}
 	if afterID > 0 {
 		query += fmt.Sprintf(" and id > $%d", arg)
 		args = append(args, afterID)
@@ -1058,8 +1209,13 @@ func (a *App) handleEchoDcrit(w http.ResponseWriter, r *http.Request) {
 		args = append(args, beforeID)
 		arg++
 	}
-	if size > 0 {
-		query += fmt.Sprintf(" limit %d", size)
+	if since := window.sinceTime(); since != nil {
+		query += fmt.Sprintf(" and updated_at >= $%d", arg)
+		args = append(args, *since)
+		arg++
+	}
+	if effectiveSize := window.applyLimit(size); effectiveSize > 0 {
+		query += fmt.Sprintf(" limit %d", effectiveSize)
 	}
 	rows, err := a.db.Query(r.Context(), query, args...)
 	if err != nil {
@@ -1090,7 +1246,24 @@ func (a *App) handleEchoDcrit(w http.ResponseWriter, r *http.Request) {
 			counts[rk][dk]++
 		}
 	}
-	writeJSON(w, success("test", map[string]any{"echo_count": echoCount, "dcrit_total": dcritTotal, "counts": counts}))
+	resp := map[string]any{
+		"echo_count":       echoCount,
+		"dcrit_total":      dcritTotal,
+		"counts":           counts,
+		"dcrit_rate_stats": newProportionStat(int64(dcritTotal), int64(echoCount)),
+		"window":           window.Name,
+	}
+	if userID > 0 {
+		globalResp, globalErr := a.computeEchoDcritRaw(r.Context(), 0, size, afterID, beforeID, window)
+		if globalErr != nil {
+			writeJSON(w, appError("failed to test", 500))
+			return
+		}
+		resp["baseline_compare"] = map[string]any{
+			"dcrit_rate": buildRateComparison(resp["dcrit_rate_stats"].(*ProportionStat), globalResp["dcrit_rate_stats"].(*ProportionStat)),
+		}
+	}
+	writeJSON(w, success("test", resp))
 }
 
 func firstTierForMask(substats []int64, mask int64) int64 {
@@ -1369,6 +1542,24 @@ func applyEchoChanges(existing *EchoLog, payload EchoLog) {
 	existing.UpdatedAt = &now
 }
 
+func replaceEchoChanges(existing *EchoLog, payload EchoLog) {
+	existing.Substat1 = payload.Substat1
+	existing.Substat2 = payload.Substat2
+	existing.Substat3 = payload.Substat3
+	existing.Substat4 = payload.Substat4
+	existing.Substat5 = payload.Substat5
+	existing.SubstatAll = payload.SubstatAll
+	existing.S1Desc = payload.S1Desc
+	existing.S2Desc = payload.S2Desc
+	existing.S3Desc = payload.S3Desc
+	existing.S4Desc = payload.S4Desc
+	existing.S5Desc = payload.S5Desc
+	existing.Clazz = payload.Clazz
+	existing.UserID = payload.UserID
+	now := time.Now()
+	existing.UpdatedAt = &now
+}
+
 func (a *App) handleCreateEchoLog(w http.ResponseWriter, r *http.Request) {
 	var payload EchoLog
 	if err := readJSON(r, &payload); err != nil {
@@ -1390,6 +1581,14 @@ func (a *App) handleCreateEchoLog(w http.ResponseWriter, r *http.Request) {
 	row := a.db.QueryRow(r.Context(), "insert into wuwa_echo_log (substat1, substat2, substat3, substat4, substat5, substat_all, s1_desc, s2_desc, s3_desc, s4_desc, s5_desc, clazz, user_id, operator_id, tuned_at, created_at, updated_at) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17) returning id, substat1, substat2, substat3, substat4, substat5, substat_all, s1_desc, s2_desc, s3_desc, s4_desc, s5_desc, clazz, user_id, operator_id, deleted, tuned_at, created_at, updated_at", payload.Substat1, payload.Substat2, payload.Substat3, payload.Substat4, payload.Substat5, payload.SubstatAll, payload.S1Desc, payload.S2Desc, payload.S3Desc, payload.S4Desc, payload.S5Desc, payload.Clazz, payload.UserID, *operatorID, payload.TunedAt, payload.CreatedAt, payload.UpdatedAt)
 	created, err := a.scanEchoLog(row)
 	if err != nil {
+		writeJSON(w, appError("failed to create echo log", 500))
+		return
+	}
+	if err := a.applyEchoDcritDelta(r.Context(), a.db, nil, created); err != nil {
+		writeJSON(w, appError("failed to create echo log", 500))
+		return
+	}
+	if err := a.applyEchoSummaryDelta(r.Context(), a.db, nil, created); err != nil {
 		writeJSON(w, appError("failed to create echo log", 500))
 		return
 	}
@@ -1417,10 +1616,19 @@ func (a *App) handleUpdateEchoLog(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, appError("not authorized to update this echo log", 403))
 		return
 	}
-	applyEchoChanges(existing, payload)
+	beforeEcho := *existing
+	replaceEchoChanges(existing, payload)
 	row := a.db.QueryRow(r.Context(), "update wuwa_echo_log set substat1=$1, substat2=$2, substat3=$3, substat4=$4, substat5=$5, substat_all=$6, s1_desc=$7, s2_desc=$8, s3_desc=$9, s4_desc=$10, s5_desc=$11, clazz=$12, user_id=$13, updated_at=$14 where id=$15 returning id, substat1, substat2, substat3, substat4, substat5, substat_all, s1_desc, s2_desc, s3_desc, s4_desc, s5_desc, clazz, user_id, operator_id, deleted, tuned_at, created_at, updated_at", existing.Substat1, existing.Substat2, existing.Substat3, existing.Substat4, existing.Substat5, existing.SubstatAll, existing.S1Desc, existing.S2Desc, existing.S3Desc, existing.S4Desc, existing.S5Desc, existing.Clazz, existing.UserID, existing.UpdatedAt, existing.ID)
 	updated, err := a.scanEchoLog(row)
 	if err != nil {
+		writeJSON(w, appError("failed to update echo log", 500))
+		return
+	}
+	if err := a.applyEchoDcritDelta(r.Context(), a.db, &beforeEcho, updated); err != nil {
+		writeJSON(w, appError("failed to update echo log", 500))
+		return
+	}
+	if err := a.applyEchoSummaryDelta(r.Context(), a.db, &beforeEcho, updated); err != nil {
 		writeJSON(w, appError("failed to update echo log", 500))
 		return
 	}
@@ -1476,6 +1684,7 @@ func (a *App) handleTuneEchoLog(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+	beforeEcho := *echoLog
 	applyEchoChanges(echoLog, EchoLog{Substat1: payload.Substat1, Substat2: payload.Substat2, Substat3: payload.Substat3, Substat4: payload.Substat4, Substat5: payload.Substat5, SubstatAll: payload.SubstatAll, S1Desc: payload.S1Desc, S2Desc: payload.S2Desc, S3Desc: payload.S3Desc, S4Desc: payload.S4Desc, S5Desc: payload.S5Desc, Clazz: payload.Clazz, UserID: payload.UserID})
 	row := tx.QueryRow(r.Context(), "update wuwa_echo_log set substat1=$1, substat2=$2, substat3=$3, substat4=$4, substat5=$5, substat_all=$6, s1_desc=$7, s2_desc=$8, s3_desc=$9, s4_desc=$10, s5_desc=$11, clazz=$12, user_id=$13, updated_at=$14 where id=$15 returning id, substat1, substat2, substat3, substat4, substat5, substat_all, s1_desc, s2_desc, s3_desc, s4_desc, s5_desc, clazz, user_id, operator_id, deleted, tuned_at, created_at, updated_at", echoLog.Substat1, echoLog.Substat2, echoLog.Substat3, echoLog.Substat4, echoLog.Substat5, echoLog.SubstatAll, echoLog.S1Desc, echoLog.S2Desc, echoLog.S3Desc, echoLog.S4Desc, echoLog.S5Desc, echoLog.Clazz, echoLog.UserID, echoLog.UpdatedAt, echoLog.ID)
 	echoLog, err = a.scanEchoLog(row)
@@ -1486,6 +1695,18 @@ func (a *App) handleTuneEchoLog(w http.ResponseWriter, r *http.Request) {
 	var tuneLog SubstatLog
 	err = tx.QueryRow(r.Context(), "insert into wuwa_tune_log (user_id, echo_id, position, substat, value, operator_id) values ($1,$2,$3,$4,$5,$6) returning id, substat, value, position, echo_id, user_id, operator_id, timestamp, deleted", echoLog.UserID, echoLog.ID, payload.Position, payload.Substat, payload.Value, *operatorID).Scan(&tuneLog.ID, &tuneLog.Substat, &tuneLog.Value, &tuneLog.Position, &tuneLog.EchoID, &tuneLog.UserID, &tuneLog.OperatorID, &tuneLog.Timestamp, &tuneLog.Deleted)
 	if err != nil {
+		writeJSON(w, appError("failed to tune echo log", 500))
+		return
+	}
+	if err := a.applyTuneStatsDelta(r.Context(), tx, []SubstatLog{tuneLog}, 1); err != nil {
+		writeJSON(w, appError("failed to tune echo log", 500))
+		return
+	}
+	if err := a.applyEchoDcritDelta(r.Context(), tx, &beforeEcho, echoLog); err != nil {
+		writeJSON(w, appError("failed to tune echo log", 500))
+		return
+	}
+	if err := a.applyEchoSummaryDelta(r.Context(), tx, &beforeEcho, echoLog); err != nil {
 		writeJSON(w, appError("failed to tune echo log", 500))
 		return
 	}
@@ -1522,6 +1743,16 @@ func (a *App) handleDeleteEchoLog(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer tx.Rollback(r.Context())
+	affectedRows, err := tx.Query(r.Context(), "select id, substat, value, position, echo_id, user_id, operator_id, timestamp, deleted from wuwa_tune_log where echo_id = $1 and deleted = 0", id)
+	if err != nil {
+		writeJSON(w, appError("failed to delete echo log", 500))
+		return
+	}
+	affectedLogs, err := collectTuneLogs(affectedRows)
+	if err != nil {
+		writeJSON(w, appError("failed to delete echo log", 500))
+		return
+	}
 	result := map[string]any{}
 	if emptyEcho {
 		if _, err := tx.Exec(r.Context(), "delete from wuwa_tune_log where echo_id = $1", id); err != nil {
@@ -1534,6 +1765,9 @@ func (a *App) handleDeleteEchoLog(w http.ResponseWriter, r *http.Request) {
 		}
 		result = map[string]any{"deleted": "hard", "id": id}
 	} else {
+		beforeEcho := *echoLog
+		afterEcho := beforeEcho
+		afterEcho.Deleted = 1
 		tag1, err := tx.Exec(r.Context(), "update wuwa_echo_log set deleted = 1 where id = $1", id)
 		if err != nil {
 			writeJSON(w, appError("failed to delete echo log", 500))
@@ -1543,7 +1777,19 @@ func (a *App) handleDeleteEchoLog(w http.ResponseWriter, r *http.Request) {
 			writeJSON(w, appError("failed to delete echo log", 500))
 			return
 		}
+		if err := a.applyEchoDcritDelta(r.Context(), tx, &beforeEcho, &afterEcho); err != nil {
+			writeJSON(w, appError("failed to delete echo log", 500))
+			return
+		}
+		if err := a.applyEchoSummaryDelta(r.Context(), tx, &beforeEcho, &afterEcho); err != nil {
+			writeJSON(w, appError("failed to delete echo log", 500))
+			return
+		}
 		result = map[string]any{"rows_affected": tag1.RowsAffected()}
+	}
+	if err := a.applyTuneStatsDelta(r.Context(), tx, affectedLogs, -1); err != nil {
+		writeJSON(w, appError("failed to delete echo log", 500))
+		return
 	}
 	if err := tx.Commit(r.Context()); err != nil {
 		writeJSON(w, appError("failed to delete echo log", 500))
@@ -1577,12 +1823,37 @@ func (a *App) handleRecoverEchoLog(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer tx.Rollback(r.Context())
+	affectedRows, err := tx.Query(r.Context(), "select id, substat, value, position, echo_id, user_id, operator_id, timestamp, deleted from wuwa_tune_log where echo_id = $1 and deleted = 1", id)
+	if err != nil {
+		writeJSON(w, appError("failed to recover echo log", 500))
+		return
+	}
+	affectedLogs, err := collectTuneLogs(affectedRows)
+	if err != nil {
+		writeJSON(w, appError("failed to recover echo log", 500))
+		return
+	}
+	beforeEcho := *echoLog
+	afterEcho := beforeEcho
+	afterEcho.Deleted = 0
 	tag, err := tx.Exec(r.Context(), "update wuwa_echo_log set deleted = 0 where id = $1", id)
 	if err != nil {
 		writeJSON(w, appError("failed to recover echo log", 500))
 		return
 	}
 	if _, err := tx.Exec(r.Context(), "update wuwa_tune_log set deleted = 0 where echo_id = $1", id); err != nil {
+		writeJSON(w, appError("failed to recover echo log", 500))
+		return
+	}
+	if err := a.applyTuneStatsDelta(r.Context(), tx, affectedLogs, 1); err != nil {
+		writeJSON(w, appError("failed to recover echo log", 500))
+		return
+	}
+	if err := a.applyEchoDcritDelta(r.Context(), tx, &beforeEcho, &afterEcho); err != nil {
+		writeJSON(w, appError("failed to recover echo log", 500))
+		return
+	}
+	if err := a.applyEchoSummaryDelta(r.Context(), tx, &beforeEcho, &afterEcho); err != nil {
 		writeJSON(w, appError("failed to recover echo log", 500))
 		return
 	}
@@ -1738,8 +2009,38 @@ func (a *App) handleDeleteSubstatByEchoPos(w http.ResponseWriter, r *http.Reques
 		query += " and operator_id = $3"
 		args = append(args, *operatorID)
 	}
-	tag, err := a.db.Exec(r.Context(), query, args...)
+	selectQuery := "select id, substat, value, position, echo_id, user_id, operator_id, timestamp, deleted from wuwa_tune_log where echo_id = $1 and position = $2 and deleted = 0"
+	selectArgs := []any{echoID, pos}
+	if !isManager {
+		selectQuery += " and operator_id = $3"
+		selectArgs = append(selectArgs, *operatorID)
+	}
+	tx, err := a.db.Begin(r.Context())
 	if err != nil {
+		writeJSON(w, appError("failed to delete substat log", 500))
+		return
+	}
+	defer tx.Rollback(r.Context())
+	affectedRows, err := tx.Query(r.Context(), selectQuery, selectArgs...)
+	if err != nil {
+		writeJSON(w, appError("failed to delete substat log", 500))
+		return
+	}
+	affectedLogs, err := collectTuneLogs(affectedRows)
+	if err != nil {
+		writeJSON(w, appError("failed to delete substat log", 500))
+		return
+	}
+	tag, err := tx.Exec(r.Context(), query, args...)
+	if err != nil {
+		writeJSON(w, appError("failed to delete substat log", 500))
+		return
+	}
+	if err := a.applyTuneStatsDelta(r.Context(), tx, affectedLogs, -1); err != nil {
+		writeJSON(w, appError("failed to delete substat log", 500))
+		return
+	}
+	if err := tx.Commit(r.Context()); err != nil {
 		writeJSON(w, appError("failed to delete substat log", 500))
 		return
 	}
@@ -1752,6 +2053,47 @@ func (a *App) handleEchoLogsAnalysis(w http.ResponseWriter, r *http.Request) {
 	size := parseIntDefault(r.URL.Query().Get("size"), 0)
 	targetBits := parseInt64Default(r.URL.Query().Get("target_bits"), 0b11)
 	substatSinceDate := strings.TrimSpace(r.URL.Query().Get("substat_since_date"))
+	window := parseStatsWindow(r.URL.Query().Get("window"))
+	if window.isAll() && size == 0 && substatSinceDate == "" {
+		if data, err := a.loadEchoSummaryFromAggregate(r.Context(), userID, targetBits); err == nil && data != nil {
+			if userID > 0 {
+				if globalData, globalErr := a.loadEchoSummaryFromAggregate(r.Context(), 0, targetBits); globalErr == nil && globalData != nil {
+					data["baseline_compare"] = map[string]any{
+						"target_rate": buildRateComparison(
+							data["target_rate_stats"].(*ProportionStat),
+							globalData["target_rate_stats"].(*ProportionStat),
+						),
+					}
+				}
+			}
+			data["window"] = window.Name
+			writeJSON(w, success("echo logs analysis", data))
+			return
+		}
+	}
+	effectiveSize := window.applyLimit(size)
+	items, total, err := a.loadEchoLogsAnalysisItems(r.Context(), userID, effectiveSize, targetBits, window, substatSinceDate)
+	if err != nil {
+		writeJSON(w, appError("failed to get echo logs", 500))
+		return
+	}
+	resp := computeEchoLogsAnalysisFromItems(items, total, targetBits)
+	resp["window"] = window.Name
+	if userID > 0 {
+		globalItems, globalTotal, globalErr := a.loadEchoLogsAnalysisItems(r.Context(), 0, effectiveSize, targetBits, window, substatSinceDate)
+		if globalErr != nil {
+			writeJSON(w, appError("failed to get echo logs", 500))
+			return
+		}
+		globalResp := computeEchoLogsAnalysisFromItems(globalItems, globalTotal, targetBits)
+		resp["baseline_compare"] = map[string]any{
+			"target_rate": buildRateComparison(resp["target_rate_stats"].(*ProportionStat), globalResp["target_rate_stats"].(*ProportionStat)),
+		}
+	}
+	writeJSON(w, success("echo logs analysis", resp))
+}
+
+func (a *App) loadEchoLogsAnalysisItems(ctx context.Context, userID int64, effectiveSize int, targetBits int64, window statsWindow, substatSinceDate string) ([]EchoLog, int64, error) {
 	selectSQL := "select id, substat1, substat2, substat3, substat4, substat5, substat_all, s1_desc, s2_desc, s3_desc, s4_desc, s5_desc, clazz, user_id, operator_id, deleted, tuned_at, created_at, updated_at from wuwa_echo_log where deleted = 0"
 	countSQL := "select count(id) from wuwa_echo_log where deleted = 0"
 	var args []any
@@ -1765,7 +2107,7 @@ func (a *App) handleEchoLogsAnalysis(w http.ResponseWriter, r *http.Request) {
 			parsed, err := time.Parse("2006-01-02", substatSinceDate)
 			if err == nil {
 				startAt := time.Date(parsed.Year(), parsed.Month(), parsed.Day(), 4, 0, 0, 0, parsed.Location())
-				rows, err := a.db.Query(r.Context(), "select echo_id from wuwa_tune_log where deleted = 0 and user_id = $1 and timestamp >= $2", userID, startAt)
+				rows, err := a.db.Query(ctx, "select echo_id from wuwa_tune_log where deleted = 0 and user_id = $1 and timestamp >= $2", userID, startAt)
 				if err == nil {
 					defer rows.Close()
 					idsMap := map[int64]struct{}{}
@@ -1792,29 +2134,100 @@ func (a *App) handleEchoLogsAnalysis(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
-	selectSQL += " order by updated_at desc"
-	if size > 0 {
-		selectSQL += fmt.Sprintf(" limit %d", size)
+	if since := window.sinceTime(); since != nil {
+		selectSQL += fmt.Sprintf(" and updated_at >= $%d", arg)
+		countSQL += fmt.Sprintf(" and updated_at >= $%d", arg)
+		args = append(args, *since)
+		arg++
 	}
-	rows, err := a.db.Query(r.Context(), selectSQL, args...)
+	selectSQL += " order by updated_at desc"
+	if effectiveSize > 0 {
+		selectSQL += fmt.Sprintf(" limit %d", effectiveSize)
+	}
+	rows, err := a.db.Query(ctx, selectSQL, args...)
 	if err != nil {
-		writeJSON(w, appError("failed to get echo logs", 500))
-		return
+		return nil, 0, err
 	}
 	defer rows.Close()
 	items, err := a.scanEchoLogs(rows)
 	if err != nil {
-		writeJSON(w, appError("failed to get echo logs", 500))
-		return
+		return nil, 0, err
 	}
 	var total int64
-	if err := a.db.QueryRow(r.Context(), countSQL, args...).Scan(&total); err != nil {
-		writeJSON(w, appError("failed to get echo logs", 500))
-		return
+	if err := a.db.QueryRow(ctx, countSQL, args...).Scan(&total); err != nil {
+		return nil, 0, err
 	}
-	if size > 0 {
+	if effectiveSize > 0 {
 		total = int64(len(items))
 	}
+	return items, total, nil
+}
+
+func parseIntDefault(raw string, fallback int) int {
+	if raw == "" {
+		return fallback
+	}
+	if value, err := strconv.Atoi(raw); err == nil {
+		return value
+	}
+	return fallback
+}
+
+func parseInt64Default(raw string, fallback int64) int64 {
+	if raw == "" {
+		return fallback
+	}
+	if value, err := strconv.ParseInt(raw, 10, 64); err == nil {
+		return value
+	}
+	return fallback
+}
+
+func parseStatsWindow(raw string) statsWindow {
+	switch strings.TrimSpace(raw) {
+	case "", "all":
+		return statsWindow{Name: "all"}
+	case "last_100":
+		return statsWindow{Name: "last_100", Limit: 100}
+	case "last_500":
+		return statsWindow{Name: "last_500", Limit: 500}
+	case "last_1000":
+		return statsWindow{Name: "last_1000", Limit: 1000}
+	case "day_7":
+		return statsWindow{Name: "day_7", Days: 7}
+	case "day_30":
+		return statsWindow{Name: "day_30", Days: 30}
+	default:
+		return statsWindow{Name: "all"}
+	}
+}
+
+func (w statsWindow) isAll() bool {
+	return w.Name == "" || w.Name == "all"
+}
+
+func (w statsWindow) applyLimit(size int) int {
+	if w.Limit > 0 && size > 0 {
+		if size < w.Limit {
+			return size
+		}
+		return w.Limit
+	}
+	if w.Limit > 0 {
+		return w.Limit
+	}
+	return size
+}
+
+func (w statsWindow) sinceTime() *time.Time {
+	if w.Days <= 0 {
+		return nil
+	}
+	t := time.Now().AddDate(0, 0, -w.Days)
+	return &t
+}
+
+func computeEchoLogsAnalysisFromItems(items []EchoLog, total int64, targetBits int64) map[string]any {
 	found := false
 	idx := 0
 	targetCount := 0
@@ -1849,6 +2262,7 @@ func (a *App) handleEchoLogsAnalysis(w http.ResponseWriter, r *http.Request) {
 	tunerConsumed := int(math.Ceil(float64(substatTotal*10 - tunerRecycled)))
 	expConsumed := int(math.Ceil(float64(expTotal-expRecycled) / expGold))
 	resp := map[string]any{
+		"sample_size":             total,
 		"target_echo_distance":    targetEchoDistance,
 		"target_substat_distance": targetSubstatDistance,
 		"target":                  targetCount,
@@ -1858,6 +2272,7 @@ func (a *App) handleEchoLogsAnalysis(w http.ResponseWriter, r *http.Request) {
 		"tuner_consumed_avg":      0.0,
 		"exp_consumed":            expConsumed,
 		"exp_consumed_avg":        0.0,
+		"target_rate_stats":       newProportionStat(int64(targetCount), total),
 	}
 	if targetCount > 0 {
 		resp["target_avg_echo"] = rounded(float64(total)/float64(targetCount), 1)
@@ -1865,27 +2280,7 @@ func (a *App) handleEchoLogsAnalysis(w http.ResponseWriter, r *http.Request) {
 		resp["tuner_consumed_avg"] = int(math.Ceil(float64(tunerConsumed) / float64(targetCount)))
 		resp["exp_consumed_avg"] = int(math.Ceil(float64(expConsumed) / float64(targetCount)))
 	}
-	writeJSON(w, success("echo logs analysis", resp))
-}
-
-func parseIntDefault(raw string, fallback int) int {
-	if raw == "" {
-		return fallback
-	}
-	if value, err := strconv.Atoi(raw); err == nil {
-		return value
-	}
-	return fallback
-}
-
-func parseInt64Default(raw string, fallback int64) int64 {
-	if raw == "" {
-		return fallback
-	}
-	if value, err := strconv.ParseInt(raw, 10, 64); err == nil {
-		return value
-	}
-	return fallback
+	return resp
 }
 
 func incrementPredictCount(counts []int, bits int64) {

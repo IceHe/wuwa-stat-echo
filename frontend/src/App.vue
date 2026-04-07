@@ -32,6 +32,8 @@ onMounted(async () => {
           <RouterLink to="/echo">声骸录入</RouterLink>
           <RouterLink :to="`/echo-viewer?operator_id=${authState.user?.id || ''}`" target="_blank">实时查看</RouterLink>
           <RouterLink to="/analysis">统计分析</RouterLink>
+          <RouterLink to="/decision-lab">Decision Lab</RouterLink>
+          <RouterLink to="/simulator">Simulator</RouterLink>
           <RouterLink to="/echo_dcrit_count">双暴统计</RouterLink>
         </nav>
         <div class="session">

@@ -188,10 +188,10 @@
             <span :style="`color: ${CLASS_COLORS[clazz]};`"> {{ clazz.substring(0, 4) }}</span>
           </button>
         </div>
-        <div class="score-panel-slot suite-score-panels">
-          <span v-if="showPotentialMaxScore()" class="score-panel suite-score-panel">
+        <div class="score-panel-slot">
+          <span class="score-panel suite-score-panel">
             理论最高<br />
-            <span class="suite-score-panel-value">{{ getPotentialMaxScore() }}</span>
+            <span class="suite-score-panel-value">{{ getPotentialMaxScore() || '--' }}</span>
           </span>
         </div>
       </div>
@@ -254,6 +254,20 @@
       >
         {{ echoAnalysis.substat_dict?.[substat.num]?.cur_pos_percent || '' }}
       </span>
+      <button
+          v-if="substat.num === 5"
+          class="button stat-button shortcut-stat-button"
+          @click="openDecisionLab"
+      >
+        决策实验室
+      </button>
+      <button
+          v-else-if="substat.num === 6"
+          class="button stat-button shortcut-stat-button simulator-shortcut-button"
+          @click="openSimulator"
+      >
+        未来模拟器
+      </button>
 
     </div>
   </div>
@@ -372,6 +386,7 @@ import { API_BASE_URL,
   SUBSTAT,
   SUBSTAT_VALUE_MAP
 } from '@/stores/constants.ts'
+import { buildDecisionQueryFromEncoded } from '@/views/decisionSupport.ts'
 import {onMounted, ref, computed, watch} from 'vue'
 import emitter from '@/stores/eventBus.js'
 import {useRoute, useRouter} from 'vue-router';
@@ -435,12 +450,25 @@ export default {
       resonator: route.query.resonator || '',
       cost: route.query.cost || '',
     })
+    const normalizeUserId = (userId) => {
+      if (userId === '' || userId === null || userId === undefined) {
+        return 0
+      }
+      const normalized = Number(userId)
+      return Number.isNaN(normalized) ? 0 : normalized
+    }
     const setResonator = (resonator) => {
+      if (scoreTemplate.value.resonator === resonator) {
+        return
+      }
       updateQueryParam('resonator', resonator)
       scoreTemplate.value.resonator = resonator
       fetchEchoAnalysis()
     }
     const setCost = (cost) => {
+      if (scoreTemplate.value.cost === cost) {
+        return
+      }
       updateQueryParam('cost', cost)
       scoreTemplate.value.cost = cost
       fetchEchoAnalysis()
@@ -496,10 +524,10 @@ export default {
 
     const template = ref({
       clazz: route.query.clazz || '',
-      user_id: route.query.user_id || 0,
+      user_id: normalizeUserId(route.query.user_id),
       substat_since_date: route.query.substat_since_date || '',
     })
-    const getActiveUserId = () => Number(
+    const getActiveUserId = () => normalizeUserId(
       template.value.user_id || echoLog.value.user_id || 0
     )
     const setSubstatSinceDate = (date) => {
@@ -511,7 +539,7 @@ export default {
     const buildEmptyEchoLog = () => {
       return {
         clazz: template.value.clazz,
-        user_id: template.value.user_id,
+        user_id: normalizeUserId(template.value.user_id),
         id: 0,
         pos: 0, // 当前孔位
         substat1: 0,
@@ -558,7 +586,7 @@ export default {
       try {
         const response = await axios
             .post(`${API_BASE_URL}/echo_log`, {
-              user_id: echoLog.value.user_id,
+              user_id: normalizeUserId(echoLog.value.user_id),
               clazz: echoLog.value.clazz,
               // tuned_at: echoLog.value.tuned_at, // FIXME
             })
@@ -606,11 +634,17 @@ export default {
               s4_desc: echoLog.value.s4_desc,
               s5_desc: echoLog.value.s5_desc,
               clazz: echoLog.value.clazz,
-              user_id: echoLog.value.user_id,
+              user_id: normalizeUserId(echoLog.value.user_id),
               // tuned_at: echoLog.value.tuned_at, // FIXME
             })
         console.log("update echo log:", response.data) // DEBUG
         if (response.data.code === 200) {
+          echoLog.value = {
+            ...echoLog.value,
+            ...response.data.data,
+            pos: echoLog.value.pos,
+          }
+          emitSyncEchoLog()
           doIfSuccess()
           return true
         } else {
@@ -710,15 +744,21 @@ export default {
     }
 
     const setUserId = (userId) => {
-      updateQueryParam('user_id', userId)
-      template.value.user_id = userId
-      echoLog.value.user_id = userId
+      const normalizedUserId = normalizeUserId(userId)
+      updateQueryParam('user_id', normalizedUserId || undefined)
+      template.value.user_id = normalizedUserId
+      echoLog.value.user_id = normalizedUserId
       refreshEchoLogsAnalysis()
       refreshRecentTuneStats()
-      emitter.emit("setUserId", userId)
+      emitter.emit("setUserId", normalizedUserId)
       if (echoLog.value.id > 0 && canModify.value) {
         emitSyncEchoLog()
-        updateEchoLog(() => emitter.emit('refreshEchoLogs'))
+        updateEchoLog(() => {
+          emitter.emit('refreshEchoLogs')
+          emitter.emit('refreshSubstatLogs')
+          refreshEchoLogsAnalysis()
+          refreshRecentTuneStats()
+        })
       }
     }
     const setClazz = (clazz) => {
@@ -843,7 +883,7 @@ export default {
               value: value,
               position: position,
               echo_id: echoLog.value.id,
-              user_id: echoLog.value.user_id,
+              user_id: normalizeUserId(echoLog.value.user_id),
             })
         console.log(response.data) // DEBUG
         const code = response.data.code
@@ -958,7 +998,7 @@ export default {
       try {
         const response = await axios.post(`${API_BASE_URL}/echo_log/tune`, {
           id: nextEchoLog.id,
-          user_id: nextEchoLog.user_id,
+          user_id: normalizeUserId(nextEchoLog.user_id),
           clazz: nextEchoLog.clazz,
           substat1: nextEchoLog.substat1,
           substat2: nextEchoLog.substat2,
@@ -1010,7 +1050,7 @@ export default {
     })
     const refreshRecentTuneStats = (size = 39) => {
       axios
-          .get(`${API_BASE_URL}/tune_stats?size=${size}&user_id=${template.value.user_id}`)
+          .get(`${API_BASE_URL}/tune_stats?size=${size}&user_id=${normalizeUserId(template.value.user_id)}`)
           .then((response) => {
             console.log(response.data) // DEBUG
             recentTuneStats.value = response.data.data
@@ -1116,8 +1156,6 @@ export default {
       return total > 0 ? total.toFixed(2) : ''
     }
 
-    const showPotentialMaxScore = () => !!getPotentialMaxScore()
-
     const getRecentSubstatTotal = (substatNum) =>
       recentTuneStats.value.substat_dict?.[substatNum]?.total ?? 0
 
@@ -1206,6 +1244,38 @@ export default {
     }
     onMounted(fetchTuneStats)
 
+    const buildCurrentDecisionQuery = (trials = 3000) => buildDecisionQueryFromEncoded({
+      userId: normalizeUserId(echoLog.value.user_id || template.value.user_id || 0),
+      resonator: scoreTemplate.value.resonator || '',
+      cost: scoreTemplate.value.cost || '1C',
+      goal: '毕业',
+      window: 'all',
+      targetBits: Number(targetSubstatBitmap.value || 3),
+      trials,
+      substats: [
+        Number(echoLog.value.substat1 || 0),
+        Number(echoLog.value.substat2 || 0),
+        Number(echoLog.value.substat3 || 0),
+        Number(echoLog.value.substat4 || 0),
+        Number(echoLog.value.substat5 || 0),
+      ],
+      autorun: true,
+    })
+
+    const openDecisionLab = () => {
+      router.push({
+        path: '/decision-lab',
+        query: buildCurrentDecisionQuery(3000),
+      })
+    }
+
+    const openSimulator = () => {
+      router.push({
+        path: '/simulator',
+        query: buildCurrentDecisionQuery(8000),
+      })
+    }
+
     return {
       targetSubstatBitmap,
       echoLog,
@@ -1238,7 +1308,8 @@ export default {
       getRecentRawDistance,
       getRecentDistanceLimit,
       isRecentDistanceOverflow,
-      showPotentialMaxScore,
+      openDecisionLab,
+      openSimulator,
       getSubstatColor,
       toggleTargetSubstat,
       setSubstatSinceDate,
@@ -1432,11 +1503,9 @@ export default {
 .score-panel-slot {
   display: flex;
   flex: 0 0 96px;
-  justify-content: flex-end;
-}
-
-.suite-score-panels {
+  flex-direction: column;
   gap: 8px;
+  justify-content: flex-start;
 }
 
 .score-panel {
@@ -1589,6 +1658,26 @@ export default {
   font-size: 12px;
   font-weight: 700;
   cursor: help;
+}
+
+.shortcut-stat-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 6px;
+  padding: 0 8px;
+  border-radius: 10px;
+  border: 1px solid rgba(34, 46, 80, 0.12);
+  background: #fff7df;
+  color: #6d4c00;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.simulator-shortcut-button {
+  background: #e7fbef;
+  color: #0d614a;
 }
 
 .button-mini-bar-fill {

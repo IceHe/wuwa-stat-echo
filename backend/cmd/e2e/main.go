@@ -156,6 +156,36 @@ func main() {
 		"substat1":    8193,
 		"substat_all": 1,
 	})
+	decisionPayload := map[string]any{
+		"echo": map[string]any{
+			"substat1":    8193,
+			"substat2":    16386,
+			"substat_all": 3,
+			"user_id":     e2eUserID,
+		},
+		"resonator":   "暗主",
+		"cost":        "4C",
+		"goal":        "小毕业",
+		"target_bits": 3,
+		"trials":      200,
+	}
+	var decisionResp map[string]any
+	mustDecode(requestJSON(client, http.MethodPost, baseURL+"/decision/echo-next-step", token, decisionPayload), &decisionResp)
+	if _, ok := decisionResp["recommendation"].(string); !ok {
+		fail("decision echo-next-step missing recommendation")
+	}
+
+	var futureResp map[string]any
+	mustDecode(requestJSON(client, http.MethodPost, baseURL+"/simulator/echo-future", token, decisionPayload), &futureResp)
+	if int(futureResp["trials"].(float64)) != 200 {
+		fail("simulator echo-future returned unexpected trials")
+	}
+
+	var compareResp map[string]any
+	mustDecode(requestJSON(client, http.MethodPost, baseURL+"/simulator/echo-compare", token, decisionPayload), &compareResp)
+	if len(compareResp["strategies"].([]any)) != 3 {
+		fail("simulator echo-compare returned unexpected strategy count")
+	}
 
 	requestJSON(client, http.MethodDelete, baseURL+"/echo_log/"+fmt.Sprint(created.ID), token, nil)
 	fmt.Println("E2E OK")
