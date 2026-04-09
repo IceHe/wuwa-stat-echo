@@ -2,7 +2,17 @@
   <div style="min-width: 480px">
     <button @click="fetchEchoLogs()">声骸列表 - 刷新</button>
     &nbsp;
+    <button @click="forceRefreshTemplates()" :disabled="scoreTemplateState.loading">模板强刷</button>
+    &nbsp;
     <span>声骸数量：{{echoTotal}}</span>
+    &nbsp;
+    <span class="template-context-text">
+      评分上下文：{{ scoreTemplateContext.resonator || '未选模板' }} / {{ scoreTemplateContext.cost || '未选Cost' }}
+    </span>
+    &nbsp;
+    <span class="template-context-text">
+      模板源：{{ templateSourceLabel }}
+    </span>
     <table class="my-table">
       <thead>
       <tr style="text-align: left;">
@@ -16,6 +26,10 @@
         <th>词条3</th>
         <th>词条4</th>
         <th>词条5</th>
+        <th>
+          <div>当前分数</div>
+          <div style="font-size: 10px; color: #888; font-weight: normal;">最高分数</div>
+        </th>
         <th>记录于</th>
         <th>操作</th>
       </tr>
@@ -40,6 +54,12 @@ import axios from 'axios'
 import emitter from '../stores/eventBus'
 import {API_BASE_URL} from '@/stores/constants.js'
 import {authState} from '@/auth'
+import {
+  ensureScoreTemplatesLoaded,
+  refreshScoreTemplates,
+  scoreTemplateContext,
+  scoreTemplateState,
+} from '@/stores/scoreTemplates.ts'
 
 export default {
   name: 'EchoLogs',
@@ -62,6 +82,15 @@ export default {
   setup(props) {
     const echoLogs = ref([])
     const echoTotal = ref(0)
+    const templateSourceLabel = computed(() => {
+      if (scoreTemplateState.source === 'remote') {
+        return `远端 ${scoreTemplateState.version}`
+      }
+      if (scoreTemplateState.source === 'cache') {
+        return `缓存 ${scoreTemplateState.version}`
+      }
+      return '内置'
+    })
 
     const upsertEchoLog = (echoLog) => {
       if (!echoLog?.id) {
@@ -113,7 +142,10 @@ export default {
     }
 
     // 页面加载时自动请求数据
-    onMounted(fetchEchoLogs)
+    onMounted(() => {
+      fetchEchoLogs()
+      ensureScoreTemplatesLoaded()
+    })
 
     // 返回模板需要的数据和方法
     const operatorId = computed(() => authState.user?.id)
@@ -126,6 +158,10 @@ export default {
       upsertEchoLog,
       operatorId,
       canManage,
+      scoreTemplateContext,
+      scoreTemplateState,
+      templateSourceLabel,
+      forceRefreshTemplates: () => refreshScoreTemplates(true),
     }
   },
 }
@@ -142,5 +178,10 @@ export default {
 .my-table th {
   border: 1px solid #ddd; /* 统一设置单元格边框 */
   padding: 8px;
+}
+
+.template-context-text {
+  font-size: 12px;
+  color: #666;
 }
 </style>

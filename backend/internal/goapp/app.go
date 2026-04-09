@@ -105,5 +105,6 @@ func (a *App) Handler() http.Handler {
 	mux.HandleFunc("DELETE /echo_log/{echoId}/substat_pos/{pos}", a.withPermission("edit", a.handleDeleteSubstatByEchoPos))
 	mux.HandleFunc("GET /echo_logs/analysis", a.withPermission("view", a.handleEchoLogsAnalysis))
 	mux.HandleFunc("POST /viewer/score_template_sync", a.withPermission("view", a.handleViewerScoreTemplateSync))
+	mux.HandleFunc("GET /score_templates", a.withPermission("view", a.handleGetScoreTemplates))
 	return a.cors(mux)
 }

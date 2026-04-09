@@ -11,7 +11,7 @@
       <!--  <br/>-->
       <!--  &nbsp;&nbsp;{{ scoreTemplate.cost ? scoreTemplate.cost : '无' }}-->
       <!--</span>-->
-      <button class="template-label-button">
+      <button class="button template-label-button">
         <!--共鸣者-->
         评分模板
       </button>
@@ -19,18 +19,18 @@
         <button
             v-for="resonator in RESONATORS"
             class="button template-button"
-            :style="scoreTemplate.resonator === resonator ? 'background-color: yellow;' : ''"
+            :style="getResonatorButtonStyle(resonator, scoreTemplate.resonator === resonator)"
             @click="setResonator(resonator)"
         >
           {{ resonator }}
         </button>
       </div>
       <div class="template-cost-group">
-        <button class="template-cost-label">Cost主词条</button>
+        <button class="button template-cost-label">Cost主词条</button>
         <button
             v-for="cost in ECHO_COST"
             class="button template-cost-button"
-            :style="scoreTemplate.cost === cost ? 'background-color: yellow;' : ''"
+            :style="getCostButtonStyle(cost, scoreTemplate.cost === cost)"
             @click="setCost(cost)"
         >
           {{ cost }}
@@ -388,6 +388,14 @@ import { API_BASE_URL,
 } from '@/stores/constants.ts'
 import { buildDecisionQueryFromEncoded } from '@/views/decisionSupport.ts'
 import { publishScoreTemplateChange as publishScoreTemplateCrossTab } from '@/stores/scoreTemplateSync'
+import {
+  ensureScoreTemplatesLoaded,
+  getResonatorTemplate,
+  refreshScoreTemplates,
+  scoreTemplateState,
+  setScoreTemplateContext,
+} from '@/stores/scoreTemplates.ts'
+import { formatEchoPotentialMaxScore } from '@/utils/echoScore.ts'
 import {onMounted, onUnmounted, ref, computed, watch} from 'vue'
 import emitter from '@/stores/eventBus.js'
 import {useRoute, useRouter} from 'vue-router';
@@ -395,6 +403,27 @@ import {authState} from '@/auth'
 
 const MASK = 0b1111111111111;
 const SUBSTAT_BIT_WIDTH = 13
+const RESONATOR_COLOR_PALETTE = [
+  '#2563eb', '#7c3aed', '#db2777', '#ea580c', '#ca8a04', '#16a34a',
+  '#0891b2', '#4f46e5', '#c026d3', '#dc2626', '#0f766e', '#9333ea',
+  '#0284c7', '#be123c', '#65a30d', '#1d4ed8', '#b45309', '#0d9488',
+  '#7c2d12', '#4338ca', '#15803d', '#9f1239', '#0369a1', '#a16207',
+  '#be185d', '#155e75',
+]
+const RESONATOR_BUTTON_COLORS = Object.fromEntries(
+  RESONATORS.map((resonator, index) => [resonator, RESONATOR_COLOR_PALETTE[index % RESONATOR_COLOR_PALETTE.length]])
+)
+const COST_BUTTON_COLORS = {
+  '4C': '#dc2626',
+  '3C属伤': '#7c3aed',
+  '3C攻击': '#ea580c',
+  '3C其它': '#0891b2',
+  '1C': '#16a34a',
+}
+const getTemplateButtonStyle = (color, selected) => ({
+  color,
+  backgroundColor: selected ? '#fef08a' : '#ffffff',
+})
 export default {
   name: 'Echo',
   computed: {
@@ -451,6 +480,7 @@ export default {
       resonator: route.query.resonator || '',
       cost: route.query.cost || '',
     })
+    setScoreTemplateContext(scoreTemplate.value)
     const normalizeUserId = (userId) => {
       if (userId === '' || userId === null || userId === undefined) {
         return 0
@@ -486,6 +516,7 @@ export default {
       updateQueryParam('cost', nextCost || undefined)
       scoreTemplate.value.resonator = nextResonator
       scoreTemplate.value.cost = nextCost
+      setScoreTemplateContext({ resonator: nextResonator, cost: nextCost })
       fetchEchoAnalysis()
     }
     const setResonator = (resonator) => {
@@ -494,6 +525,7 @@ export default {
       }
       updateQueryParam('resonator', resonator)
       scoreTemplate.value.resonator = resonator
+      setScoreTemplateContext({ resonator })
       publishScoreTemplateChange('resonator', resonator)
       fetchEchoAnalysis()
     }
@@ -503,6 +535,7 @@ export default {
       }
       updateQueryParam('cost', cost)
       scoreTemplate.value.cost = cost
+      setScoreTemplateContext({ cost })
       publishScoreTemplateChange('cost', cost)
       fetchEchoAnalysis()
     }
@@ -962,6 +995,9 @@ export default {
           })
     }
     onMounted(fetchEchoAnalysis)
+    onMounted(() => {
+      ensureScoreTemplatesLoaded()
+    })
 
     const doTune = async (substat, value) => {
       if (!echoLog.value.id) {
@@ -1120,74 +1156,13 @@ export default {
       return Number.parseFloat(String(desc).replace('%', '')) || 0
     }
 
-    const getResonatorTemplate = () => echoAnalysis.value.resonator_template ?? {}
-
     const getCurrentCost = () => scoreTemplate.value.cost || '1C'
-
-    const getEchoMaxScoreBase = () => {
-      const template = getResonatorTemplate()
-      const cost = getCurrentCost()
-      return Number(template.echo_max_score?.[String(cost).slice(0, 1)] ?? 0)
-    }
-
-    const getMainstatBaseScore = () => {
-      const template = getResonatorTemplate()
-      const cost = getCurrentCost()
-      return Number(template.mainstat_max_score?.[cost] ?? 0)
-    }
-
-    const getSubstatWeight = (substatNum) => {
-      const template = getResonatorTemplate()
-      const fullName = getSubstatFullName(substatNum)
-      return Number(template.substat_weight?.[fullName] ?? 0)
-    }
-
-    const getScaledSubstatScore = (substatNum, valueNum) => {
-      const echoMaxScoreBase = getEchoMaxScoreBase()
-      if (echoMaxScoreBase <= 0) {
-        return 0
-      }
-      const numericValue = getSubstatNumericValue(substatNum, valueNum)
-      const weight = getSubstatWeight(substatNum)
-      return weight * numericValue / echoMaxScoreBase * 50
-    }
-
-    const getCurrentSubstatScoreTotal = () =>
-      getSelectedSubstats().reduce((total, substatBits) => {
-        const substatNum = bitPos(substatBits & MASK)
-        const valueNum = bitPos(substatBits >> SUBSTAT_BIT_WIDTH)
-        if (substatNum < 0 || valueNum < 0) {
-          return total
-        }
-        return total + getScaledSubstatScore(substatNum, valueNum)
-      }, 0)
-
-    const getRemainingPotentialScoreTotal = () => {
-      const selectedNums = new Set(
-        getSelectedSubstats()
-          .map((substatBits) => bitPos(substatBits & MASK))
-          .filter((substatNum) => substatNum >= 0)
+    const getPotentialMaxScore = () =>
+      formatEchoPotentialMaxScore(
+        echoLog.value,
+        getResonatorTemplate(scoreTemplate.value.resonator || ''),
+        getCurrentCost(),
       )
-      const remainingSlots = Math.max(0, 5 - selectedNums.size)
-      if (remainingSlots <= 0) {
-        return 0
-      }
-      const candidates = SUBSTAT
-        .filter((substat) => !selectedNums.has(substat.num))
-        .map((substat) => {
-          const values = SUBSTAT_VALUE_MAP[substat.num] ?? []
-          const maxValueNum = values.length - 1
-          return maxValueNum >= 0 ? getScaledSubstatScore(substat.num, maxValueNum) : 0
-        })
-        .sort((a, b) => b - a)
-      return candidates.slice(0, remainingSlots).reduce((sum, score) => sum + score, 0)
-    }
-
-    const getPotentialMaxScore = () => {
-      const mainstatBaseScore = getMainstatBaseScore()
-      const total = mainstatBaseScore + getCurrentSubstatScoreTotal() + getRemainingPotentialScoreTotal()
-      return total > 0 ? total.toFixed(2) : ''
-    }
 
     const getRecentSubstatTotal = (substatNum) =>
       recentTuneStats.value.substat_dict?.[substatNum]?.total ?? 0
@@ -1342,8 +1317,14 @@ export default {
       getRecentRawDistance,
       getRecentDistanceLimit,
       isRecentDistanceOverflow,
+      scoreTemplateState,
+      refreshScoreTemplates,
       openDecisionLab,
       openSimulator,
+      getResonatorButtonStyle: (resonator, selected) =>
+        getTemplateButtonStyle(RESONATOR_BUTTON_COLORS[resonator] || '#475569', selected),
+      getCostButtonStyle: (cost, selected) =>
+        getTemplateButtonStyle(COST_BUTTON_COLORS[cost] || '#475569', selected),
       getSubstatColor,
       toggleTargetSubstat,
       setSubstatSinceDate,
@@ -1438,7 +1419,7 @@ export default {
   min-width: 44px;
   max-width: 44px;
   height: 100px;
-  color: red;
+  color: #334155;
   font-size: medium;
 }
 
@@ -1471,7 +1452,7 @@ export default {
   min-width: 45px;
   max-width: 45px;
   height: 100px;
-  color: red;
+  color: #334155;
   font-size: medium;
 }
 

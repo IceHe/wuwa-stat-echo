@@ -13,6 +13,10 @@
         <th>词条3</th>
         <th>词条4</th>
         <th>词条5</th>
+        <th>
+          <div>当前分数</div>
+          <div style="font-size: 10px; color: #888; font-weight: normal;">最高分数</div>
+        </th>
         <th>记录于</th>
         <!--<th>操作</th>-->
       </tr>
@@ -22,7 +26,7 @@
         v-for="echoLog in echoLogs"
         :key="echoLog.id + echoLog.updated_at + echoLog.deleted"
         :echoLog="echoLog"
-        :can-edit="false"
+        :show-actions="false"
       />
       </tbody>
     </table>

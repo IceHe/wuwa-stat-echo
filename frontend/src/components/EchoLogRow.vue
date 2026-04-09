@@ -17,6 +17,10 @@
     <td :style="`color: ${getSubstatColor(echoLog.substat3)};`">{{ echoLog.s3_desc }}</td>
     <td :style="`color: ${getSubstatColor(echoLog.substat3)};`">{{ echoLog.s4_desc }}</td>
     <td :style="`color: ${getSubstatColor(echoLog.substat3)};`">{{ echoLog.s5_desc }}</td>
+    <td class="score-cell">
+      <span class="score-current">{{ currentScore || '--' }}</span><br/>
+      <span class="score-max">{{ theoreticalMaxScore || '--' }}</span>
+    </td>
     <td style="max-width: 77px;">{{ created_at }}</td>
     <td v-if="showActions" style="max-width: 48px;">
       <button v-if="canDelete" @click="del" style="color: darkred">删除</button>
@@ -52,6 +56,20 @@
   border-color: #999;
   cursor: not-allowed;
 }
+
+.score-cell {
+  font-weight: 700;
+  line-height: 1.45;
+  white-space: nowrap;
+}
+
+.score-current {
+  color: #1d4ed8;
+}
+
+.score-max {
+  color: #8b1e3f;
+}
 </style>
 
 <script>
@@ -61,6 +79,8 @@ import {API_BASE_URL, CLASS_COLORS, getSubstatColor} from '@/stores/constants.ts
 import echoLogs from "@/components/EchoLogs.vue";
 import emitter from "@/stores/eventBus.js";
 import echo from "@/components/Echo.vue";
+import { getResonatorTemplate, scoreTemplateContext } from '@/stores/scoreTemplates.ts'
+import { formatEchoCurrentScore, formatEchoPotentialMaxScore } from '@/utils/echoScore.ts'
 
 export default {
   name: 'EchoLogRow',
@@ -94,6 +114,20 @@ export default {
     },
     canRecover() {
       return this.canModify && this.echoLog?.deleted === 1
+    },
+    currentScore() {
+      return formatEchoCurrentScore(
+        this.echoLog,
+        getResonatorTemplate(scoreTemplateContext.resonator || ''),
+        scoreTemplateContext.cost || '1C',
+      )
+    },
+    theoreticalMaxScore() {
+      return formatEchoPotentialMaxScore(
+        this.echoLog,
+        getResonatorTemplate(scoreTemplateContext.resonator || ''),
+        scoreTemplateContext.cost || '1C',
+      )
     },
     echo() {
       return echo
