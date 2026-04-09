@@ -20,7 +20,7 @@
         <td v-for="y in critDmgValues" :key="`rate-${y.value_number}`" class="rate-cell">
           {{ getColumnRate(y.value_number) }}
         </td>
-        <td class="total-cell">-</td>
+        <td class="total-cell">{{ formatRate(grandTotal) }}</td>
       </tr>
       <template v-for="x in critRateValues.length" :key="x">
         <tr style="text-align: center">
@@ -39,7 +39,7 @@
       </template>
       <tr class="total-row" style="text-align: center">
         <td class="total-cell">合计</td>
-        <td class="total-cell"></td>
+        <td class="total-cell">{{ formatRate(grandTotal) }}</td>
         <td v-for="y in critDmgValues" :key="`total-${y.value_number}`" class="total-cell">
           {{ getColumnTotal(y.value_number) }}
         </td>
@@ -152,7 +152,7 @@ export default {
     const formatRate = (count: number) => {
       const total = grandTotal.value
       if (total <= 0) {
-        return '0%'
+        return '0.0%'
       }
       return `${(count / total * 100).toFixed(1)}%`
     }
@@ -258,6 +258,7 @@ export default {
       getColumnTotal,
       getRowRate,
       getColumnRate,
+      formatRate,
       grandTotal,
       getDataCellStyle,
       fourCellRowGroups,
