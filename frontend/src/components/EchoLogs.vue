@@ -27,8 +27,8 @@
         <th>词条4</th>
         <th>词条5</th>
         <th>
-          <div>当前分数</div>
-          <div style="font-size: 10px; color: #888; font-weight: normal;">最高分数</div>
+          <div>当前分</div>
+          <div style="font-size: 10px; color: #888; font-weight: normal;">理论最高</div>
         </th>
         <th>记录于</th>
         <th>操作</th>
