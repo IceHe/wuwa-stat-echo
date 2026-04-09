@@ -85,8 +85,8 @@
         <td
           v-for="colGroup in nineCellColGroups"
           :key="`nine-cell-${rowGroup.start}-${colGroup.start}`"
-          class="data-cell"
-          :style="getAggregatedCellStyle(rowGroup, colGroup, maxNineCellCount)"
+          class="data-cell aggregate-dynamic-cell"
+          :style="getNineCellStyle(rowGroup, colGroup)"
         >
           <span class="data-cell-value">{{ getAggregatedCellCount(rowGroup, colGroup) }}</span>
         </td>
@@ -237,6 +237,12 @@ export default {
     const getAggregatedCellStyle = (rowGroup: ValueGroup, colGroup: ValueGroup, max: number) =>
       buildHeatmapStyle(getAggregatedCellCount(rowGroup, colGroup), max)
 
+    const getNineCellStyle = (rowGroup: ValueGroup, colGroup: ValueGroup) => ({
+      ...getAggregatedCellStyle(rowGroup, colGroup, maxNineCellCount.value),
+      minWidth: `${colGroup.size * 72}px`,
+      height: `${rowGroup.size * 42}px`,
+    })
+
     const formatGroupLabel = (values: Array<{ desc: string }>, group: ValueGroup) => {
       const first = values[group.start]?.desc ?? ''
       const last = values[group.start + group.size - 1]?.desc ?? first
@@ -260,6 +266,7 @@ export default {
       nineCellColGroups,
       getAggregatedCellCount,
       getAggregatedCellStyle,
+      getNineCellStyle,
       maxFourCellCount,
       maxNineCellCount,
       formatGroupLabel,
@@ -293,8 +300,13 @@ export default {
 
 .data-cell {
   min-width: 72px;
+  height: 42px;
   border: 1px solid #cfcfcf;
   transition: background 160ms ease;
+}
+
+.aggregate-dynamic-cell {
+  min-width: unset;
 }
 
 .data-cell-value {
