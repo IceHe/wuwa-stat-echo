@@ -10,6 +10,7 @@ import (
 const substatMaxGapForceCooldown = time.Hour
 
 type substatGapState struct {
+	userID    int64
 	seen      bool
 	lastIndex int
 	lastID    int64
@@ -110,13 +111,13 @@ func (a *App) loadSubstatMaxGap(ctx context.Context, userID int64, force bool) (
 }
 
 func (a *App) computeSubstatMaxGap(ctx context.Context, userID int64) (*SubstatMaxGapResponse, error) {
-	query := "select id, substat from wuwa_tune_log where deleted = 0"
+	query := "select id, substat, user_id from wuwa_tune_log where deleted = 0"
 	args := []any{}
 	if userID > 0 {
 		query += " and user_id = $1"
 		args = append(args, userID)
 	}
-	query += " order by id asc"
+	query += " order by user_id asc, id asc"
 
 	rows, err := a.db.Query(ctx, query, args...)
 	if err != nil {
@@ -124,33 +125,44 @@ func (a *App) computeSubstatMaxGap(ctx context.Context, userID int64) (*SubstatM
 	}
 	defer rows.Close()
 
-	states := make([]substatGapState, len(substatDefs))
+	bestStates := make([]substatGapState, len(substatDefs))
+	perUserStates := map[int64][]substatGapState{}
+	userTotals := map[int64]int{}
 	total := 0
 	for rows.Next() {
 		var id int64
 		var substat int
-		if err := rows.Scan(&id, &substat); err != nil {
+		var rowUserID int64
+		if err := rows.Scan(&id, &substat, &rowUserID); err != nil {
 			return nil, err
 		}
-		if substat < 0 || substat >= len(states) {
+		if substat < 0 || substat >= len(bestStates) {
 			total++
 			continue
 		}
-		state := &states[substat]
+		if _, ok := perUserStates[rowUserID]; !ok {
+			perUserStates[rowUserID] = make([]substatGapState, len(substatDefs))
+			for index := range perUserStates[rowUserID] {
+				perUserStates[rowUserID][index].userID = rowUserID
+			}
+		}
+		userIndex := userTotals[rowUserID]
+		state := &perUserStates[rowUserID][substat]
 		state.count++
 		if !state.seen {
 			state.seen = true
-			state.leading = total
+			state.leading = userIndex
 		} else {
-			gap := total - state.lastIndex - 1
+			gap := userIndex - state.lastIndex - 1
 			if gap > state.maxGap {
 				state.maxGap = gap
 				state.startID = state.lastID
 				state.endID = id
 			}
 		}
-		state.lastIndex = total
+		state.lastIndex = userIndex
 		state.lastID = id
+		userTotals[rowUserID] = userIndex + 1
 		total++
 	}
 
@@ -162,18 +174,49 @@ func (a *App) computeSubstatMaxGap(ctx context.Context, userID int64) (*SubstatM
 	}
 	now := time.Now()
 	result.GeneratedAt = &now
+	for ownerUserID, states := range perUserStates {
+		userTotal := userTotals[ownerUserID]
+		for index := range states {
+			state := &states[index]
+			if !state.seen {
+				state.leading = userTotal
+				state.trailing = userTotal
+				state.maxGap = userTotal
+				state.startID = -1
+				state.endID = -1
+				continue
+			}
+			state.trailing = userTotal - state.lastIndex - 1
+			if state.leading >= state.maxGap {
+				state.maxGap = state.leading
+				state.startID = -1
+				state.endID = state.lastID
+			}
+			if state.trailing > state.maxGap {
+				state.maxGap = state.trailing
+				state.startID = state.lastID
+				state.endID = -1
+			}
+			best := &bestStates[index]
+			if !best.seen || state.maxGap > best.maxGap {
+				*best = *state
+			}
+		}
+	}
 	for _, def := range substatDefs {
-		state := states[def.Number]
+		state := bestStates[def.Number]
 		if !state.seen {
 			state.leading = total
 			state.trailing = total
-		} else {
-			state.trailing = total - state.lastIndex - 1
+			state.maxGap = total
+			state.startID = -1
+			state.endID = -1
 		}
 		result.Rows = append(result.Rows, SubstatMaxGapRow{
 			Substat:         def.Number,
 			Name:            def.Name,
 			NameCN:          def.NameCN,
+			OwnerUserID:     state.userID,
 			MaxGap:          state.maxGap,
 			OccurrenceCount: state.count,
 			LeadingGap:      state.leading,

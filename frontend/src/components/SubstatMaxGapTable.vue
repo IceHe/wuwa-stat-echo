@@ -34,40 +34,41 @@
         <span>上次强制刷新：{{ formatTime(stats.last_forced_refresh_at) }}</span>
         <span>下次可强刷：{{ formatTime(stats.refresh_available_at) }}</span>
       </div>
+      <div class="summary-row">
+        <span>以下最大间隔均按单个玩家内部序列计算。</span>
+      </div>
       <div v-if="stats.refresh_blocked" class="summary-alert">当前范围仍在强制刷新冷却中，展示的是现有缓存。</div>
       <div v-else-if="stats.force_applied" class="summary-ok">已按当前范围重新统计并更新缓存。</div>
     </div>
 
-    <table class="my-table">
-      <thead>
-      <tr>
-        <th>副词条</th>
-        <th>最大间隔</th>
-        <th>出现次数</th>
-        <th>首次前置间隔</th>
-        <th>当前尾部间隔</th>
-        <th>最大间隔起点 ID</th>
-        <th>最大间隔终点 ID</th>
-      </tr>
-      </thead>
-      <tbody>
-      <tr v-for="row in stats.rows" :key="row.substat">
-        <td :style="`color: ${getSubstatColor(1 << row.substat)}; font-weight: 700;`">{{ row.name_cn }}</td>
-        <td class="number-cell">{{ row.max_gap }}</td>
-        <td class="number-cell">{{ row.occurrence_count }}</td>
-        <td class="number-cell">{{ row.leading_gap }}</td>
-        <td class="number-cell">{{ row.trailing_gap }}</td>
-        <td class="number-cell">{{ row.max_gap_start_id || '-' }}</td>
-        <td class="number-cell">{{ row.max_gap_end_id || '-' }}</td>
-      </tr>
-      </tbody>
-    </table>
+    <div class="table-wrap">
+      <table class="my-table">
+        <thead>
+        <tr>
+          <th>副词条</th>
+          <th>最大间隔</th>
+          <th>最大间隔起点 ID</th>
+          <th>最大间隔终点 ID</th>
+          <th v-if="showOwnerColumn">玩家 ID</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr v-for="row in stats.rows" :key="row.substat">
+          <td :style="`color: ${getSubstatColor(1 << row.substat)}; font-weight: 700;`">{{ row.name_cn }}</td>
+          <td class="number-cell">{{ row.max_gap }}</td>
+          <td class="number-cell">{{ formatGapEdge(row.max_gap_start_id) }}</td>
+          <td class="number-cell">{{ formatGapEdge(row.max_gap_end_id) }}</td>
+          <td v-if="showOwnerColumn" class="number-cell">{{ row.owner_user_id || '-' }}</td>
+        </tr>
+        </tbody>
+      </table>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import axios from 'axios'
-import { onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import { API_BASE_URL, getSubstatColor } from '@/stores/constants'
@@ -76,6 +77,7 @@ type MaxGapRow = {
   substat: number
   name: string
   name_cn: string
+  owner_user_id: number
   max_gap: number
   occurrence_count: number
   leading_gap: number
@@ -115,6 +117,8 @@ const stats = reactive<MaxGapResponse>({
   refresh_blocked: false,
   rows: [],
 })
+
+const showOwnerColumn = computed(() => stats.user_id === 0)
 
 const syncQuery = () => {
   const userId = form.userId.trim()
@@ -182,6 +186,13 @@ const formatTime = (value?: string) => {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
 }
 
+const formatGapEdge = (value?: number) => {
+  if (value == null || value < 0) {
+    return '-'
+  }
+  return String(value)
+}
+
 onMounted(() => {
   fetchStats(false)
 })
@@ -190,7 +201,9 @@ onMounted(() => {
 <style scoped>
 .max-gap-page {
   display: grid;
-  gap: 16px;
+  gap: 12px;
+  width: 100%;
+  max-width: none;
 }
 
 .toolbar {
@@ -249,10 +262,10 @@ button:disabled {
 .summary-card {
   display: grid;
   gap: 8px;
-  padding: 14px 16px;
-  border-radius: 16px;
-  background: linear-gradient(135deg, #f5efe2 0%, #eef6f4 100%);
-  border: 1px solid rgba(35, 64, 75, 0.1);
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #f8fafc;
+  border: 1px solid #d7dde5;
 }
 
 .summary-row {
@@ -280,18 +293,50 @@ button:disabled {
   background: #fff;
 }
 
+.table-wrap {
+  width: 100%;
+  overflow-x: auto;
+}
+
 .my-table th,
 .my-table td {
   border: 1px solid #d7dde5;
-  padding: 8px 10px;
+  padding: 8px 8px;
 }
 
 .my-table thead th {
   background: #f5efe2;
   text-align: left;
+  white-space: nowrap;
 }
 
 .number-cell {
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+@media (max-width: 900px) {
+  .toolbar-left {
+    width: 100%;
+  }
+
+  .field input {
+    width: min(100%, 280px);
+  }
+
+  .my-table {
+    min-width: 980px;
+  }
+}
+
+@media (max-width: 720px) {
+  .toolbar-right,
+  .summary-row {
+    width: 100%;
+  }
+
+  .my-table {
+    min-width: 920px;
+  }
 }
 </style>

@@ -192,6 +192,7 @@ type SubstatMaxGapRow struct {
 	Substat         int    `json:"substat"`
 	Name            string `json:"name"`
 	NameCN          string `json:"name_cn"`
+	OwnerUserID     int64  `json:"owner_user_id,omitempty"`
 	MaxGap          int    `json:"max_gap"`
 	OccurrenceCount int    `json:"occurrence_count"`
 	LeadingGap      int    `json:"leading_gap"`
