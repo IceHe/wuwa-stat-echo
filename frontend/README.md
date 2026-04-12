@@ -81,6 +81,33 @@ export const API_SERV = `${API_HOST}:${API_PORT}`
 
 因此前后端地址必须保持一致。
 
+## 生产部署
+
+生产环境不再常驻运行 `vite preview`，而是采用：
+
+- `npm run build-only` 构建前端静态资源
+- 将 `dist/` 发布到 `/var/www/wuwa-echo`
+- 由 `nginx` 直接托管静态文件，并将 `/api/` 反代到后端 `:8888`
+
+仓库中对应文件：
+
+- `deploy/scripts/publish-frontend.sh`
+- `deploy/systemd/wuwa-echo-frontend.service`
+- `deploy/nginx/wuwa-echo.conf`
+
+当前前端构建服务是 `oneshot` 形式，执行一次后退出；重新发布可运行：
+
+```sh
+systemctl start wuwa-echo-frontend.service
+```
+
+如果只想在服务器上手动构建，也可以在 `frontend/` 目录下执行：
+
+```sh
+npm install
+npm run build-only
+```
+
 ## 文档
 
 - [架构文档](docs/ARCHITECTURE.md)

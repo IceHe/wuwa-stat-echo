@@ -100,8 +100,26 @@ npm run dev
 - `backend/docs/REQUIREMENTS.md`：业务需求说明
 - `backend/docs/ROADMAP_ADVANCED_STATS.md`：高级统计、决策支持与模拟器路线图
 - `frontend/README.md`：前端页面结构与开发说明
+- `deploy/README.md`：生产部署方式、`systemd` 与 `nginx` 配置说明
 
-## 适合后续补齐的文档
+## 当前生产部署方式
 
-- 一份数据库初始化步骤文档
-- 一份前后端联调与部署文档
+当前线上部署已切换为：
+
+- `backend`：`systemd` 常驻运行 Go 后端二进制，监听 `:8888`
+- `frontend`：`systemd` 只负责执行前端构建与发布脚本，不再常驻运行 `vite preview`
+- `nginx`：直接托管前端静态文件目录 `/var/www/wuwa-echo`，并将 `/api/` 反代到后端 `:8888`
+
+这意味着前端生产环境不是直接跑 Vite 开发服务器，也不是常驻跑 `vite preview`；标准流程是先构建 `dist/`，再由 `nginx` 提供静态文件。
+
+如果要重新发布前端，可执行：
+
+```bash
+systemctl start wuwa-echo-frontend.service
+```
+
+如果要查看当前前端构建服务状态，可执行：
+
+```bash
+systemctl status wuwa-echo-frontend.service
+```
