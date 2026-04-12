@@ -1,15 +1,13 @@
 [Unit]
-Description=Wuwa Echo Frontend Service
+Description=Wuwa Echo Frontend Build Service
 After=network.target
 
 [Service]
-Type=simple
+Type=oneshot
 User=root
 WorkingDirectory=/root/wuwa/echo/frontend
-ExecStartPre=/usr/bin/npm run build-only
-ExecStart=/usr/bin/npm run preview -- --host 0.0.0.0 --port 3000
-Restart=always
-RestartSec=3
+ExecStart=/root/wuwa/echo/deploy/scripts/publish-frontend.sh
+RemainAfterExit=yes
 
 [Install]
 WantedBy=multi-user.target
