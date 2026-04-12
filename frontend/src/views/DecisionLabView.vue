@@ -248,6 +248,7 @@ watch(
 .lab-page {
   display: grid;
   gap: 20px;
+  width: min(100%, 1680px);
 }
 
 .hero {
@@ -294,8 +295,8 @@ h1 {
 
 .lab-layout {
   display: grid;
-  grid-template-columns: minmax(320px, 1.15fr) minmax(320px, 1fr);
-  gap: 20px;
+  grid-template-columns: minmax(420px, 1.12fr) minmax(500px, 1.28fr);
+  gap: 24px;
 }
 
 .panel {
@@ -348,7 +349,7 @@ button:disabled {
 
 .field-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 14px;
 }
 
@@ -376,7 +377,7 @@ select {
 
 .slots {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
 }
 
@@ -395,7 +396,7 @@ select {
 
 .summary-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
 }
 
@@ -424,7 +425,7 @@ select {
 
 .metric-list {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
 }
 
@@ -486,7 +487,19 @@ select {
   color: #912f24;
 }
 
-@media (max-width: 980px) {
+@media (max-width: 1320px) {
+  .field-grid,
+  .slots,
+  .metric-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 1080px) {
   .lab-layout {
     grid-template-columns: 1fr;
   }

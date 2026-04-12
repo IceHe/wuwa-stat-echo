@@ -289,6 +289,7 @@ watch(
 .sim-page {
   display: grid;
   gap: 20px;
+  width: min(100%, 1700px);
 }
 
 .hero {
@@ -335,8 +336,8 @@ h1 {
 
 .sim-layout {
   display: grid;
-  grid-template-columns: minmax(320px, 0.95fr) minmax(320px, 1.2fr);
-  gap: 20px;
+  grid-template-columns: minmax(430px, 1fr) minmax(560px, 1.42fr);
+  gap: 24px;
 }
 
 .panel {
@@ -391,7 +392,7 @@ button:disabled {
 
 .field-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 14px;
 }
 
@@ -423,7 +424,7 @@ select {
 
 .slots {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
 }
 
@@ -438,7 +439,7 @@ select {
 .overview-grid,
 .metric-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
 }
 
@@ -527,7 +528,19 @@ select {
   color: #8f2d23;
 }
 
-@media (max-width: 1100px) {
+@media (max-width: 1360px) {
+  .field-grid,
+  .slots {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .overview-grid,
+  .metric-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 1180px) {
   .sim-layout,
   .strategy-grid {
     grid-template-columns: 1fr;
