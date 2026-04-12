@@ -9,6 +9,7 @@ import SimulatorView from '@/views/SimulatorView.vue'
 import SubstatView from "@/views/SubstatView.vue";
 import EchoBoardView from "@/views/EchoBoardView.vue";
 import EchoDcritCountView from "@/views/EchoDcritCountView.vue";
+import SubstatMaxGapView from '@/views/SubstatMaxGapView.vue'
 import LoginView from '@/views/LoginView.vue'
 
 const router = createRouter({
@@ -63,6 +64,11 @@ const router = createRouter({
             path: '/echo_dcrit_count',
             name: 'echo_dcrit_count',
             component: EchoDcritCountView,
+        },
+        {
+            path: '/substat_max_gap',
+            name: 'substat_max_gap',
+            component: SubstatMaxGapView,
         },
         {
             path: '/echo-viewer',

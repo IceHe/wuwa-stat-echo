@@ -21,12 +21,14 @@ const (
 )
 
 type App struct {
-	db          *pgxpool.Pool
-	authURL     string
-	httpClient  *http.Client
-	ws          *wsManager
-	statsMu     sync.RWMutex
-	cachedStats *TuneStatsResponse
+	db                 *pgxpool.Pool
+	authURL            string
+	httpClient         *http.Client
+	ws                 *wsManager
+	statsMu            sync.RWMutex
+	cachedStats        *TuneStatsResponse
+	maxGapMu           sync.RWMutex
+	substatMaxGapCache map[int64]*SubstatMaxGapResponse
 }
 
 type contextKey string
@@ -184,6 +186,31 @@ type TuneStatsResponse struct {
 	TwoCritPercent    float64                 `json:"two_crit_percent,omitempty"`
 	Window            string                  `json:"window,omitempty"`
 	BaselineCompare   map[string]any          `json:"baseline_compare,omitempty"`
+}
+
+type SubstatMaxGapRow struct {
+	Substat         int    `json:"substat"`
+	Name            string `json:"name"`
+	NameCN          string `json:"name_cn"`
+	MaxGap          int    `json:"max_gap"`
+	OccurrenceCount int    `json:"occurrence_count"`
+	LeadingGap      int    `json:"leading_gap"`
+	TrailingGap     int    `json:"trailing_gap"`
+	MaxGapStartID   int64  `json:"max_gap_start_id"`
+	MaxGapEndID     int64  `json:"max_gap_end_id"`
+}
+
+type SubstatMaxGapResponse struct {
+	UserID              int64              `json:"user_id"`
+	ScopeLabel          string             `json:"scope_label"`
+	TuneLogTotal        int                `json:"tune_log_total"`
+	GeneratedAt         *time.Time         `json:"generated_at,omitempty"`
+	LastForcedRefreshAt *time.Time         `json:"last_forced_refresh_at,omitempty"`
+	RefreshAvailableAt  *time.Time         `json:"refresh_available_at,omitempty"`
+	CacheHit            bool               `json:"cache_hit"`
+	ForceApplied        bool               `json:"force_applied"`
+	RefreshBlocked      bool               `json:"refresh_blocked"`
+	Rows                []SubstatMaxGapRow `json:"rows"`
 }
 
 type wsManager struct {

@@ -44,6 +44,7 @@ func New() (*App, error) {
 		ws: &wsManager{
 			connections: map[string]map[*wsConn]struct{}{},
 		},
+		substatMaxGapCache: map[int64]*SubstatMaxGapResponse{},
 	}
 
 	if err := app.ensureTuneStatsAggregateReady(context.Background()); err != nil {
@@ -74,12 +75,12 @@ func (a *App) Handler() http.Handler {
 	mux.HandleFunc("GET /ws", a.handleWebsocket)
 	mux.HandleFunc("POST /auth/login", a.handleProxyLogin)
 	mux.HandleFunc("GET /auth/me", a.handleProxyMe)
-	mux.HandleFunc("GET /", a.withPermission("view", a.handleRoot))
 	mux.HandleFunc("GET /substat_logs", a.withPermission("view", a.handleListSubstatLogs))
 	mux.HandleFunc("POST /tune_log/{id}/delete", a.withPermission("edit", a.handleDeleteTuneLogByID))
 	mux.HandleFunc("POST /tune_log", a.withPermission("edit", a.handleAddTuneLog))
 	mux.HandleFunc("GET /tune_stats", a.withPermission("view", a.handleTuneStats))
 	mux.HandleFunc("GET /substat_distance_analysis", a.withPermission("view", a.handleSubstatDistanceAnalysis))
+	mux.HandleFunc("GET /stats/substat_max_gap", a.withPermission("view", a.handleSubstatMaxGap))
 	mux.HandleFunc("POST /analyze_echo", a.withPermission("view", a.handleAnalyzeEcho))
 	mux.HandleFunc("GET /counts/echo_dcrit", a.withPermission("view", a.handleEchoDcrit))
 	mux.HandleFunc("GET /test/0", a.withPermission("view", a.handleTestZero))
@@ -106,5 +107,6 @@ func (a *App) Handler() http.Handler {
 	mux.HandleFunc("GET /echo_logs/analysis", a.withPermission("view", a.handleEchoLogsAnalysis))
 	mux.HandleFunc("POST /viewer/score_template_sync", a.withPermission("view", a.handleViewerScoreTemplateSync))
 	mux.HandleFunc("GET /score_templates", a.withPermission("view", a.handleGetScoreTemplates))
+	mux.HandleFunc("GET /", a.withPermission("view", a.handleRoot))
 	return a.cors(mux)
 }

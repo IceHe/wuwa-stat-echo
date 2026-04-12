@@ -12,6 +12,10 @@
           <span class="home-link-title">高级统计</span>
           <span class="home-link-path">/analysis</span>
         </RouterLink>
+        <RouterLink class="home-link" to="/substat_max_gap">
+          <span class="home-link-title">副词条最大间隔</span>
+          <span class="home-link-path">/substat_max_gap</span>
+        </RouterLink>
         <RouterLink class="home-link" to="/decision-lab">
           <span class="home-link-title">Decision Lab</span>
           <span class="home-link-path">/decision-lab</span>
