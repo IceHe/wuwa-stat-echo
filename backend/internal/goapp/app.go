@@ -81,6 +81,7 @@ func (a *App) Handler() http.Handler {
 	mux.HandleFunc("GET /tune_stats", a.withPermission("view", a.handleTuneStats))
 	mux.HandleFunc("GET /substat_distance_analysis", a.withPermission("view", a.handleSubstatDistanceAnalysis))
 	mux.HandleFunc("GET /stats/substat_max_gap", a.withPermission("view", a.handleSubstatMaxGap))
+	mux.HandleFunc("GET /stats/pity_analysis", a.withPermission("view", a.handlePityAnalysis))
 	mux.HandleFunc("POST /analyze_echo", a.withPermission("view", a.handleAnalyzeEcho))
 	mux.HandleFunc("GET /counts/echo_dcrit", a.withPermission("view", a.handleEchoDcrit))
 	mux.HandleFunc("GET /test/0", a.withPermission("view", a.handleTestZero))

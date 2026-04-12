@@ -28,6 +28,10 @@
           <span class="home-link-title">双暴统计</span>
           <span class="home-link-path">/echo_dcrit_count</span>
         </RouterLink>
+        <RouterLink class="home-link" to="/pity_analysis">
+          <span class="home-link-title">保底论证</span>
+          <span class="home-link-path">/pity_analysis</span>
+        </RouterLink>
       </nav>
     </div>
   </div>
