@@ -22,9 +22,10 @@
       <span class="score-max">{{ theoreticalMaxScore || '--' }}</span>
     </td>
     <td style="max-width: 77px;">{{ created_at }}</td>
-    <td v-if="showActions" style="max-width: 48px;">
+    <td v-if="showActions" class="action-cell">
       <button v-if="canDelete" @click="del" style="color: darkred">删除</button>
       <button v-else-if="canRecover" @click="recover">恢复</button>
+      <span v-else-if="ownerOperatorId" class="owner-label">{{ ownerOperatorId }}</span>
     </td>
   </tr>
 </template>
@@ -70,6 +71,16 @@
 .score-max {
   color: #8b1e3f;
 }
+
+.action-cell {
+  max-width: 88px;
+}
+
+.owner-label {
+  color: #64748b;
+  font-size: 12px;
+  white-space: nowrap;
+}
 </style>
 
 <script>
@@ -114,6 +125,13 @@ export default {
     },
     canRecover() {
       return this.canModify && this.echoLog?.deleted === 1
+    },
+    ownerOperatorId() {
+      const owner = this.echoLog?.operator_id
+      if (!owner || owner === this.operatorId) {
+        return ''
+      }
+      return String(owner)
     },
     currentScore() {
       return formatEchoCurrentScore(
