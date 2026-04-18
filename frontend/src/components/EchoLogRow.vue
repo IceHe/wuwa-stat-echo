@@ -7,9 +7,9 @@
         class="echo-btn"
         @click="setEchoId(echoLog.id)"
       >
-        {{ echoLog.user_id }}<br/>{{ echoLog.id }}
+        {{ echoLog.user_id }}<br/>{{ echoIdWithOperatorId }}
       </button>
-      <span v-else style="color: #999;">{{ echoLog.user_id }}<br/>{{ echoLog.id }}</span>
+      <span v-else style="color: #999;">{{ echoLog.user_id }}<br/>{{ echoIdWithOperatorId }}</span>
     </td>
     <td :style="`color: ${CLASS_COLORS[echoLog.clazz]}; width: 50px;`">{{ echoLog.clazz.substring(0, 4) }}</td>
     <td :style="`color: ${getSubstatColor(echoLog.substat1)};`">{{ echoLog.s1_desc }}</td>
@@ -132,6 +132,14 @@ export default {
         return ''
       }
       return String(owner)
+    },
+    echoIdWithOperatorId() {
+      const echoId = this.echoLog?.id
+      const operatorId = this.echoLog?.operator_id
+      if (!operatorId) {
+        return String(echoId ?? '')
+      }
+      return `${echoId} / ${operatorId}`
     },
     currentScore() {
       return formatEchoCurrentScore(
