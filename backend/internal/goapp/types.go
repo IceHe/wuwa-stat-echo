@@ -95,15 +95,17 @@ type EchoTuneRequest struct {
 }
 
 type EchoFindRequest struct {
-	ID       int64  `json:"id"`
-	UserID   int64  `json:"user_id"`
-	Clazz    string `json:"clazz"`
-	Keyword  string `json:"keyword"`
-	Substat1 int64  `json:"substat1"`
-	Substat2 int64  `json:"substat2"`
-	Substat3 int64  `json:"substat3"`
-	Substat4 int64  `json:"substat4"`
-	Substat5 int64  `json:"substat5"`
+	ID              int64  `json:"id"`
+	UserID          int64  `json:"user_id"`
+	Clazz           string `json:"clazz"`
+	Keyword         string `json:"keyword"`
+	OperatorScope   string `json:"operator_scope"`
+	AllowEmptyQuery bool   `json:"allow_empty_query"`
+	Substat1        int64  `json:"substat1"`
+	Substat2        int64  `json:"substat2"`
+	Substat3        int64  `json:"substat3"`
+	Substat4        int64  `json:"substat4"`
+	Substat5        int64  `json:"substat5"`
 }
 
 type ScoreTemplateSyncRequest struct {

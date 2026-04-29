@@ -170,7 +170,7 @@ const connectWebSocket = () => {
 }
 
 onMounted(() => {
-  emitter.on('scoreTemplateChanged', handleScoreTemplateChanged)
+  ;(emitter as any).on('scoreTemplateChanged', handleScoreTemplateChanged)
   unsubscribeScoreTemplateSync = subscribeScoreTemplateChange(applyRemoteScoreTemplateChange)
   operatorId.value = route.query.operator_id as string
   if (operatorId.value) {
@@ -182,7 +182,7 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
-  emitter.off('scoreTemplateChanged', handleScoreTemplateChanged)
+  ;(emitter as any).off('scoreTemplateChanged', handleScoreTemplateChanged)
   if (unsubscribeScoreTemplateSync) {
     unsubscribeScoreTemplateSync()
     unsubscribeScoreTemplateSync = null

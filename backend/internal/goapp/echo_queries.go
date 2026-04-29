@@ -11,10 +11,15 @@ import (
 )
 
 func (a *App) handleListEchoLogs(w http.ResponseWriter, r *http.Request) {
+	operatorID := operatorIDFromContext(r.Context())
+	if operatorID == nil {
+		writeJSON(w, appError("operator not found", 401))
+		return
+	}
 	pageNum := parseIntDefault(r.URL.Query().Get("page"), 1)
 	pageSize := parseIntDefault(r.URL.Query().Get("page_size"), 20)
 	offset := (pageNum - 1) * pageSize
-	rows, err := a.db.Query(r.Context(), "select id, substat1, substat2, substat3, substat4, substat5, substat_all, s1_desc, s2_desc, s3_desc, s4_desc, s5_desc, clazz, user_id, operator_id, deleted, tuned_at, created_at, updated_at from wuwa_echo_log order by updated_at desc offset $1 limit $2", offset, pageSize)
+	rows, err := a.db.Query(r.Context(), "select id, substat1, substat2, substat3, substat4, substat5, substat_all, s1_desc, s2_desc, s3_desc, s4_desc, s5_desc, clazz, user_id, operator_id, deleted, tuned_at, created_at, updated_at from wuwa_echo_log where operator_id = $1 order by updated_at desc offset $2 limit $3", *operatorID, offset, pageSize)
 	if err != nil {
 		writeJSON(w, appError("failed to get echo logs", 500))
 		return
@@ -26,7 +31,7 @@ func (a *App) handleListEchoLogs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var total int64
-	if err := a.db.QueryRow(r.Context(), "select count(id) from wuwa_echo_log where deleted = 0").Scan(&total); err != nil {
+	if err := a.db.QueryRow(r.Context(), "select count(id) from wuwa_echo_log where deleted = 0 and operator_id = $1", *operatorID).Scan(&total); err != nil {
 		writeJSON(w, appError("failed to get echo logs", 500))
 		return
 	}
@@ -83,10 +88,11 @@ func (a *App) handleFindEchoLog(w http.ResponseWriter, r *http.Request) {
 	}
 	hasSubstatFilter := (payload.Substat1 | payload.Substat2 | payload.Substat3 | payload.Substat4 | payload.Substat5) != 0
 	keyword := strings.TrimSpace(payload.Keyword)
-	if !hasSubstatFilter && payload.ID <= 0 && payload.UserID <= 0 && payload.Clazz == "" && keyword == "" {
+	if !payload.AllowEmptyQuery && !hasSubstatFilter && payload.ID <= 0 && payload.UserID <= 0 && payload.Clazz == "" && keyword == "" {
 		writeJSON(w, success("no search condition specified, return empty list", []EchoLog{}))
 		return
 	}
+	operatorScope := strings.ToLower(strings.TrimSpace(payload.OperatorScope))
 	pageSize := parseIntDefault(r.URL.Query().Get("page_size"), 20)
 	if pageSize < 1 {
 		pageSize = 1
@@ -97,6 +103,16 @@ func (a *App) handleFindEchoLog(w http.ResponseWriter, r *http.Request) {
 	query := "select id, substat1, substat2, substat3, substat4, substat5, substat_all, s1_desc, s2_desc, s3_desc, s4_desc, s5_desc, clazz, user_id, operator_id, deleted, tuned_at, created_at, updated_at from wuwa_echo_log where deleted = 0"
 	var args []any
 	arg := 1
+	if operatorScope == "current" {
+		operatorID := operatorIDFromContext(r.Context())
+		if operatorID == nil {
+			writeJSON(w, appError("operator not found", 401))
+			return
+		}
+		query += fmt.Sprintf(" and operator_id = $%d", arg)
+		args = append(args, *operatorID)
+		arg++
+	}
 	if payload.ID > 0 {
 		query += fmt.Sprintf(" and id = $%d", arg)
 		args = append(args, payload.ID)

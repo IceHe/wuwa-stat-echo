@@ -217,6 +217,7 @@ export default {
         recoverTuneLog(props.echoLog.id)
         setTimeout(() => {
           emitter.emit('refreshEchoLogs')
+          emitter.emit('refreshRecentEchoLogs')
           emitter.emit('refreshSubstatLogs')
         }, 1000)
       },
@@ -224,6 +225,7 @@ export default {
         deleteEchoLog(props.echoLog.id)
         setTimeout(() => {
           emitter.emit('refreshEchoLogs')
+          emitter.emit('refreshRecentEchoLogs')
           emitter.emit('refreshSubstatLogs')
         }, 1000)
       },

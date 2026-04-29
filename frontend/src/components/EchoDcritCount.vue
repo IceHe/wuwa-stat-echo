@@ -136,8 +136,10 @@ export default {
     }
     onMounted(fetchEchoDcritCounts)
 
-    const getCellCount = (critRateValueNumber: number, critDmgValueNumber: number) =>
-      Number(echo_dcrit_count.value.counts?.[critRateValueNumber]?.[critDmgValueNumber] ?? 0)
+    const getCellCount = (critRateValueNumber: number, critDmgValueNumber: number) => {
+      const counts = echo_dcrit_count.value.counts as Record<number, Record<number, number> | undefined> | undefined
+      return Number(counts?.[critRateValueNumber]?.[critDmgValueNumber] ?? 0)
+    }
 
     const getRowTotal = (critRateValueNumber: number) =>
       critDmgValues.reduce((sum, critDmgValue) => sum + getCellCount(critRateValueNumber, critDmgValue.value_number), 0)

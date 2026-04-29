@@ -69,17 +69,26 @@ def sync_substat_user_id(session: Session, echo_id: int, user_id: int) -> None:
 @router.get("/echo_logs", dependencies=[Depends(require_view_permission)])
 async def list_echo_log(
         session: SessionDep,
+        request: Request,
         page: int = 1,
         page_size: int = 20,
 ):
     try:
+        operator_id = await get_operator_id(request)
+        if operator_id is None:
+            return Error("operator not found", 401)
         stmt = select(EchoLog) \
+            .where(EchoLog.operator_id == operator_id) \
             .order_by(EchoLog.updated_at.desc()) \
             .offset((page - 1) * page_size) \
             .limit(page_size)
         data = session.exec(stmt).all()
-        data_total = session.exec(select(func.count(EchoLog.id)) \
-                                  .where(EchoLog.deleted == 0)).one()
+        data_total = session.exec(
+            select(func.count(EchoLog.id)).where(and_(
+                EchoLog.deleted == 0,
+                EchoLog.operator_id == operator_id,
+            ))
+        ).one()
         return Page("echo logs", data, data_total, page, page_size)
     except Exception as e:
         print(e)
@@ -396,11 +405,14 @@ async def find_echo_log(
         echo_log: EchoFindRequest,
         page_size: int = 20,
 ):
+    operator_scope = str(getattr(echo_log, "operator_scope", "all") or "all").strip().lower()
+    allow_empty_query = bool(getattr(echo_log, "allow_empty_query", False))
     has_substat_filter = (
         echo_log.substat1 | echo_log.substat2 | echo_log.substat3 | echo_log.substat4 | echo_log.substat5
     ) != 0
     keyword = (echo_log.keyword or "").strip()
     if (
+            not allow_empty_query and
             not has_substat_filter and
             int(echo_log.id or 0) <= 0 and
             int(echo_log.user_id or 0) <= 0 and
@@ -414,6 +426,12 @@ async def find_echo_log(
         user_id = int(echo_log.user_id or 0)
 
         stmt = select(EchoLog).where(EchoLog.deleted == 0)
+
+        if operator_scope == "current":
+            operator_id = await get_operator_id(request)
+            if operator_id is None:
+                return Error("operator not found", 401)
+            stmt = stmt.where(EchoLog.operator_id == operator_id)
 
         if echo_id > 0:
             stmt = stmt.where(EchoLog.id == echo_id)

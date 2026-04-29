@@ -1,10 +1,10 @@
 <template>
   <div style="min-width: 480px">
-    <button @click="fetchEchoLogs()">声骸列表 - 刷新</button>
+    <button @click="fetchEchoLogs()">我的录入声骸 - 刷新</button>
     &nbsp;
     <button @click="forceRefreshTemplates()" :disabled="scoreTemplateState.loading">模板强刷</button>
     &nbsp;
-    <span>声骸数量：{{echoTotal}}</span>
+    <span>我的声骸数量：{{echoTotal}}</span>
     &nbsp;
     <span class="template-context-text">
       评分上下文：{{ scoreTemplateContext.resonator || '未选模板' }} / {{ scoreTemplateContext.cost || '未选Cost' }}
@@ -80,8 +80,10 @@ export default {
     })
   },
   setup(props) {
-    const echoLogs = ref([])
+    const echoLogs = ref<any[]>([])
     const echoTotal = ref(0)
+    const operatorId = computed(() => authState.user?.id ?? null)
+    const canManage = computed(() => authState.user?.permissions?.includes('manage') ?? false)
     const templateSourceLabel = computed(() => {
       if (scoreTemplateState.source === 'remote') {
         return `远端 ${scoreTemplateState.version}`
@@ -92,8 +94,15 @@ export default {
       return '内置'
     })
 
-    const upsertEchoLog = (echoLog) => {
+    const upsertEchoLog = (echoLog: any) => {
       if (!echoLog?.id) {
+        return
+      }
+      if (operatorId.value != null && echoLog.operator_id !== operatorId.value) {
+        const existingIndex = echoLogs.value.findIndex((item) => item.id === echoLog.id)
+        if (existingIndex >= 0) {
+          echoLogs.value.splice(existingIndex, 1)
+        }
         return
       }
 
@@ -148,9 +157,6 @@ export default {
     })
 
     // 返回模板需要的数据和方法
-    const operatorId = computed(() => authState.user?.id)
-    const canManage = computed(() => authState.user?.permissions?.includes('manage') ?? false)
-
     return {
       echoLogs,
       echoTotal,

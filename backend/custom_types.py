@@ -74,6 +74,8 @@ class EchoFindRequest(SQLModel):
     user_id: int = 0
     clazz: str = ""
     keyword: str = ""
+    operator_scope: str = "all"
+    allow_empty_query: bool = False
     substat1: int = 0
     substat2: int = 0
     substat3: int = 0

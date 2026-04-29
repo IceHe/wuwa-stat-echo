@@ -50,7 +50,7 @@ export default {
   },
   components: {EchoLogRow},
   setup(props) {
-    const echoLogs = ref([])
+    const echoLogs = ref<any[]>([])
     const echoTotal = ref(0)
 
     const fetchEchoLogs = async (pageSize: number | undefined = 0) => {

@@ -1,5 +1,5 @@
 <template>
-  <h1>搜索声骸</h1>
+  <h1>{{ title }}</h1>
   <div class="find-panel">
     <div class="find-toolbar-row">
       <span class="name">玩家ID</span>
@@ -105,7 +105,7 @@
     </div>
   </div>
   <div class="find-results">
-    <button @click="findEchoLog()">声骸搜索列表 - 刷新</button>
+    <button @click="findEchoLog()">{{ refreshButtonLabel }}</button>
     <table class="my-table">
       <thead>
       <tr style="text-align: left;">
@@ -139,7 +139,7 @@
 <script>
 import axios from 'axios'
 import {API_BASE_URL, CLASS_COLORS, CLASSES, SUBSTAT, SUBSTAT_VALUE_MAP} from '@/stores/constants.ts'
-import {computed, ref} from 'vue'
+import {computed, onMounted, ref} from 'vue'
 import {useRoute} from 'vue-router';
 import EchoLogRow from "@/components/EchoLogRow.vue";
 import emitter from "@/stores/eventBus.js";
@@ -147,6 +147,43 @@ import {authState} from '@/auth'
 
 export default {
   name: 'Find Echo',
+  props: {
+    title: {
+      type: String,
+      required: false,
+      default: '搜索声骸',
+    },
+    refreshButtonLabel: {
+      type: String,
+      required: false,
+      default: '声骸搜索列表 - 刷新',
+    },
+    defaultOperatorScope: {
+      type: String,
+      required: false,
+      default: 'all',
+    },
+    allowEmptyQuery: {
+      type: Boolean,
+      required: false,
+      default: false,
+    },
+    autoLoad: {
+      type: Boolean,
+      required: false,
+      default: false,
+    },
+    syncFromEditor: {
+      type: Boolean,
+      required: false,
+      default: true,
+    },
+    refreshEventName: {
+      type: String,
+      required: false,
+      default: '',
+    },
+  },
   computed: {
     CLASS_COLORS() {
       return CLASS_COLORS
@@ -154,19 +191,50 @@ export default {
   },
   components: {EchoLogRow},
   created() {
-    emitter.on('setUserId', (id) => {
-      this.setUserId(id)
-    })
-    emitter.on('setClazz', (clazz) => {
-      this.setClazz(clazz)
-    })
+    if (this.syncFromEditor) {
+      this.handleSetUserId = (id) => {
+        this.setUserId(id)
+      }
+      this.handleSetClazz = (clazz) => {
+        this.setClazz(clazz)
+      }
+      emitter.on('setUserId', this.handleSetUserId)
+      emitter.on('setClazz', this.handleSetClazz)
+    }
+    if (this.refreshEventName) {
+      this.handleRefreshEvent = () => {
+        this.findEchoLog(false)
+      }
+      emitter.on(this.refreshEventName, this.handleRefreshEvent)
+    }
+  },
+  beforeUnmount() {
+    if (this.handleSetUserId) {
+      emitter.off('setUserId', this.handleSetUserId)
+    }
+    if (this.handleSetClazz) {
+      emitter.off('setClazz', this.handleSetClazz)
+    }
+    if (this.handleRefreshEvent && this.refreshEventName) {
+      emitter.off(this.refreshEventName, this.handleRefreshEvent)
+    }
   },
   setup: function (props) {
     const route = useRoute();
-    const template = ref({
-      clazz: route.query.clazz || '',
-      user_id: route.query.user_id || 0,
+    const normalizeUserId = (userId) => {
+      if (userId === '' || userId === null || userId === undefined) {
+        return 0
+      }
+      const normalized = Number(userId)
+      return Number.isNaN(normalized) ? 0 : normalized
+    }
+
+    const buildInitialTemplate = () => ({
+      clazz: props.syncFromEditor ? String(route.query.clazz || '') : '',
+      user_id: props.syncFromEditor ? normalizeUserId(route.query.user_id) : 0,
     })
+
+    const template = ref(buildInitialTemplate())
 
     const newEchoLog = () => ({
       clazz: template.value.clazz,
@@ -189,15 +257,13 @@ export default {
 
     const echoLog = ref(newEchoLog())
     const resetEchoLog = () => {
+      template.value = buildInitialTemplate()
       echoLog.value = newEchoLog()
-      echoLogs.value = []
-    }
-    const normalizeUserId = (userId) => {
-      if (userId === '' || userId === null || userId === undefined) {
-        return 0
+      if (props.allowEmptyQuery) {
+        findEchoLog(false)
+        return
       }
-      const normalized = Number(userId)
-      return Number.isNaN(normalized) ? 0 : normalized
+      echoLogs.value = []
     }
 
     const setUserId = (userId) => {
@@ -219,6 +285,8 @@ export default {
           user_id: normalizeUserId(echoLog.value.user_id),
           clazz: echoLog.value.clazz,
           keyword: echoLog.value.keyword?.trim() || '',
+          operator_scope: props.defaultOperatorScope,
+          allow_empty_query: props.allowEmptyQuery,
           substat1: echoLog.value.substat1,
           substat2: echoLog.value.substat2,
           substat3: echoLog.value.substat3,
@@ -241,6 +309,11 @@ export default {
     }
 
     const echoLogs = ref([])
+    onMounted(() => {
+      if (props.autoLoad) {
+        findEchoLog(false)
+      }
+    })
     const operatorId = computed(() => authState.user?.id ?? null)
     const canManage = computed(() => authState.user?.permissions?.includes('manage') ?? false)
     const hasDuplicatedSubstat = (substat) => (

@@ -2,7 +2,7 @@
   <div class="container">
     <div>
       <Substat :position="0" />
-      <SubstatLogs default-size="52"/>
+      <SubstatLogs :default-size="52" />
     </div>
     <SubstatStats />
   </div>

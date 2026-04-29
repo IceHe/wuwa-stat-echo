@@ -39,7 +39,7 @@ export default {
     defaultSize: {
       type: Number,
       required: false,
-      defaultSize: 52,
+      default: 52,
     },
   },
   created() {
@@ -49,14 +49,14 @@ export default {
   },
   components: {TuneLogRow},
   setup(props) {
-    const substatLogs = ref([])
+    const substatLogs = ref<any[]>([])
     const substatTotal = ref(0)
 
     const fetchSubstatLogs = (pageSize: number | undefined = 0) => {
       const normalized = Number(pageSize)
-      let size = Number.isNaN(normalized) ? props.defaultSize : normalized
+      let size = Number.isNaN(normalized) ? Number(props.defaultSize || 52) : normalized
       if (size <= 0) {
-        size = props.defaultSize
+        size = Number(props.defaultSize || 52)
       }
       axios
         .get(`${API_BASE_URL}/substat_logs?page_size=${size}`)

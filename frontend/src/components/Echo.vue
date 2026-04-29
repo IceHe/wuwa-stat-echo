@@ -637,6 +637,14 @@ export default {
         ...echoLog.value,
       })
     }
+    const emitRefreshEchoLists = () => {
+      emitter.emit('refreshEchoLogs')
+      emitter.emit('refreshRecentEchoLogs')
+    }
+    const emitRefreshEchoViews = () => {
+      emitRefreshEchoLists()
+      emitter.emit('refreshSubstatLogs')
+    }
 
     const addEchoLog = async (doIfSuccess = () => {
     }) => {
@@ -665,6 +673,7 @@ export default {
           }
           updateEchoIdQuery(echoLog.value.id)
           emitSyncEchoLog()
+          emitRefreshEchoLists()
           updateEchoIdQuery(echoLog.value.id)
           doIfSuccess()
           return true
@@ -820,8 +829,7 @@ export default {
       if (echoLog.value.id > 0 && canModify.value) {
         emitSyncEchoLog()
         updateEchoLog(() => {
-          emitter.emit('refreshEchoLogs')
-          emitter.emit('refreshSubstatLogs')
+          emitRefreshEchoViews()
           refreshEchoLogsAnalysis()
           refreshRecentTuneStats()
         })
@@ -834,7 +842,7 @@ export default {
       emitter.emit("setClazz", clazz)
       if (echoLog.value.id > 0 && canModify.value) {
         emitSyncEchoLog()
-        updateEchoLog(() => emitter.emit('refreshEchoLogs'))
+        updateEchoLog(() => emitRefreshEchoLists())
       }
     }
     const setEchoId = (id) => {
@@ -932,8 +940,7 @@ export default {
       echoLog.value.pos = pos
       emitSyncEchoLog()
       updateEchoLog(() => {
-        emitter.emit('refreshEchoLogs')
-        emitter.emit('refreshSubstatLogs')
+        emitRefreshEchoViews()
       })
     }
 
@@ -1101,8 +1108,7 @@ export default {
         updateEchoIdQuery(echoLog.value.id)
         emitSyncEchoLog()
         fetchEchoAnalysis()
-        emitter.emit('refreshEchoLogs')
-        emitter.emit('refreshSubstatLogs')
+        emitRefreshEchoViews()
         refreshRecentTuneStats()
         refreshEchoLogsAnalysis()
       } catch (error) {
