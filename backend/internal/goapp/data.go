@@ -90,7 +90,8 @@ var resonatorTemplates = map[string]resonatorTemplate{
 	"莫宁":   template("莫宁", map[string]float64{"4": 64.515, "3": 64.099, "1": 63.698}, map[string]float64{"4C": 9.71, "3C属伤": 5.85, "3C攻击": 0, "3C其它": 8.73, "1C": 8.47}, map[string]float64{"防御": 1.25, "防御固定值": 0.1, "共鸣效率": 1.3, "暴击": 0.1, "暴击伤害": 0.3, "共鸣解放": 0.44}),
 	"陆赫斯":  template("陆赫斯", map[string]float64{"4": 85.915, "3": 81.915, "1": 78.365}, map[string]float64{"4C": 8.58, "3C属伤": 6.55, "3C攻击": 6.55, "3C其它": 1.52, "1C": 4.59}, map[string]float64{"攻击": 1.15, "普攻": 0.847, "共鸣效率": 0.15}),
 	"爱弥斯":  template("爱弥斯", map[string]float64{"4": 85.642, "3": 81.642, "1": 78.092}, map[string]float64{"4C": 8.6, "3C属伤": 6.58, "3C攻击": 6.58, "3C其它": 1.53, "1C": 4.6}, map[string]float64{"攻击固定值": 0.12, "共鸣解放": 0.77, "共鸣效率": 0.2}),
-	"西格莉卡": defaultResonatorTemplate(),
+	"西格莉卡": template("西格莉卡", map[string]float64{"4": 83.23, "3": 81.43, "1": 79.68}, map[string]float64{"4C": 5.28 + 2.25, "3C属伤": 5.06 + 1.53, "3C攻击": 5.06 + 1.53, "3C其它": 4.42 + 1.53, "1C": 5.64}, map[string]float64{"共鸣效率": 0.8}),
+	"绯雪":   template("绯雪", map[string]float64{"4": 80.481, "3": 79.181, "1": 78.431}, map[string]float64{"4C": 5.46 + 1.39, "3C属伤": 5.2 + 0.94, "3C攻击": 5.2 + 0.94, "3C其它": 0.94, "1C": 5.73}, map[string]float64{"共鸣效率": 0.2, "共鸣解放": 0.747}),
 }
 
 func defaultResonatorTemplate() resonatorTemplate {
