@@ -3,13 +3,13 @@
   <tr :style="echoLog?.deleted === 1 ? 'text-decoration: line-through;' : ''">
     <td>
       <button
-        v-if="canModify"
+        v-if="canModify && showSelectButton"
         class="echo-btn"
         @click="setEchoId(echoLog.id)"
       >
         {{ echoLog.user_id }}<br/>{{ echoIdWithOperatorId }}
       </button>
-      <span v-else style="color: #999;">{{ echoLog.user_id }}<br/>{{ echoIdWithOperatorId }}</span>
+      <span v-else :style="canModify ? '' : 'color: #999;'">{{ echoLog.user_id }}<br/>{{ echoIdWithOperatorId }}</span>
     </td>
     <td :style="`color: ${CLASS_COLORS[echoLog.clazz]}; width: 50px;`">{{ echoLog.clazz.substring(0, 4) }}</td>
     <td :style="`color: ${getSubstatColor(echoLog.substat1)};`">{{ echoLog.s1_desc }}</td>
@@ -17,7 +17,7 @@
     <td :style="`color: ${getSubstatColor(echoLog.substat3)};`">{{ echoLog.s3_desc }}</td>
     <td :style="`color: ${getSubstatColor(echoLog.substat3)};`">{{ echoLog.s4_desc }}</td>
     <td :style="`color: ${getSubstatColor(echoLog.substat3)};`">{{ echoLog.s5_desc }}</td>
-    <td class="score-cell">
+    <td v-if="showScore" class="score-cell">
       <span class="score-current">{{ currentScore || '--' }}</span><br/>
       <span class="score-max">{{ theoreticalMaxScore || '--' }}</span>
     </td>
@@ -111,6 +111,16 @@ export default {
       default: false,
     },
     showActions: {
+      type: Boolean,
+      required: false,
+      default: true,
+    },
+    showScore: {
+      type: Boolean,
+      required: false,
+      default: true,
+    },
+    showSelectButton: {
       type: Boolean,
       required: false,
       default: true,

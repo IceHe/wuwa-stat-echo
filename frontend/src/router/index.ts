@@ -5,6 +5,7 @@ import AnalysisView from '@/views/AnalysisView.vue'
 import DecisionLabView from '@/views/DecisionLabView.vue'
 import EchoView from "@/views/EchoView.vue";
 import EchoViewerView from "@/views/EchoViewerView.vue";
+import RecentEchoesView from '@/views/RecentEchoesView.vue'
 import SimulatorView from '@/views/SimulatorView.vue'
 import SubstatView from "@/views/SubstatView.vue";
 import EchoBoardView from "@/views/EchoBoardView.vue";
@@ -40,6 +41,11 @@ const router = createRouter({
             path: '/echo',
             name: 'echo',
             component: EchoView,
+        },
+        {
+            path: '/recent-echoes',
+            name: 'recent-echoes',
+            component: RecentEchoesView,
         },
         {
             path: '/analysis',

@@ -13,6 +13,8 @@ import (
 const (
 	substatBitWidth         = 13
 	substatMask             = (1 << substatBitWidth) - 1
+	searchModePositional    = "positional"
+	searchModeSubstatSet    = "substat_set"
 	authInvalidDetail       = "Token 无效或已过期"
 	authForbiddenDetail     = "权限不足"
 	authUnavailableDetail   = "鉴权服务不可用"
@@ -101,11 +103,36 @@ type EchoFindRequest struct {
 	Keyword         string `json:"keyword"`
 	OperatorScope   string `json:"operator_scope"`
 	AllowEmptyQuery bool   `json:"allow_empty_query"`
+	SearchMode      string `json:"search_mode"`
+	SubstatAllMask  int64  `json:"substat_all_mask"`
 	Substat1        int64  `json:"substat1"`
 	Substat2        int64  `json:"substat2"`
 	Substat3        int64  `json:"substat3"`
 	Substat4        int64  `json:"substat4"`
 	Substat5        int64  `json:"substat5"`
+}
+
+type RecentEchoSearchRequest struct {
+	UserID          int64  `json:"user_id"`
+	Clazz           string `json:"clazz"`
+	Keyword         string `json:"keyword"`
+	SearchMode      string `json:"search_mode"`
+	SubstatAllMask  int64  `json:"substat_all_mask"`
+	Substat1        int64  `json:"substat1"`
+	Substat2        int64  `json:"substat2"`
+	Substat3        int64  `json:"substat3"`
+	Substat4        int64  `json:"substat4"`
+	Substat5        int64  `json:"substat5"`
+	CursorUpdatedAt string `json:"cursor_updated_at"`
+	CursorID        int64  `json:"cursor_id"`
+	PageSize        int    `json:"page_size"`
+}
+
+type RecentEchoSearchResponse struct {
+	Items               []EchoLog `json:"items"`
+	NextCursorUpdatedAt string    `json:"next_cursor_updated_at,omitempty"`
+	NextCursorID        int64     `json:"next_cursor_id,omitempty"`
+	HasMore             bool      `json:"has_more"`
 }
 
 type ScoreTemplateSyncRequest struct {

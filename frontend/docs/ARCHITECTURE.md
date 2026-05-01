@@ -18,13 +18,20 @@
 
 | 路由 | 视图 | 作用 |
 |---|---|---|
-| `/` | `EchoView` | 默认首页，完整声骸记录与日志联动 |
+| `/` | redirect `/home` | 根路径重定向 |
+| `/login` | `LoginView` | 登录页 |
 | `/home` | `HomeView` | 早期副词条记录与统计页 |
 | `/substat` | `SubstatView` | 单孔调谐记录与统计 |
 | `/echo` | `EchoView` | 声骸编辑主页面 |
+| `/recent-echoes` | `RecentEchoesView` | 最近声骸只读/管理搜索页 |
 | `/analysis` | `AnalysisView` | 分析类页面 |
+| `/decision-lab` | `DecisionLabView` | 决策支持页面 |
+| `/simulator` | `SimulatorView` | 声骸模拟页 |
 | `/echo_board` | `EchoBoardView` | 目标词条与单条声骸分析 |
 | `/echo_dcrit_count` | `EchoDcritCountView` | 双暴统计页 |
+| `/pity_analysis` | `PityAnalysisView` | 保底论证页 |
+| `/substat_max_gap` | `SubstatMaxGapView` | 副词条最大间隔页 |
+| `/echo-viewer` | `EchoViewerView` | 实时查看器 |
 
 ## 组件分层
 
@@ -38,6 +45,8 @@
   组合 `Echo`、`EchoLogs`、`FindEcho`、`SubstatLogs`
 - `SubstatView.vue`
   组合单孔记录面板和统计面板
+- `RecentEchoesView.vue`
+  独立负责最近声骸分页、管理员筛选与只读观察模式
 
 ### 2. 业务组件层
 
@@ -47,7 +56,7 @@
 - `Substat.vue`：录入单条调谐记录
 - `EchoLogs.vue` / `SubstatLogs.vue`：历史列表
 - `SubstatAnalysis.vue`：副词条统计
-- `FindEcho.vue`：按词条组合查找声骸
+- `FindEcho.vue`：搜索声骸，支持“孔位搜索”和“副词条搜索”两种互斥模式
 - `EchoBoard.vue`：围绕单条声骸进行分析
 - `EchoDcritCount.vue`：双暴档位统计
 
@@ -70,7 +79,7 @@ Vue 组件状态变更
   ↓
 Axios / WebSocket
   ↓
-FastAPI 后端
+后端 HTTP / WS 服务
   ↓
 PostgreSQL 统计结果
   ↓
@@ -81,7 +90,7 @@ PostgreSQL 统计结果
 
 前端与后端耦合度较高，主要体现在：
 
-- 直接依赖后端字段命名，如 `substat1`、`substat_all`、`clazz`
+- 直接依赖后端字段命名，如 `substat1`、`substat_all`、`substat_all_mask`、`search_mode`、`clazz`
 - 直接拼接 HTTP 路径，没有封装独立 API SDK
 - 依赖后端统计返回结构，如 `substat_dict`、`position_total`
 - 使用 WebSocket `/ws` 接收刷新广播
@@ -114,6 +123,7 @@ const API_SERV = `${API_HOST}:8888`
 - 类型定义不足，部分数据对象仍依赖隐式结构
 - API 访问未抽象，后续维护成本较高
 - 缺少环境变量与多环境配置
+- 搜索模式语义直接散落在页面状态和请求体构造中
 
 ## 后续建议
 

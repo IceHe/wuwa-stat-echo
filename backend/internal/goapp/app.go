@@ -104,6 +104,7 @@ func (a *App) Handler() http.Handler {
 	mux.HandleFunc("POST /echo_log/{id}/recover", a.withPermission("edit", a.handleRecoverEchoLog))
 	mux.HandleFunc("GET /echo_log/{id}", a.withPermission("view", a.handleGetEchoLog))
 	mux.HandleFunc("POST /echo_log/find", a.withPermission("view", a.handleFindEchoLog))
+	mux.HandleFunc("POST /echo_log/recent_search", a.withPermission("view", a.handleRecentEchoSearch))
 	mux.HandleFunc("DELETE /echo_log/{echoId}/substat_pos/{pos}", a.withPermission("edit", a.handleDeleteSubstatByEchoPos))
 	mux.HandleFunc("GET /echo_logs/analysis", a.withPermission("view", a.handleEchoLogsAnalysis))
 	mux.HandleFunc("POST /viewer/score_template_sync", a.withPermission("view", a.handleViewerScoreTemplateSync))

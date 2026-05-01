@@ -30,6 +30,7 @@ onMounted(async () => {
         <nav class="nav">
           <RouterLink to="/home">首页</RouterLink>
           <RouterLink to="/echo">声骸录入</RouterLink>
+          <RouterLink to="/recent-echoes">最近声骸</RouterLink>
           <RouterLink to="/analysis">统计分析</RouterLink>
           <RouterLink to="/substat_max_gap">副词条最大间隔</RouterLink>
           <RouterLink to="/echo_dcrit_count">双暴统计</RouterLink>

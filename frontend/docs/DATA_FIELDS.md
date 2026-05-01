@@ -19,11 +19,18 @@
 | `id` | 当前声骸 ID |
 | `clazz` | 套装名称 |
 | `user_id` | 玩家 ID |
+| `search_mode` | 搜索模式，`positional` 或 `substat_set`，主要用于 `FindEcho.vue` |
+| `substat_all_mask` | 副词条集合搜索时使用的低 13 位筛选位图 |
 | `pos` | 当前正在操作的孔位，前端扩展字段 |
 | `substat1..5` | 各孔位副词条编码值 |
 | `substat_all` | 所有副词条类型位图 |
 | `s1_desc..s5_desc` | 各孔位展示文案 |
 | `pos_total` | 当前孔位剩余样本数，来自后端扩展返回 |
+
+补充：
+
+- 当 `search_mode = positional` 时，`FindEcho.vue` 使用 `substat1..5` 表示孔位与档位条件
+- 当 `search_mode = substat_set` 时，`FindEcho.vue` 使用 `substat_all_mask` 表示“这条声骸至少包含哪些副词条”
 
 ## 2. `template`
 

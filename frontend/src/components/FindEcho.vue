@@ -22,44 +22,26 @@
       <button class="button search-button" @click="findEchoLog(false)">搜索</button>
     </div>
     <div class="find-toolbar-row">
-      <span class="name">当前孔位 </span>
-      <div class="find-position-row">
-        <button class="substat"
-                key="1"
-                @click="echoLog.pos = 0"
-                :style="echoLog.pos === 0 ? 'background-color: yellow; font-color: red' : ''"
+      <span class="name">搜索方式</span>
+      <div class="mode-switch">
+        <button
+          class="button mode-button"
+          @click="setSearchMode(SEARCH_MODE.POSITIONAL)"
+          :class="{ 'mode-active': echoLog.search_mode === SEARCH_MODE.POSITIONAL }"
         >
-          {{ echoLog.s1_desc ? echoLog.s1_desc : "1" }}
+          孔位搜索
         </button>
-        <button class="substat"
-                key="2"
-                @click="echoLog.pos = 1"
-                :style="echoLog.pos === 1 ? 'background-color: yellow; font-color: red' : ''"
+        <button
+          class="button mode-button"
+          @click="setSearchMode(SEARCH_MODE.SUBSTAT_SET)"
+          :class="{ 'mode-active': echoLog.search_mode === SEARCH_MODE.SUBSTAT_SET }"
         >
-          {{ echoLog.s2_desc ? echoLog.s2_desc : "2" }}
-        </button>
-        <button class="substat"
-                key="3"
-                @click="echoLog.pos = 2"
-                :style="echoLog.pos === 2 ? 'background-color: yellow; font-color: red' : ''"
-        >
-          {{ echoLog.s3_desc ? echoLog.s3_desc : "3" }}
-        </button>
-        <button class="substat"
-                key="4"
-                @click="echoLog.pos = 3"
-                :style="echoLog.pos === 3 ? 'background-color: yellow; font-color: red' : ''"
-        >
-          {{ echoLog.s4_desc ? echoLog.s4_desc : "4" }}
-        </button>
-        <button class="substat"
-                key="5"
-                @click="echoLog.pos = 4"
-                :style="echoLog.pos === 4 ? 'background-color: yellow; font-color: red' : ''"
-        >
-          {{ echoLog.s5_desc ? echoLog.s5_desc : "5" }}
+          副词条搜索
         </button>
       </div>
+    </div>
+    <div v-if="echoLog.search_mode === SEARCH_MODE.SUBSTAT_SET" class="find-mode-hint">
+      忽略孔位和档位，仅按包含哪些副词条搜索
     </div>
     <div class="suite-row">
       <span class="name">声骸套装</span>
@@ -82,27 +64,89 @@
         </button>
       </div>
     </div>
-    <div v-for="substat in SUBSTAT" :key="substat" class="find-substat-row">
-      <span class="name" :style="`color: ${substat.font_color}; font-weight: bolder;`">{{ substat.name.substring(0, 4) }}</span>
-      <div class="find-substat-buttons">
-        <button
-          class="button compact-button"
-          @click="addAnyTuneToFind(substat.num)"
-          :style="`color: ${substat.font_color}`"
-        >
-          不限
-        </button>
-        <button
-          class="button compact-button"
-          v-for="value in SUBSTAT_VALUE_MAP[substat.num]"
-          :key="value"
-          @click="addTuneToFind(value.substat_number, value.value_number); "
-          :style="`color: ${substat.font_color}`"
-        >
-          {{ value.desc }}
-        </button>
+    <template v-if="echoLog.search_mode === SEARCH_MODE.POSITIONAL">
+      <div class="find-toolbar-row">
+        <span class="name">当前孔位 </span>
+        <div class="find-position-row">
+          <button class="substat"
+                  key="1"
+                  @click="echoLog.pos = 0"
+                  :style="echoLog.pos === 0 ? 'background-color: yellow; font-color: red' : ''"
+          >
+            {{ echoLog.s1_desc ? echoLog.s1_desc : "1" }}
+          </button>
+          <button class="substat"
+                  key="2"
+                  @click="echoLog.pos = 1"
+                  :style="echoLog.pos === 1 ? 'background-color: yellow; font-color: red' : ''"
+          >
+            {{ echoLog.s2_desc ? echoLog.s2_desc : "2" }}
+          </button>
+          <button class="substat"
+                  key="3"
+                  @click="echoLog.pos = 2"
+                  :style="echoLog.pos === 2 ? 'background-color: yellow; font-color: red' : ''"
+          >
+            {{ echoLog.s3_desc ? echoLog.s3_desc : "3" }}
+          </button>
+          <button class="substat"
+                  key="4"
+                  @click="echoLog.pos = 3"
+                  :style="echoLog.pos === 3 ? 'background-color: yellow; font-color: red' : ''"
+          >
+            {{ echoLog.s4_desc ? echoLog.s4_desc : "4" }}
+          </button>
+          <button class="substat"
+                  key="5"
+                  @click="echoLog.pos = 4"
+                  :style="echoLog.pos === 4 ? 'background-color: yellow; font-color: red' : ''"
+          >
+            {{ echoLog.s5_desc ? echoLog.s5_desc : "5" }}
+          </button>
+        </div>
       </div>
-    </div>
+      <div v-for="substat in SUBSTAT" :key="substat.num" class="find-substat-row">
+        <span class="name" :style="`color: ${substat.font_color}; font-weight: bolder;`">{{ substat.name.substring(0, 4) }}</span>
+        <div class="find-substat-buttons">
+          <button
+            class="button compact-button"
+            @click="addAnyTuneToFind(substat.num)"
+            :style="`color: ${substat.font_color}`"
+          >
+            不限
+          </button>
+          <button
+            class="button compact-button"
+            v-for="value in SUBSTAT_VALUE_MAP[substat.num]"
+            :key="value.value_number"
+            @click="addTuneToFind(value.substat_number, value.value_number)"
+            :style="`color: ${substat.font_color}`"
+          >
+            {{ value.desc }}
+          </button>
+        </div>
+      </div>
+    </template>
+    <template v-else>
+      <div class="find-substat-set-row">
+        <span class="name">副词条</span>
+        <div class="find-set-buttons">
+          <button
+            v-for="substat in SUBSTAT"
+            :key="substat.num"
+            class="button set-substat-button"
+            @click="toggleSubstatSet(substat.num)"
+            :style="getSubstatSetButtonStyle(substat)"
+          >
+            {{ substat.name }}
+          </button>
+        </div>
+      </div>
+      <div class="find-toolbar-row">
+        <span class="name">已选</span>
+        <div class="selected-substat-summary">{{ selectedSubstatSummary() }}</div>
+      </div>
+    </template>
   </div>
   <div class="find-results">
     <button @click="findEchoLog()">{{ refreshButtonLabel }}</button>
@@ -130,6 +174,7 @@
         :operatorId="operatorId"
         :canManage="canManage"
         :showActions="false"
+        :showScore="false"
       />
       </tbody>
     </table>
@@ -144,6 +189,11 @@ import {useRoute} from 'vue-router';
 import EchoLogRow from "@/components/EchoLogRow.vue";
 import emitter from "@/stores/eventBus.js";
 import {authState} from '@/auth'
+
+const SEARCH_MODE = {
+  POSITIONAL: 'positional',
+  SUBSTAT_SET: 'substat_set',
+}
 
 export default {
   name: 'Find Echo',
@@ -241,6 +291,8 @@ export default {
       user_id: template.value.user_id,
       id: 0,
       keyword: "",
+      search_mode: SEARCH_MODE.POSITIONAL,
+      substat_all_mask: 0,
       pos: 0, // 当前孔位
       substat1: 0,
       substat2: 0,
@@ -278,25 +330,43 @@ export default {
       findEchoLog(false)
     }
 
+    const setSearchMode = (mode) => {
+      if (echoLog.value.search_mode === mode) {
+        return
+      }
+      echoLog.value.search_mode = mode
+      findEchoLog(false)
+    }
+
+    const buildFindPayload = () => {
+      const searchMode = echoLog.value.search_mode === SEARCH_MODE.SUBSTAT_SET
+        ? SEARCH_MODE.SUBSTAT_SET
+        : SEARCH_MODE.POSITIONAL
+
+      return {
+        id: Number(echoLog.value.id || 0),
+        user_id: normalizeUserId(echoLog.value.user_id),
+        clazz: echoLog.value.clazz,
+        keyword: echoLog.value.keyword?.trim() || '',
+        operator_scope: props.defaultOperatorScope,
+        allow_empty_query: props.allowEmptyQuery,
+        search_mode: searchMode,
+        substat_all_mask: searchMode === SEARCH_MODE.SUBSTAT_SET ? echoLog.value.substat_all_mask : 0,
+        substat1: searchMode === SEARCH_MODE.POSITIONAL ? echoLog.value.substat1 : 0,
+        substat2: searchMode === SEARCH_MODE.POSITIONAL ? echoLog.value.substat2 : 0,
+        substat3: searchMode === SEARCH_MODE.POSITIONAL ? echoLog.value.substat3 : 0,
+        substat4: searchMode === SEARCH_MODE.POSITIONAL ? echoLog.value.substat4 : 0,
+        substat5: searchMode === SEARCH_MODE.POSITIONAL ? echoLog.value.substat5 : 0,
+      }
+    }
+
     const findEchoLog = async (nextPos = true) => {
       try {
-        const response = await axios.post(`${API_BASE_URL}/echo_log/find?page_size=20`, {
-          id: Number(echoLog.value.id || 0),
-          user_id: normalizeUserId(echoLog.value.user_id),
-          clazz: echoLog.value.clazz,
-          keyword: echoLog.value.keyword?.trim() || '',
-          operator_scope: props.defaultOperatorScope,
-          allow_empty_query: props.allowEmptyQuery,
-          substat1: echoLog.value.substat1,
-          substat2: echoLog.value.substat2,
-          substat3: echoLog.value.substat3,
-          substat4: echoLog.value.substat4,
-          substat5: echoLog.value.substat5,
-        })
+        const response = await axios.post(`${API_BASE_URL}/echo_log/find?page_size=20`, buildFindPayload())
         console.log('listEchoLog: ', response.data)
         if (response.data.code === 200) {
           echoLogs.value = response.data.data
-          if (nextPos && echoLog.value.pos < 4) {
+          if (nextPos && echoLog.value.search_mode === SEARCH_MODE.POSITIONAL && echoLog.value.pos < 4) {
             echoLog.value.pos++
           }
         } else {
@@ -318,12 +388,32 @@ export default {
     const canManage = computed(() => authState.user?.permissions?.includes('manage') ?? false)
     const hasDuplicatedSubstat = (substat) => (
       (1 << substat) & (
-        echoLog.value.pos !== 0 ? echoLog.value.substat1 : 0 |
-        echoLog.value.pos !== 1 ? echoLog.value.substat2 : 0 |
-        echoLog.value.pos !== 2 ? echoLog.value.substat3 : 0 |
-        echoLog.value.pos !== 3 ? echoLog.value.substat4 : 0 |
-        echoLog.value.pos !== 4 ? echoLog.value.substat5 : 0
+        (echoLog.value.pos !== 0 ? echoLog.value.substat1 : 0) |
+        (echoLog.value.pos !== 1 ? echoLog.value.substat2 : 0) |
+        (echoLog.value.pos !== 2 ? echoLog.value.substat3 : 0) |
+        (echoLog.value.pos !== 3 ? echoLog.value.substat4 : 0) |
+        (echoLog.value.pos !== 4 ? echoLog.value.substat5 : 0)
       )
+    )
+
+    const isSubstatSetSelected = (substat) => ((echoLog.value.substat_all_mask >> substat) & 1) === 1
+
+    const toggleSubstatSet = (substat) => {
+      echoLog.value.substat_all_mask ^= 1 << substat
+      findEchoLog(false)
+    }
+
+    const selectedSubstatSummary = () => {
+      const names = SUBSTAT
+        .filter((substat) => isSubstatSetSelected(substat.num))
+        .map((substat) => substat.name)
+      return names.length > 0 ? names.join(' / ') : '不限'
+    }
+
+    const getSubstatSetButtonStyle = (substat) => (
+      isSubstatSetSelected(substat.num)
+        ? `background-color: #fff4a3; color: ${substat.font_color}; border-color: ${substat.font_color}; font-weight: 700;`
+        : `color: ${substat.font_color};`
     )
 
     const setSubstatToCurrentPos = (substatBits, substatDesc) => {
@@ -410,14 +500,19 @@ export default {
       echoLogs,
       setClazz,
       setUserId,
+      setSearchMode,
       newEchoLog,
       resetEchoLog,
       addAnyTuneToFind,
       addTuneToFind,
       findEchoLog,
+      toggleSubstatSet,
+      selectedSubstatSummary,
+      getSubstatSetButtonStyle,
       operatorId,
       canManage,
       CLASSES,
+      SEARCH_MODE,
       SUBSTAT,
       SUBSTAT_VALUE_MAP,
     }
@@ -438,6 +533,13 @@ export default {
 
 .find-toolbar-row,
 .find-substat-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.find-substat-set-row {
   display: flex;
   align-items: flex-start;
   gap: 8px;
@@ -488,8 +590,30 @@ export default {
   min-width: 64px;
 }
 
+.mode-switch {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.mode-button {
+  min-width: 96px;
+}
+
+.mode-active {
+  background-color: #fff4a3;
+  font-weight: 700;
+}
+
+.find-mode-hint {
+  margin: -2px 0 8px 72px;
+  color: #64748b;
+  font-size: 12px;
+}
+
 .find-position-row,
-.find-substat-buttons {
+.find-substat-buttons,
+.find-set-buttons {
   min-width: 0;
 }
 
@@ -504,6 +628,12 @@ export default {
   flex-wrap: nowrap;
   gap: 0;
   overflow-x: visible;
+}
+
+.find-set-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .suite-row {
@@ -543,6 +673,17 @@ export default {
   min-width: 54px;
   max-width: 54px;
   padding: 0 6px;
+}
+
+.set-substat-button {
+  width: auto;
+  min-width: 72px;
+  max-width: none;
+}
+
+.selected-substat-summary {
+  padding-top: 10px;
+  color: #334155;
 }
 
 .my-table {

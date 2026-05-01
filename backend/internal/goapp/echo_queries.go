@@ -10,6 +10,50 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
+func normalizeSearchMode(raw string) string {
+	switch strings.ToLower(strings.TrimSpace(raw)) {
+	case searchModeSubstatSet:
+		return searchModeSubstatSet
+	case "", searchModePositional:
+		return searchModePositional
+	default:
+		return searchModePositional
+	}
+}
+
+func normalizeSubstatAllMask(mask int64) int64 {
+	return mask & int64(substatMask)
+}
+
+func hasPositionalSubstatFilters(filters ...int64) bool {
+	var combined int64
+	for _, filter := range filters {
+		combined |= filter
+	}
+	return combined != 0
+}
+
+func hasRecentEchoSearchFilters(payload RecentEchoSearchRequest) bool {
+	keyword := strings.TrimSpace(payload.Keyword)
+	searchMode := normalizeSearchMode(payload.SearchMode)
+	hasSubstatFilter := hasPositionalSubstatFilters(payload.Substat1, payload.Substat2, payload.Substat3, payload.Substat4, payload.Substat5)
+	if searchMode == searchModeSubstatSet {
+		hasSubstatFilter = normalizeSubstatAllMask(payload.SubstatAllMask) != 0
+	}
+	return payload.UserID > 0 || payload.Clazz != "" || keyword != "" || hasSubstatFilter
+}
+
+func parseRecentEchoCursorTime(raw string) (time.Time, error) {
+	cursor := strings.TrimSpace(raw)
+	if cursor == "" {
+		return time.Time{}, nil
+	}
+	if parsed, err := time.Parse(time.RFC3339Nano, cursor); err == nil {
+		return parsed, nil
+	}
+	return time.Parse(time.RFC3339, cursor)
+}
+
 func (a *App) handleListEchoLogs(w http.ResponseWriter, r *http.Request) {
 	operatorID := operatorIDFromContext(r.Context())
 	if operatorID == nil {
@@ -86,7 +130,12 @@ func (a *App) handleFindEchoLog(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, appError("failed to find echo logs", 500))
 		return
 	}
-	hasSubstatFilter := (payload.Substat1 | payload.Substat2 | payload.Substat3 | payload.Substat4 | payload.Substat5) != 0
+	searchMode := normalizeSearchMode(payload.SearchMode)
+	substatAllMask := normalizeSubstatAllMask(payload.SubstatAllMask)
+	hasSubstatFilter := hasPositionalSubstatFilters(payload.Substat1, payload.Substat2, payload.Substat3, payload.Substat4, payload.Substat5)
+	if searchMode == searchModeSubstatSet {
+		hasSubstatFilter = substatAllMask != 0
+	}
 	keyword := strings.TrimSpace(payload.Keyword)
 	if !payload.AllowEmptyQuery && !hasSubstatFilter && payload.ID <= 0 && payload.UserID <= 0 && payload.Clazz == "" && keyword == "" {
 		writeJSON(w, success("no search condition specified, return empty list", []EchoLog{}))
@@ -118,26 +167,34 @@ func (a *App) handleFindEchoLog(w http.ResponseWriter, r *http.Request) {
 		args = append(args, payload.ID)
 		arg++
 	}
-	for _, filter := range []struct {
-		column string
-		bits   int64
-	}{
-		{"substat1", payload.Substat1},
-		{"substat2", payload.Substat2},
-		{"substat3", payload.Substat3},
-		{"substat4", payload.Substat4},
-		{"substat5", payload.Substat5},
-	} {
-		if filter.bits == 0 {
-			continue
+	if searchMode == searchModeSubstatSet {
+		if substatAllMask != 0 {
+			query += fmt.Sprintf(" and (substat_all & $%d) = $%d", arg, arg)
+			args = append(args, substatAllMask)
+			arg++
 		}
-		if filter.bits&^int64(substatMask) == 0 {
-			query += fmt.Sprintf(" and (%s & $%d) = $%d", filter.column, arg, arg)
-		} else {
-			query += fmt.Sprintf(" and %s = $%d", filter.column, arg)
+	} else {
+		for _, filter := range []struct {
+			column string
+			bits   int64
+		}{
+			{"substat1", payload.Substat1},
+			{"substat2", payload.Substat2},
+			{"substat3", payload.Substat3},
+			{"substat4", payload.Substat4},
+			{"substat5", payload.Substat5},
+		} {
+			if filter.bits == 0 {
+				continue
+			}
+			if filter.bits&^int64(substatMask) == 0 {
+				query += fmt.Sprintf(" and (%s & $%d) = $%d", filter.column, arg, arg)
+			} else {
+				query += fmt.Sprintf(" and %s = $%d", filter.column, arg)
+			}
+			args = append(args, filter.bits)
+			arg++
 		}
-		args = append(args, filter.bits)
-		arg++
 	}
 	if payload.UserID > 0 {
 		query += fmt.Sprintf(" and user_id = $%d", arg)
@@ -167,6 +224,118 @@ func (a *App) handleFindEchoLog(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, success("find echo logs", items))
+}
+
+func (a *App) handleRecentEchoSearch(w http.ResponseWriter, r *http.Request) {
+	var payload RecentEchoSearchRequest
+	if err := readJSON(r, &payload); err != nil {
+		writeJSON(w, appError("failed to search recent echo logs", 500))
+		return
+	}
+	if hasRecentEchoSearchFilters(payload) && !canManage(r.Context()) {
+		writeJSON(w, appError("not authorized to search recent echo logs", 403))
+		return
+	}
+	pageSize := payload.PageSize
+	if pageSize < 1 {
+		pageSize = 20
+	}
+	if pageSize > 100 {
+		pageSize = 100
+	}
+	cursorUpdatedAt, err := parseRecentEchoCursorTime(payload.CursorUpdatedAt)
+	if err != nil {
+		writeJSON(w, appError("invalid cursor_updated_at", 400))
+		return
+	}
+	if !cursorUpdatedAt.IsZero() && payload.CursorID <= 0 {
+		writeJSON(w, appError("invalid cursor_id", 400))
+		return
+	}
+
+	query := "select id, substat1, substat2, substat3, substat4, substat5, substat_all, s1_desc, s2_desc, s3_desc, s4_desc, s5_desc, clazz, user_id, operator_id, deleted, tuned_at, created_at, updated_at from wuwa_echo_log where deleted = 0"
+	var args []any
+	arg := 1
+	searchMode := normalizeSearchMode(payload.SearchMode)
+	substatAllMask := normalizeSubstatAllMask(payload.SubstatAllMask)
+	if searchMode == searchModeSubstatSet {
+		if substatAllMask != 0 {
+			query += fmt.Sprintf(" and (substat_all & $%d) = $%d", arg, arg)
+			args = append(args, substatAllMask)
+			arg++
+		}
+	} else {
+		for _, filter := range []struct {
+			column string
+			bits   int64
+		}{
+			{"substat1", payload.Substat1},
+			{"substat2", payload.Substat2},
+			{"substat3", payload.Substat3},
+			{"substat4", payload.Substat4},
+			{"substat5", payload.Substat5},
+		} {
+			if filter.bits == 0 {
+				continue
+			}
+			if filter.bits&^int64(substatMask) == 0 {
+				query += fmt.Sprintf(" and (%s & $%d) = $%d", filter.column, arg, arg)
+			} else {
+				query += fmt.Sprintf(" and %s = $%d", filter.column, arg)
+			}
+			args = append(args, filter.bits)
+			arg++
+		}
+	}
+	if payload.UserID > 0 {
+		query += fmt.Sprintf(" and user_id = $%d", arg)
+		args = append(args, payload.UserID)
+		arg++
+	}
+	if payload.Clazz != "" {
+		query += fmt.Sprintf(" and clazz = $%d", arg)
+		args = append(args, payload.Clazz)
+		arg++
+	}
+	if keyword := strings.TrimSpace(payload.Keyword); keyword != "" {
+		query += fmt.Sprintf(" and (clazz ilike $%d or s1_desc ilike $%d or s2_desc ilike $%d or s3_desc ilike $%d or s4_desc ilike $%d or s5_desc ilike $%d or cast(user_id as text) ilike $%d or cast(id as text) ilike $%d)", arg, arg, arg, arg, arg, arg, arg, arg)
+		args = append(args, "%"+keyword+"%")
+		arg++
+	}
+	if !cursorUpdatedAt.IsZero() {
+		query += fmt.Sprintf(" and (updated_at < $%d or (updated_at = $%d and id < $%d))", arg, arg, arg+1)
+		args = append(args, cursorUpdatedAt, payload.CursorID)
+		arg += 2
+	}
+	query += fmt.Sprintf(" order by updated_at desc, id desc limit %d", pageSize+1)
+
+	rows, err := a.db.Query(r.Context(), query, args...)
+	if err != nil {
+		writeJSON(w, appError("failed to search recent echo logs", 500))
+		return
+	}
+	defer rows.Close()
+	items, err := a.scanEchoLogs(rows)
+	if err != nil {
+		writeJSON(w, appError("failed to search recent echo logs", 500))
+		return
+	}
+
+	hasMore := len(items) > pageSize
+	if hasMore {
+		items = items[:pageSize]
+	}
+
+	response := RecentEchoSearchResponse{
+		Items:   items,
+		HasMore: hasMore,
+	}
+	if hasMore && len(items) > 0 && items[len(items)-1].UpdatedAt != nil {
+		response.NextCursorUpdatedAt = items[len(items)-1].UpdatedAt.Format(time.RFC3339Nano)
+		response.NextCursorID = items[len(items)-1].ID
+	}
+
+	writeJSON(w, success("recent echo logs", response))
 }
 
 func (a *App) handleEchoLogsAnalysis(w http.ResponseWriter, r *http.Request) {

@@ -202,13 +202,14 @@
 
 **接口**: `POST /echo_log/find`
 
-**描述**: 根据玩家 ID、声骸 ID、套装、关键词和副词条组合搜索声骸记录，可搜索其他用户录入的数据
+**描述**: 根据玩家 ID、声骸 ID、套装、关键词和副词条条件搜索声骸记录，可搜索其他用户录入的数据
 
 **请求体**:
 ```json
 {
   "id": 12345,
   "keyword": "暴击",
+  "search_mode": "positional",
   "substat1": 8193,
   "substat2": 8194,
   "user_id": 1,
@@ -219,8 +220,68 @@
 **说明**:
 - 至少提供一个搜索条件，否则返回空列表
 - `keyword` 支持匹配玩家 ID、声骸 ID、套装名和 `s1_desc` 到 `s5_desc` 的副词条描述
+- `search_mode` 可选值：
+  - `positional`：按孔位与档位搜索，使用 `substat1..5`
+  - `substat_set`：按副词条类型集合搜索，使用 `substat_all_mask`
+- `substat_set` 模式忽略孔位与档位，只检查 `substat_all` 的低 13 位是否包含所选副词条
+- 例如传入 `substat_all_mask = 3` 时，会返回所有包含“暴击 + 暴伤”的声骸
+- 未传 `search_mode` 时，后端默认按 `positional` 兼容旧请求
 
-### 2.8 声骸数据分析
+**副词条集合搜索示例**:
+```json
+{
+  "keyword": "沉日",
+  "search_mode": "substat_set",
+  "substat_all_mask": 3,
+  "user_id": 1
+}
+```
+
+### 2.8 最近声骸分页搜索
+
+**接口**: `POST /echo_log/recent_search`
+
+**描述**: 获取最近录入的声骸列表，并支持分页游标和管理员条件搜索
+
+**请求体**:
+```json
+{
+  "keyword": "暴击",
+  "search_mode": "substat_set",
+  "substat_all_mask": 3,
+  "cursor_updated_at": "",
+  "cursor_id": 0,
+  "page_size": 20
+}
+```
+
+**说明**:
+- 没有筛选条件时，所有有查看权限的用户都可以按时间顺序浏览最近声骸
+- 带筛选条件搜索时，仅管理员可用
+- `search_mode` 语义与 `/echo_log/find` 一致
+- 分页使用 `(updated_at, id)` 作为游标
+
+**响应示例**:
+```json
+{
+  "code": 0,
+  "message": "recent echo logs",
+  "data": {
+    "items": [
+      {
+        "id": 12345,
+        "substat_all": 3,
+        "clazz": "沉日劫明"
+      }
+    ],
+    "next_cursor_updated_at": "2026-05-01T11:22:33.123456+08:00",
+    "next_cursor_id": 12345,
+    "has_more": true
+  }
+}
+```
+
+### 2.9 声骸数据分析
 
 **接口**: `GET /echo_logs/analysis`
 

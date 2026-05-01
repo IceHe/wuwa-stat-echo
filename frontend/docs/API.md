@@ -2,7 +2,7 @@
 
 ## 概览
 
-前端不提供独立后端接口，而是消费后端 FastAPI 服务。本文档记录当前页面实际依赖的 HTTP 接口与 WebSocket。
+前端不提供独立后端接口，而是消费后端 HTTP 服务。本文档记录当前页面实际依赖的 HTTP 接口与 WebSocket。
 
 默认后端地址：
 
@@ -23,7 +23,8 @@ ws://${API_SERV}/ws
 | `PATCH` | `/echo_log` | `Echo` | 更新声骸 |
 | `DELETE` | `/echo_log/{id}` | `EchoLogRow` | 软删除声骸 |
 | `POST` | `/echo_log/{id}/recover` | `EchoLogRow` | 恢复声骸 |
-| `POST` | `/echo_log/find` | `FindEcho` | 按词条组合查找声骸 |
+| `POST` | `/echo_log/find` | `FindEcho` | 按孔位词条或副词条集合查找声骸 |
+| `POST` | `/echo_log/recent_search` | `RecentEchoesView` | 最近声骸分页搜索 |
 | `DELETE` | `/echo_log/{echoId}/substat_pos/{pos}` | `Echo` | 删除声骸某一孔位对应记录 |
 | `GET` | `/echo_logs/analysis` | `Echo` `EchoBoard` | 目标词条、资源和间隔分析 |
 
@@ -71,6 +72,39 @@ ws://${API_SERV}/ws
 - `after_id`
 - `before_id`
 
+## 搜索接口约定
+
+### `/echo_log/find` 与 `/echo_log/recent_search`
+
+两个接口共用一套搜索模式字段：
+
+- `search_mode = positional`
+- `search_mode = substat_set`
+
+`positional` 模式：
+
+- 使用 `substat1..5`
+- 按指定孔位上的词条与档位搜索
+
+`substat_set` 模式：
+
+- 使用 `substat_all_mask`
+- 只按副词条类型集合搜索
+- 忽略孔位
+- 忽略档位
+
+副词条集合搜索当前采用“包含所选”语义：
+
+- 例如 `substat_all_mask` 选择“暴击 + 暴伤”时，返回所有包含双暴的声骸
+- 不要求这两个词条出现在固定孔位
+- 不要求这两个词条是固定档位
+
+前端页面行为与接口保持一致：
+
+- 选择“孔位搜索”时，只发送 `substat1..5`
+- 选择“副词条搜索”时，只发送 `substat_all_mask`
+- 两种模式互斥，不会同时生效
+
 ## 页面与接口映射
 
 ### `EchoView`
@@ -102,6 +136,12 @@ ws://${API_SERV}/ws
 - `/echo_logs/analysis`
 - `/tune_stats`
 - `/ws`
+
+### `RecentEchoesView`
+
+依赖：
+
+- `/echo_log/recent_search`
 
 ### `EchoDcritCountView`
 
