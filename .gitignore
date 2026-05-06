@@ -3,3 +3,5 @@
 /backend/.idea/
 /.codex
 .idea/
+.DS_Store
+/tlog/
