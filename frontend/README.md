@@ -26,13 +26,15 @@ frontend/
 
 当前路由主要包括：
 
+- `/home`：首页
 - `/echo`：声骸记录与编辑主页面
+- `/recent-echoes`：最近声骸分页与搜索页面
 - `/substat`：副词条记录与统计页面
 - `/analysis`：分析相关页面
 - `/echo_board`：目标词条与局部分析页面
 - `/echo_dcrit_count`：双暴统计页面
 
-默认 `/` 会直接进入 `EchoView`。
+默认 `/` 会重定向到 `/home`。
 
 ## 本地开发
 
@@ -98,8 +100,20 @@ export const API_SERV = `${API_HOST}:${API_PORT}`
 当前前端构建服务是 `oneshot` 形式，执行一次后退出；重新发布可运行：
 
 ```sh
-systemctl start wuwa-echo-frontend.service
+systemctl restart wuwa-echo-frontend.service
 ```
+
+因为服务配置了 `RemainAfterExit=yes`，服务成功后会处于 `active (exited)`；这种状态下 `start` 不一定会重新执行构建，发布新版本请使用 `restart`。
+
+也可以在 `frontend/` 目录下使用 npm 脚本：
+
+```sh
+npm run publish
+npm run deploy
+```
+
+- `npm run publish`：直接执行 `deploy/scripts/publish-frontend.sh`
+- `npm run deploy`：通过 `systemd restart` 触发前端构建发布服务
 
 如果只想在服务器上手动构建，也可以在 `frontend/` 目录下执行：
 

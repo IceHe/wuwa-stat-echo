@@ -2,7 +2,7 @@ import datetime
 import traceback
 import shared
 from math import ceil
-from typing import Annotated
+from typing import Annotated, Optional
 from datetime import datetime, time
 
 from fastapi import APIRouter, Depends, Request
@@ -11,7 +11,7 @@ from sqlmodel import func, Session, select, update, and_, not_
 
 from auth import require_edit_permission, require_view_permission, get_operator_id, can_manage
 from consts import TUNER_RECYCLED_PER_SUBSTAT, EXP, EXP_GOLD, EXP_RETURN, RESONATOR_TEMPLATES
-from custom_types import SubstatItem, EchoTuneRequest, EchoFindRequest
+from custom_types import SubstatItem, EchoTuneRequest, EchoFindRequest, RecentEchoSearchRequest
 from db import get_session
 from model import EchoLog, SubstatLog
 from response import Success, Error, Page
@@ -47,6 +47,63 @@ def build_substat_match(column, substat_bits: int):
         return column.op('&')(substat_bits) == substat_bits
 
     return column == substat_bits
+
+
+def apply_echo_search_filters(stmt, *, echo_id: int = 0, user_id: int = 0, clazz: str = "", keyword: str = "",
+                              substat1: int = 0, substat2: int = 0, substat3: int = 0, substat4: int = 0,
+                              substat5: int = 0):
+    if echo_id > 0:
+        stmt = stmt.where(EchoLog.id == echo_id)
+
+    for column, substat_bits in (
+            (EchoLog.substat1, substat1),
+            (EchoLog.substat2, substat2),
+            (EchoLog.substat3, substat3),
+            (EchoLog.substat4, substat4),
+            (EchoLog.substat5, substat5),
+    ):
+        filter_expr = build_substat_match(column, substat_bits)
+        if filter_expr is not None:
+            stmt = stmt.where(and_(filter_expr))
+
+    if user_id > 0:
+        stmt = stmt.where(EchoLog.user_id == user_id)
+    if clazz != '':
+        stmt = stmt.where(EchoLog.clazz == clazz)
+    if keyword:
+        keyword_pattern = f"%{keyword}%"
+        keyword_filters = [
+            EchoLog.clazz.ilike(keyword_pattern),
+            EchoLog.s1_desc.ilike(keyword_pattern),
+            EchoLog.s2_desc.ilike(keyword_pattern),
+            EchoLog.s3_desc.ilike(keyword_pattern),
+            EchoLog.s4_desc.ilike(keyword_pattern),
+            EchoLog.s5_desc.ilike(keyword_pattern),
+            cast(EchoLog.user_id, String).ilike(keyword_pattern),
+            cast(EchoLog.id, String).ilike(keyword_pattern),
+        ]
+        stmt = stmt.where(or_(*keyword_filters))
+
+    return stmt
+
+
+def has_recent_echo_search_filters(payload: RecentEchoSearchRequest) -> bool:
+    return (
+        int(payload.user_id or 0) > 0 or
+        (payload.keyword or "").strip() != "" or
+        payload.clazz != "" or
+        (payload.substat1 | payload.substat2 | payload.substat3 | payload.substat4 | payload.substat5) != 0
+    )
+
+
+def parse_cursor_updated_at(raw_value: str) -> Optional[datetime]:
+    cursor_value = (raw_value or "").strip()
+    if cursor_value == "":
+        return None
+    try:
+        return datetime.fromisoformat(cursor_value.replace("Z", "+00:00"))
+    except ValueError:
+        return None
 
 
 def apply_echo_changes(target: EchoLog, payload) -> None:
@@ -433,37 +490,18 @@ async def find_echo_log(
                 return Error("operator not found", 401)
             stmt = stmt.where(EchoLog.operator_id == operator_id)
 
-        if echo_id > 0:
-            stmt = stmt.where(EchoLog.id == echo_id)
-
-        for column, substat_bits in (
-                (EchoLog.substat1, echo_log.substat1),
-                (EchoLog.substat2, echo_log.substat2),
-                (EchoLog.substat3, echo_log.substat3),
-                (EchoLog.substat4, echo_log.substat4),
-                (EchoLog.substat5, echo_log.substat5),
-        ):
-            filter_expr = build_substat_match(column, substat_bits)
-            if filter_expr is not None:
-                stmt = stmt.where(and_(filter_expr))
-
-        if user_id > 0:
-            stmt = stmt.where(EchoLog.user_id == user_id)
-        if echo_log.clazz != '':
-            stmt = stmt.where(EchoLog.clazz == echo_log.clazz)
-        if keyword:
-            keyword_pattern = f"%{keyword}%"
-            keyword_filters = [
-                EchoLog.clazz.ilike(keyword_pattern),
-                EchoLog.s1_desc.ilike(keyword_pattern),
-                EchoLog.s2_desc.ilike(keyword_pattern),
-                EchoLog.s3_desc.ilike(keyword_pattern),
-                EchoLog.s4_desc.ilike(keyword_pattern),
-                EchoLog.s5_desc.ilike(keyword_pattern),
-                cast(EchoLog.user_id, String).ilike(keyword_pattern),
-                cast(EchoLog.id, String).ilike(keyword_pattern),
-            ]
-            stmt = stmt.where(or_(*keyword_filters))
+        stmt = apply_echo_search_filters(
+            stmt,
+            echo_id=echo_id,
+            user_id=user_id,
+            clazz=echo_log.clazz,
+            keyword=keyword,
+            substat1=echo_log.substat1,
+            substat2=echo_log.substat2,
+            substat3=echo_log.substat3,
+            substat4=echo_log.substat4,
+            substat5=echo_log.substat5,
+        )
 
         normalized_page_size = max(1, min(page_size, 100))
         stmt = stmt.order_by(EchoLog.updated_at.desc()).limit(normalized_page_size)
@@ -474,6 +512,71 @@ async def find_echo_log(
         print(e)
         traceback.print_exc()
         return Error("failed to find echo logs")
+
+
+@router.post("/echo_log/recent_search", dependencies=[Depends(require_view_permission)])
+async def recent_echo_search(
+        session: SessionDep,
+        request: Request,
+        payload: RecentEchoSearchRequest,
+):
+    try:
+        is_manager = await can_manage(request)
+        if has_recent_echo_search_filters(payload) and not is_manager:
+            return Error("not authorized to search recent echo logs", 403)
+
+        normalized_page_size = max(1, min(int(payload.page_size or 20), 100))
+        stmt = select(EchoLog).where(EchoLog.deleted == 0)
+        keyword = (payload.keyword or "").strip()
+
+        stmt = apply_echo_search_filters(
+            stmt,
+            user_id=int(payload.user_id or 0),
+            clazz=payload.clazz,
+            keyword=keyword,
+            substat1=payload.substat1,
+            substat2=payload.substat2,
+            substat3=payload.substat3,
+            substat4=payload.substat4,
+            substat5=payload.substat5,
+        )
+
+        cursor_updated_at = parse_cursor_updated_at(payload.cursor_updated_at)
+        cursor_id = int(payload.cursor_id or 0)
+        if (payload.cursor_updated_at or "").strip() != "" and cursor_updated_at is None:
+            return Error("invalid cursor_updated_at", 400)
+        if cursor_updated_at is not None and cursor_id <= 0:
+            return Error("invalid cursor_id", 400)
+        if cursor_updated_at is not None:
+            stmt = stmt.where(or_(
+                EchoLog.updated_at < cursor_updated_at,
+                and_(
+                    EchoLog.updated_at == cursor_updated_at,
+                    EchoLog.id < cursor_id,
+                ),
+            ))
+
+        stmt = stmt.order_by(EchoLog.updated_at.desc(), EchoLog.id.desc()).limit(normalized_page_size + 1)
+        rows = session.exec(stmt).all()
+        has_more = len(rows) > normalized_page_size
+        items = rows[:normalized_page_size]
+
+        next_cursor_updated_at = ""
+        next_cursor_id = 0
+        if has_more and len(items) > 0 and items[-1].updated_at is not None:
+            next_cursor_updated_at = items[-1].updated_at.isoformat()
+            next_cursor_id = items[-1].id
+
+        return Success({
+            "items": items,
+            "next_cursor_updated_at": next_cursor_updated_at,
+            "next_cursor_id": next_cursor_id,
+            "has_more": has_more,
+        }, "recent echo logs")
+    except Exception as e:
+        print(e)
+        traceback.print_exc()
+        return Error("failed to search recent echo logs")
 
 
 # 跟据 echo id 和 pos 位置，删除 substat log

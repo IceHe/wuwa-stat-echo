@@ -28,7 +28,7 @@
 `systemd` 前端服务是 `oneshot` 类型，所以它的职责不是常驻提供 HTTP 服务，而是“构建并发布一次前端”：
 
 ```bash
-systemctl start wuwa-echo-frontend.service
+systemctl restart wuwa-echo-frontend.service
 ```
 
 执行完成后，正常状态应当是：
@@ -36,6 +36,18 @@ systemctl start wuwa-echo-frontend.service
 - `active (exited)`
 
 这表示构建发布成功并退出，不是故障。
+
+注意：因为该服务使用了 `RemainAfterExit=yes`，如果服务已经是 `active (exited)`，单纯执行 `systemctl start wuwa-echo-frontend.service` 可能不会重新触发构建。重新发布请使用 `restart`。
+
+也可以在 `frontend/` 目录下使用 npm 脚本：
+
+```bash
+npm run publish
+npm run deploy
+```
+
+- `npm run publish`：直接执行发布脚本，构建并同步到 `/var/www/wuwa-echo`
+- `npm run deploy`：通过 `systemd restart` 触发线上前端构建服务
 
 ## nginx 职责
 
@@ -79,7 +91,7 @@ systemctl restart wuwa-echo-backend.service
 
 ```bash
 cd /root/wuwa/echo
-systemctl start wuwa-echo-frontend.service
+systemctl restart wuwa-echo-frontend.service
 ```
 
 若 `nginx` 配置有改动，再执行：

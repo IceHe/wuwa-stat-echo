@@ -45,10 +45,14 @@ export const CLASS_COLORS: Record<string, string> = {
     高天共奏之曲: '#253d82',
     无惧浪涛之勇: '#898785',
     流云逝尽之空: '#196965',
+    剪心辑梦之影: '#5a426a',
+    雪落无声之愿: '#7aa7d9',
 }
 
 
 export const CLASSES: string[] = [
+    '剪心辑梦之影',
+    '雪落无声之愿',
     '听唤语义之愿',
     '流金溯真之式',
     '长路启航之星',

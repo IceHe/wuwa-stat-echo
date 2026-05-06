@@ -81,3 +81,17 @@ class EchoFindRequest(SQLModel):
     substat3: int = 0
     substat4: int = 0
     substat5: int = 0
+
+
+class RecentEchoSearchRequest(SQLModel):
+    user_id: int = 0
+    clazz: str = ""
+    keyword: str = ""
+    substat1: int = 0
+    substat2: int = 0
+    substat3: int = 0
+    substat4: int = 0
+    substat5: int = 0
+    cursor_updated_at: str = ""
+    cursor_id: int = 0
+    page_size: int = 20

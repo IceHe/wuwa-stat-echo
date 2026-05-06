@@ -115,7 +115,16 @@ npm run dev
 如果要重新发布前端，可执行：
 
 ```bash
-systemctl start wuwa-echo-frontend.service
+systemctl restart wuwa-echo-frontend.service
+```
+
+前端服务是 `oneshot + RemainAfterExit=yes`，构建发布成功后的状态是 `active (exited)`；重新发布时应使用 `restart`，不要只用 `start`。
+
+也可以在 `frontend/` 目录下执行：
+
+```bash
+npm run publish
+npm run deploy
 ```
 
 如果要查看当前前端构建服务状态，可执行：

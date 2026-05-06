@@ -3,7 +3,18 @@
     <form class="login-card" @submit.prevent="handleLogin">
       <div class="eyebrow">WUWA ECHO</div>
       <h1>Token 登录</h1>
-      <p>使用 `~/wuwa/auth` 管理的 token 进入工具。</p>
+      <p>
+        向 Bilibili UP 主
+        <a
+          class="external-link"
+          href="https://www.bilibili.com/video/BV1xtDiBqEjF"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          @IceHe何瀚清
+        </a>
+        申请内测 token。
+      </p>
 
       <label class="field">
         <span>Token</span>
@@ -119,6 +130,16 @@ h1 {
 p {
   margin: 0;
   color: #5b6170;
+}
+
+.external-link {
+  color: #0f4c81;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.external-link:hover {
+  text-decoration: underline;
 }
 
 .field {
