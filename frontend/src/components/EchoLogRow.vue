@@ -21,7 +21,11 @@
       <span class="score-current">{{ currentScore || '--' }}</span><br/>
       <span class="score-max">{{ theoreticalMaxScore || '--' }}</span>
     </td>
-    <td style="max-width: 77px;">{{ created_at }}</td>
+    <td style="max-width: 77px;">
+      {{ created_at }}
+      <br v-if="operatorName" />
+      <span v-if="operatorName" class="operator-name-label">{{ operatorName }}</span>
+    </td>
     <td v-if="showActions" class="action-cell">
       <button v-if="canDelete" @click="del" style="color: darkred">删除</button>
       <button v-else-if="canRecover" @click="recover">恢复</button>
@@ -81,6 +85,11 @@
   font-size: 12px;
   white-space: nowrap;
 }
+
+.operator-name-label {
+  color: #64748b;
+  font-size: 11px;
+}
 </style>
 
 <script>
@@ -125,6 +134,11 @@ export default {
       required: false,
       default: true,
     },
+    operatorNameById: {
+      type: Object,
+      required: false,
+      default: () => ({}),
+    },
   },
   computed: {
     canModify() {
@@ -150,6 +164,17 @@ export default {
         return String(echoId ?? '')
       }
       return `${echoId} / ${operatorId}`
+    },
+    operatorName() {
+      const owner = Number(this.echoLog?.operator_id || 0)
+      if (owner <= 0) {
+        return ''
+      }
+      const operatorName = this.operatorNameById?.[owner]
+      if (!operatorName) {
+        return ''
+      }
+      return String(operatorName)
     },
     currentScore() {
       return formatEchoCurrentScore(

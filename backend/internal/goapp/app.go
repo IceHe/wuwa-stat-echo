@@ -75,6 +75,7 @@ func (a *App) Handler() http.Handler {
 	mux.HandleFunc("GET /ws", a.handleWebsocket)
 	mux.HandleFunc("POST /auth/login", a.handleProxyLogin)
 	mux.HandleFunc("GET /auth/me", a.handleProxyMe)
+	mux.HandleFunc("GET /auth/users", a.handleProxyUsers)
 	mux.HandleFunc("GET /substat_logs", a.withPermission("view", a.handleListSubstatLogs))
 	mux.HandleFunc("POST /tune_log/{id}/delete", a.withPermission("edit", a.handleDeleteTuneLogByID))
 	mux.HandleFunc("POST /tune_log", a.withPermission("edit", a.handleAddTuneLog))

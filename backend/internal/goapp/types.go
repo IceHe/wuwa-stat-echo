@@ -114,6 +114,7 @@ type EchoFindRequest struct {
 
 type RecentEchoSearchRequest struct {
 	UserID          int64  `json:"user_id"`
+	OperatorID      int64  `json:"operator_id"`
 	Clazz           string `json:"clazz"`
 	Keyword         string `json:"keyword"`
 	SearchMode      string `json:"search_mode"`

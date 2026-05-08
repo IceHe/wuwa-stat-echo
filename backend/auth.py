@@ -222,3 +222,35 @@ async def proxy_me(token: str) -> dict:
     if response.status_code != 200:
         raise HTTPException(status_code=503, detail=AUTH_UNAVAILABLE_DETAIL)
     return response.json()
+
+
+async def proxy_users(token: str) -> list[dict]:
+    response = await _request_auth_api(
+        "/api/users",
+        method="GET",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    if response.status_code == 401:
+        raise HTTPException(status_code=401, detail=AUTH_INVALID_DETAIL)
+    if response.status_code == 403:
+        raise HTTPException(status_code=403, detail=AUTH_FORBIDDEN_DETAIL)
+    if response.status_code != 200:
+        raise HTTPException(status_code=503, detail=AUTH_UNAVAILABLE_DETAIL)
+
+    payload = response.json()
+    if not isinstance(payload, list):
+        raise HTTPException(status_code=503, detail=AUTH_UNAVAILABLE_DETAIL)
+
+    users: list[dict] = []
+    for item in payload:
+        if not isinstance(item, dict):
+            continue
+        user_id = item.get("id")
+        name = item.get("name")
+        if user_id is None or name is None:
+            continue
+        users.append({
+            "id": int(user_id),
+            "name": str(name),
+        })
+    return users

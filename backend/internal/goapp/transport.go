@@ -136,6 +136,49 @@ func (a *App) handleProxyMe(w http.ResponseWriter, r *http.Request) {
 	_, _ = w.Write(body)
 }
 
+func (a *App) handleProxyUsers(w http.ResponseWriter, r *http.Request) {
+	token := extractToken(r)
+	if token == "" {
+		writeJSONWithStatus(w, http.StatusUnauthorized, map[string]string{"detail": authInvalidDetail})
+		return
+	}
+	req, err := http.NewRequestWithContext(r.Context(), http.MethodGet, a.authURL+"/api/users", nil)
+	if err != nil {
+		writeJSONWithStatus(w, http.StatusServiceUnavailable, map[string]string{"detail": authUnavailableDetail})
+		return
+	}
+	req.Header.Set("Authorization", "Bearer "+token)
+	resp, err := a.httpClient.Do(req)
+	if err != nil {
+		writeJSONWithStatus(w, http.StatusServiceUnavailable, map[string]string{"detail": authUnavailableDetail})
+		return
+	}
+	defer resp.Body.Close()
+	body, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode != http.StatusOK {
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(resp.StatusCode)
+		_, _ = w.Write(body)
+		return
+	}
+	var rawUsers []struct {
+		ID   int64  `json:"id"`
+		Name string `json:"name"`
+	}
+	if err := json.Unmarshal(body, &rawUsers); err != nil {
+		writeJSONWithStatus(w, http.StatusServiceUnavailable, map[string]string{"detail": authUnavailableDetail})
+		return
+	}
+	response := make([]map[string]any, 0, len(rawUsers))
+	for _, user := range rawUsers {
+		response = append(response, map[string]any{
+			"id":   user.ID,
+			"name": user.Name,
+		})
+	}
+	writeJSON(w, response)
+}
+
 func (a *App) proxyAuthRequest(w http.ResponseWriter, r *http.Request, method, path string, body io.Reader) {
 	req, err := http.NewRequestWithContext(r.Context(), method, a.authURL+path, body)
 	if err != nil {

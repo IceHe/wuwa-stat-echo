@@ -5,142 +5,159 @@
         <div>
           <h1>最近声骸</h1>
           <p v-if="canManage" class="page-note">
-            默认展示全局最近录入声骸。管理员可按玩家、套装、词条条件筛选，并继续加载更多。
+            默认展示全局最近录入声骸。所有人都可按玩家 ID 查询，管理员可继续按操作者、套装、词条条件筛选。
           </p>
           <p v-else class="page-note">
-            当前为只读观察模式，默认展示全局最近录入声骸，支持继续加载更多。
+            当前为只读观察模式，默认展示全局最近录入声骸，支持按玩家 ID 查询和继续加载更多。
           </p>
         </div>
         <div class="page-summary">
-          <span>已加载：{{ echoLogs.length }}</span>
+          <span>已加载：{{ visibleEchoLogs.length }}</span>
           <button class="summary-button" @click="refreshRecentEchoes()" :disabled="loading || loadingMore">
             {{ loading ? '刷新中...' : '刷新' }}
           </button>
         </div>
       </div>
 
-      <div v-if="canManage" class="find-panel">
+      <div class="find-panel">
         <div class="find-toolbar-row">
           <span class="name">玩家ID</span>
           <input
             class="button user-id-input"
             type="text"
             v-model="filters.user_id"
-            placeholder="当前玩家ID"
+            placeholder="0 为全部玩家"
             @change="setUserId(filters.user_id)"
-          />
-          <input
-            class="button keyword-input"
-            type="text"
-            v-model.trim="filters.keyword"
-            placeholder="玩家ID / 声骸ID / 套装 / 词条"
             @keyup.enter="searchRecentEchoes()"
           />
-          <span class="clazz-chip" :style="`color: ${CLASS_COLORS[filters.clazz]};`">
-            {{ filters.clazz.substring(0, 4) }}
-          </span>
           <button class="button clear-button" @click="resetFilters()">清空</button>
           <button class="button search-button" @click="searchRecentEchoes()" :disabled="loading || loadingMore">
-            搜索
+            查询
           </button>
         </div>
-        <div class="find-toolbar-row">
-          <span class="name">搜索方式</span>
-          <div class="mode-switch">
-            <button
-              class="button mode-button"
-              @click="setSearchMode(SEARCH_MODE.POSITIONAL)"
-              :class="{ 'mode-active': filters.search_mode === SEARCH_MODE.POSITIONAL }"
-            >
-              孔位搜索
-            </button>
-            <button
-              class="button mode-button"
-              @click="setSearchMode(SEARCH_MODE.SUBSTAT_SET)"
-              :class="{ 'mode-active': filters.search_mode === SEARCH_MODE.SUBSTAT_SET }"
-            >
-              副词条搜索
-            </button>
-          </div>
-        </div>
-        <div v-if="filters.search_mode === SEARCH_MODE.SUBSTAT_SET" class="find-mode-hint">
-          忽略孔位和档位，仅按包含哪些副词条搜索
-        </div>
-        <div class="suite-row">
-          <span class="name">声骸套装</span>
-          <div class="suite-scroll">
-            <button class="button suite-button" @click="setClazz('')" :style="filters.clazz === '' ? 'background-color: yellow;' : ''">
-              不限
-            </button>
-            <button
-              v-for="clazz in CLASSES"
-              :key="clazz"
-              class="button suite-button"
-              @click="setClazz(clazz)"
-              :style="filters.clazz === clazz ? 'background-color: yellow;' : ''"
-            >
-              <span :style="`color: ${CLASS_COLORS[clazz]};`">{{ clazz.substring(0, 4) }}</span>
-            </button>
-          </div>
-        </div>
-        <template v-if="filters.search_mode === SEARCH_MODE.POSITIONAL">
+        <template v-if="canManage">
           <div class="find-toolbar-row">
-            <span class="name">当前孔位</span>
-            <div class="find-position-row">
-              <button class="substat" @click="filters.pos = 0" :style="filters.pos === 0 ? 'background-color: yellow; font-color: red' : ''">
-                {{ filters.s1_desc ? filters.s1_desc : '1' }}
+            <span class="name">操作者ID</span>
+            <input
+              class="button user-id-input"
+              type="text"
+              v-model="filters.operator_id"
+              placeholder="例如 29，0 为不限"
+              @change="setOperatorFilterId(filters.operator_id)"
+              @keyup.enter="searchRecentEchoes()"
+            />
+          </div>
+          <div class="find-toolbar-row">
+            <span class="name">关键词</span>
+            <input
+              class="button keyword-input"
+              type="text"
+              v-model.trim="filters.keyword"
+              placeholder="玩家ID / 声骸ID / 套装 / 词条"
+              @keyup.enter="searchRecentEchoes()"
+            />
+            <span class="clazz-chip" :style="`color: ${CLASS_COLORS[filters.clazz]};`">
+              {{ filters.clazz.substring(0, 4) }}
+            </span>
+          </div>
+          <div class="find-toolbar-row">
+            <span class="name">搜索方式</span>
+            <div class="mode-switch">
+              <button
+                class="button mode-button"
+                @click="setSearchMode(SEARCH_MODE.POSITIONAL)"
+                :class="{ 'mode-active': filters.search_mode === SEARCH_MODE.POSITIONAL }"
+              >
+                孔位搜索
               </button>
-              <button class="substat" @click="filters.pos = 1" :style="filters.pos === 1 ? 'background-color: yellow; font-color: red' : ''">
-                {{ filters.s2_desc ? filters.s2_desc : '2' }}
-              </button>
-              <button class="substat" @click="filters.pos = 2" :style="filters.pos === 2 ? 'background-color: yellow; font-color: red' : ''">
-                {{ filters.s3_desc ? filters.s3_desc : '3' }}
-              </button>
-              <button class="substat" @click="filters.pos = 3" :style="filters.pos === 3 ? 'background-color: yellow; font-color: red' : ''">
-                {{ filters.s4_desc ? filters.s4_desc : '4' }}
-              </button>
-              <button class="substat" @click="filters.pos = 4" :style="filters.pos === 4 ? 'background-color: yellow; font-color: red' : ''">
-                {{ filters.s5_desc ? filters.s5_desc : '5' }}
+              <button
+                class="button mode-button"
+                @click="setSearchMode(SEARCH_MODE.SUBSTAT_SET)"
+                :class="{ 'mode-active': filters.search_mode === SEARCH_MODE.SUBSTAT_SET }"
+              >
+                副词条搜索
               </button>
             </div>
           </div>
-          <div v-for="substat in SUBSTAT" :key="substat.num" class="find-substat-row">
-            <span class="name" :style="`color: ${substat.font_color}; font-weight: bolder;`">{{ substat.name.substring(0, 4) }}</span>
-            <div class="find-substat-buttons">
-              <button class="button compact-button" @click="addAnyTuneToFilter(substat.num)" :style="`color: ${substat.font_color}`">
+          <div v-if="filters.search_mode === SEARCH_MODE.SUBSTAT_SET" class="find-mode-hint">
+            忽略孔位和档位，仅按包含哪些副词条搜索
+          </div>
+          <div class="suite-row">
+            <span class="name">声骸套装</span>
+            <div class="suite-scroll">
+              <button class="button suite-button" @click="setClazz('')" :style="filters.clazz === '' ? 'background-color: yellow;' : ''">
                 不限
               </button>
               <button
-                v-for="value in SUBSTAT_VALUE_MAP[substat.num]"
-                :key="value.value_number"
-                class="button compact-button"
-                @click="addTuneToFilter(value.substat_number, value.value_number)"
-                :style="`color: ${substat.font_color}`"
+                v-for="clazz in CLASSES"
+                :key="clazz"
+                class="button suite-button"
+                @click="setClazz(clazz)"
+                :style="filters.clazz === clazz ? 'background-color: yellow;' : ''"
               >
-                {{ value.desc }}
+                <span :style="`color: ${CLASS_COLORS[clazz]};`">{{ clazz.substring(0, 4) }}</span>
               </button>
             </div>
           </div>
-        </template>
-        <template v-else>
-          <div class="find-substat-set-row">
-            <span class="name">副词条</span>
-            <div class="find-set-buttons">
-              <button
-                v-for="substat in SUBSTAT"
-                :key="substat.num"
-                class="button set-substat-button"
-                @click="toggleSubstatSet(substat.num)"
-                :style="getSubstatSetButtonStyle(substat)"
-              >
-                {{ substat.name }}
-              </button>
+          <template v-if="filters.search_mode === SEARCH_MODE.POSITIONAL">
+            <div class="find-toolbar-row">
+              <span class="name">当前孔位</span>
+              <div class="find-position-row">
+                <button class="substat" @click="filters.pos = 0" :style="filters.pos === 0 ? 'background-color: yellow; font-color: red' : ''">
+                  {{ filters.s1_desc ? filters.s1_desc : '1' }}
+                </button>
+                <button class="substat" @click="filters.pos = 1" :style="filters.pos === 1 ? 'background-color: yellow; font-color: red' : ''">
+                  {{ filters.s2_desc ? filters.s2_desc : '2' }}
+                </button>
+                <button class="substat" @click="filters.pos = 2" :style="filters.pos === 2 ? 'background-color: yellow; font-color: red' : ''">
+                  {{ filters.s3_desc ? filters.s3_desc : '3' }}
+                </button>
+                <button class="substat" @click="filters.pos = 3" :style="filters.pos === 3 ? 'background-color: yellow; font-color: red' : ''">
+                  {{ filters.s4_desc ? filters.s4_desc : '4' }}
+                </button>
+                <button class="substat" @click="filters.pos = 4" :style="filters.pos === 4 ? 'background-color: yellow; font-color: red' : ''">
+                  {{ filters.s5_desc ? filters.s5_desc : '5' }}
+                </button>
+              </div>
             </div>
-          </div>
-          <div class="find-toolbar-row">
-            <span class="name">已选</span>
-            <div class="selected-substat-summary">{{ selectedSubstatSummary() }}</div>
-          </div>
+            <div v-for="substat in SUBSTAT" :key="substat.num" class="find-substat-row">
+              <span class="name" :style="`color: ${substat.font_color}; font-weight: bolder;`">{{ substat.name.substring(0, 4) }}</span>
+              <div class="find-substat-buttons">
+                <button class="button compact-button" @click="addAnyTuneToFilter(substat.num)" :style="`color: ${substat.font_color}`">
+                  不限
+                </button>
+                <button
+                  v-for="value in SUBSTAT_VALUE_MAP[substat.num]"
+                  :key="value.value_number"
+                  class="button compact-button"
+                  @click="addTuneToFilter(value.substat_number, value.value_number)"
+                  :style="`color: ${substat.font_color}`"
+                >
+                  {{ value.desc }}
+                </button>
+              </div>
+            </div>
+          </template>
+          <template v-else>
+            <div class="find-substat-set-row">
+              <span class="name">副词条</span>
+              <div class="find-set-buttons">
+                <button
+                  v-for="substat in SUBSTAT"
+                  :key="substat.num"
+                  class="button set-substat-button"
+                  @click="toggleSubstatSet(substat.num)"
+                  :style="getSubstatSetButtonStyle(substat)"
+                >
+                  {{ substat.name }}
+                </button>
+              </div>
+            </div>
+            <div class="find-toolbar-row">
+              <span class="name">已选</span>
+              <div class="selected-substat-summary">{{ selectedSubstatSummary() }}</div>
+            </div>
+          </template>
         </template>
       </div>
 
@@ -166,10 +183,11 @@
           </thead>
           <tbody>
             <EchoLogRow
-              v-for="echoLog in echoLogs"
+              v-for="echoLog in visibleEchoLogs"
               :key="echoLog.id + echoLog.updated_at + echoLog.deleted"
               :echo-log="echoLog"
               :operator-id="operatorId"
+              :operator-name-by-id="operatorNameById"
               :can-manage="canManage"
               :show-actions="canManage"
               :show-score="false"
@@ -178,7 +196,7 @@
           </tbody>
         </table>
 
-        <div v-if="!loading && echoLogs.length === 0" class="empty-state">
+        <div v-if="!loading && visibleEchoLogs.length === 0" class="empty-state">
           暂无符合条件的声骸
         </div>
 
@@ -193,7 +211,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import axios from 'axios'
 
 import EchoLogRow from '@/components/EchoLogRow.vue'
@@ -211,6 +229,7 @@ type SearchMode = (typeof SEARCH_MODE)[keyof typeof SEARCH_MODE]
 
 type RecentEchoFilterState = {
   user_id: number
+  operator_id: number
   keyword: string
   clazz: string
   search_mode: SearchMode
@@ -228,11 +247,17 @@ type RecentEchoFilterState = {
   s5_desc: string
 }
 
+type OperatorDirectoryItem = {
+  id: number
+  name: string
+}
+
 const canManage = computed(() => authState.user?.permissions?.includes('manage') ?? false)
 const operatorId = computed(() => authState.user?.id ?? null)
 
 const buildEmptyFilters = (): RecentEchoFilterState => ({
   user_id: 0,
+  operator_id: 0,
   keyword: '',
   clazz: '',
   search_mode: SEARCH_MODE.POSITIONAL,
@@ -252,11 +277,13 @@ const buildEmptyFilters = (): RecentEchoFilterState => ({
 
 const filters = ref<RecentEchoFilterState>(buildEmptyFilters())
 const echoLogs = ref<any[]>([])
+const operatorNameById = ref<Record<number, string>>({})
 const loading = ref(false)
 const loadingMore = ref(false)
 const hasMore = ref(false)
 const nextCursorUpdatedAt = ref('')
 const nextCursorId = ref(0)
+const visibleEchoLogs = computed(() => echoLogs.value.filter((item) => Number(item?.deleted ?? 0) !== 1))
 
 const normalizeUserId = (userId: unknown) => {
   if (userId === '' || userId === null || userId === undefined) {
@@ -274,6 +301,7 @@ const resetCursor = () => {
 
 const buildRequestPayload = (append: boolean) => ({
   user_id: normalizeUserId(filters.value.user_id),
+  operator_id: normalizeUserId(filters.value.operator_id),
   clazz: filters.value.clazz,
   keyword: filters.value.keyword.trim(),
   search_mode: filters.value.search_mode,
@@ -288,8 +316,33 @@ const buildRequestPayload = (append: boolean) => ({
   page_size: PAGE_SIZE,
 })
 
+const filterDeletedEchoLogs = (items: any[]) => items.filter((item) => Number(item?.deleted ?? 0) !== 1)
+
+const fetchOperatorNames = async () => {
+  if (!canManage.value) {
+    operatorNameById.value = {}
+    return
+  }
+
+  try {
+    const response = await axios.get<OperatorDirectoryItem[]>(`${API_BASE_URL}/auth/users`)
+    const mapping: Record<number, string> = {}
+    for (const item of Array.isArray(response.data) ? response.data : []) {
+      const filterOperatorId = Number(item?.id ?? 0)
+      const operatorName = String(item?.name ?? '').trim()
+      if (filterOperatorId > 0 && operatorName !== '') {
+        mapping[filterOperatorId] = operatorName
+      }
+    }
+    operatorNameById.value = mapping
+  } catch (error) {
+    console.error('获取操作者名称失败:', error)
+    operatorNameById.value = {}
+  }
+}
+
 const applySearchResponse = (data: any, append: boolean) => {
-  const items = Array.isArray(data?.items) ? data.items : []
+  const items = filterDeletedEchoLogs(Array.isArray(data?.items) ? data.items : [])
   echoLogs.value = append ? [...echoLogs.value, ...items] : items
   hasMore.value = Boolean(data?.has_more)
   nextCursorUpdatedAt.value = hasMore.value ? String(data?.next_cursor_updated_at || '') : ''
@@ -317,7 +370,7 @@ const fetchRecentEchoes = async (append = false) => {
       return
     }
     if (response.data.code === 403) {
-      alert('仅管理员可进行条件搜索')
+      alert('仅管理员可使用操作者、套装、关键词、副词条等高级筛选')
       return
     }
     alert('获取最近声骸失败')
@@ -344,6 +397,10 @@ const resetFilters = () => {
 
 const setUserId = (userId: unknown) => {
   filters.value.user_id = normalizeUserId(userId)
+}
+
+const setOperatorFilterId = (filterOperatorId: unknown) => {
+  filters.value.operator_id = normalizeUserId(filterOperatorId)
 }
 
 const setClazz = (clazz: string) => {
@@ -432,6 +489,14 @@ const addTuneToFilter = (substat: number, value: number) => {
 const handleRefreshRecentEchoLogs = () => {
   void refreshRecentEchoes()
 }
+
+watch(canManage, (value) => {
+  if (value) {
+    void fetchOperatorNames()
+    return
+  }
+  operatorNameById.value = {}
+}, { immediate: true })
 
 onMounted(() => {
   ;(emitter as any).on('refreshRecentEchoLogs', handleRefreshRecentEchoLogs)

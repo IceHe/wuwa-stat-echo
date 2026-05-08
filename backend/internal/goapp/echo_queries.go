@@ -33,14 +33,14 @@ func hasPositionalSubstatFilters(filters ...int64) bool {
 	return combined != 0
 }
 
-func hasRecentEchoSearchFilters(payload RecentEchoSearchRequest) bool {
+func hasRecentEchoPrivilegedFilters(payload RecentEchoSearchRequest) bool {
 	keyword := strings.TrimSpace(payload.Keyword)
 	searchMode := normalizeSearchMode(payload.SearchMode)
 	hasSubstatFilter := hasPositionalSubstatFilters(payload.Substat1, payload.Substat2, payload.Substat3, payload.Substat4, payload.Substat5)
 	if searchMode == searchModeSubstatSet {
 		hasSubstatFilter = normalizeSubstatAllMask(payload.SubstatAllMask) != 0
 	}
-	return payload.UserID > 0 || payload.Clazz != "" || keyword != "" || hasSubstatFilter
+	return payload.OperatorID > 0 || payload.Clazz != "" || keyword != "" || hasSubstatFilter
 }
 
 func parseRecentEchoCursorTime(raw string) (time.Time, error) {
@@ -232,7 +232,7 @@ func (a *App) handleRecentEchoSearch(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, appError("failed to search recent echo logs", 500))
 		return
 	}
-	if hasRecentEchoSearchFilters(payload) && !canManage(r.Context()) {
+	if hasRecentEchoPrivilegedFilters(payload) && !canManage(r.Context()) {
 		writeJSON(w, appError("not authorized to search recent echo logs", 403))
 		return
 	}
@@ -290,6 +290,11 @@ func (a *App) handleRecentEchoSearch(w http.ResponseWriter, r *http.Request) {
 	if payload.UserID > 0 {
 		query += fmt.Sprintf(" and user_id = $%d", arg)
 		args = append(args, payload.UserID)
+		arg++
+	}
+	if payload.OperatorID > 0 {
+		query += fmt.Sprintf(" and operator_id = $%d", arg)
+		args = append(args, payload.OperatorID)
 		arg++
 	}
 	if payload.Clazz != "" {

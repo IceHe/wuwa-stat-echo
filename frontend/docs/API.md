@@ -101,6 +101,8 @@ ws://${API_SERV}/ws
 
 前端页面行为与接口保持一致：
 
+- `RecentEchoesView` 中，`user_id = 0` 表示浏览全局最近声骸，`user_id > 0` 表示按玩家筛选
+- `operator_id = 0` 表示不按操作者筛选，`operator_id > 0` 表示仅看该操作者录入的声骸，仅管理员可用
 - 选择“孔位搜索”时，只发送 `substat1..5`
 - 选择“副词条搜索”时，只发送 `substat_all_mask`
 - 两种模式互斥，不会同时生效

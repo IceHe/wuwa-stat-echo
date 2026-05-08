@@ -247,6 +247,7 @@
 ```json
 {
   "keyword": "暴击",
+  "operator_id": 29,
   "search_mode": "substat_set",
   "substat_all_mask": 3,
   "cursor_updated_at": "",
@@ -257,7 +258,9 @@
 
 **说明**:
 - 没有筛选条件时，所有有查看权限的用户都可以按时间顺序浏览最近声骸
-- 带筛选条件搜索时，仅管理员可用
+- `user_id > 0` 时，所有有查看权限的用户都可以按玩家筛选最近声骸
+- `operator_id > 0` 时，仅管理员可按操作者筛选最近声骸
+- 关键词、套装、副词条等高级筛选仅管理员可用
 - `search_mode` 语义与 `/echo_log/find` 一致
 - 分页使用 `(updated_at, id)` 作为游标
 

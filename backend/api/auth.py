@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Body, HTTPException, Request
 
-from auth import AUTH_INVALID_DETAIL, extract_token_from_request, proxy_login, proxy_me
+from auth import AUTH_INVALID_DETAIL, extract_token_from_request, proxy_login, proxy_me, proxy_users
 
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -18,3 +18,11 @@ async def me(request: Request):
     if not token:
         raise HTTPException(status_code=401, detail=AUTH_INVALID_DETAIL)
     return await proxy_me(token)
+
+
+@router.get("/users")
+async def users(request: Request):
+    token = extract_token_from_request(request)
+    if not token:
+        raise HTTPException(status_code=401, detail=AUTH_INVALID_DETAIL)
+    return await proxy_users(token)

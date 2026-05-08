@@ -50,8 +50,8 @@ def build_substat_match(column, substat_bits: int):
 
 
 def apply_echo_search_filters(stmt, *, echo_id: int = 0, user_id: int = 0, clazz: str = "", keyword: str = "",
-                              substat1: int = 0, substat2: int = 0, substat3: int = 0, substat4: int = 0,
-                              substat5: int = 0):
+                              operator_id: int = 0, substat1: int = 0, substat2: int = 0, substat3: int = 0,
+                              substat4: int = 0, substat5: int = 0):
     if echo_id > 0:
         stmt = stmt.where(EchoLog.id == echo_id)
 
@@ -68,6 +68,8 @@ def apply_echo_search_filters(stmt, *, echo_id: int = 0, user_id: int = 0, clazz
 
     if user_id > 0:
         stmt = stmt.where(EchoLog.user_id == user_id)
+    if operator_id > 0:
+        stmt = stmt.where(EchoLog.operator_id == operator_id)
     if clazz != '':
         stmt = stmt.where(EchoLog.clazz == clazz)
     if keyword:
@@ -87,12 +89,25 @@ def apply_echo_search_filters(stmt, *, echo_id: int = 0, user_id: int = 0, clazz
     return stmt
 
 
-def has_recent_echo_search_filters(payload: RecentEchoSearchRequest) -> bool:
+def normalize_recent_echo_search_mode(raw_value: str) -> str:
+    mode = (raw_value or "").strip().lower()
+    if mode == "substat_set":
+        return "substat_set"
+    return "positional"
+
+
+def has_recent_echo_privileged_filters(payload: RecentEchoSearchRequest) -> bool:
+    search_mode = normalize_recent_echo_search_mode(getattr(payload, "search_mode", ""))
+    has_substat_filter = (
+        payload.substat1 | payload.substat2 | payload.substat3 | payload.substat4 | payload.substat5
+    ) != 0
+    if search_mode == "substat_set":
+        has_substat_filter = (int(getattr(payload, "substat_all_mask", 0) or 0) & SUBSTAT_TYPE_MASK) != 0
     return (
-        int(payload.user_id or 0) > 0 or
+        int(getattr(payload, "operator_id", 0) or 0) > 0 or
         (payload.keyword or "").strip() != "" or
         payload.clazz != "" or
-        (payload.substat1 | payload.substat2 | payload.substat3 | payload.substat4 | payload.substat5) != 0
+        has_substat_filter
     )
 
 
@@ -522,23 +537,30 @@ async def recent_echo_search(
 ):
     try:
         is_manager = await can_manage(request)
-        if has_recent_echo_search_filters(payload) and not is_manager:
+        if has_recent_echo_privileged_filters(payload) and not is_manager:
             return Error("not authorized to search recent echo logs", 403)
 
         normalized_page_size = max(1, min(int(payload.page_size or 20), 100))
         stmt = select(EchoLog).where(EchoLog.deleted == 0)
         keyword = (payload.keyword or "").strip()
+        search_mode = normalize_recent_echo_search_mode(getattr(payload, "search_mode", ""))
+        substat_all_mask = int(getattr(payload, "substat_all_mask", 0) or 0) & SUBSTAT_TYPE_MASK
+
+        if search_mode == "substat_set":
+            if substat_all_mask != 0:
+                stmt = stmt.where(EchoLog.substat_all.op('&')(substat_all_mask) == substat_all_mask)
 
         stmt = apply_echo_search_filters(
             stmt,
             user_id=int(payload.user_id or 0),
+            operator_id=int(getattr(payload, "operator_id", 0) or 0),
             clazz=payload.clazz,
             keyword=keyword,
-            substat1=payload.substat1,
-            substat2=payload.substat2,
-            substat3=payload.substat3,
-            substat4=payload.substat4,
-            substat5=payload.substat5,
+            substat1=payload.substat1 if search_mode == "positional" else 0,
+            substat2=payload.substat2 if search_mode == "positional" else 0,
+            substat3=payload.substat3 if search_mode == "positional" else 0,
+            substat4=payload.substat4 if search_mode == "positional" else 0,
+            substat5=payload.substat5 if search_mode == "positional" else 0,
         )
 
         cursor_updated_at = parse_cursor_updated_at(payload.cursor_updated_at)

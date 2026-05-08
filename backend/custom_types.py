@@ -85,8 +85,11 @@ class EchoFindRequest(SQLModel):
 
 class RecentEchoSearchRequest(SQLModel):
     user_id: int = 0
+    operator_id: int = 0
     clazz: str = ""
     keyword: str = ""
+    search_mode: str = "positional"
+    substat_all_mask: int = 0
     substat1: int = 0
     substat2: int = 0
     substat3: int = 0
