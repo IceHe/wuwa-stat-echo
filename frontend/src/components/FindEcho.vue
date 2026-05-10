@@ -9,6 +9,7 @@
         v-model="echoLog.user_id"
         placeholder="当前玩家ID"
         @change="setUserId(echoLog.user_id)" />
+      <button class="button clear-button" @click="resetEchoLog()">清空</button>
       <input
         class="button keyword-input"
         type="text"
@@ -18,7 +19,6 @@
       <span class="clazz-chip" :style="`color: ${CLASS_COLORS[echoLog.clazz]};`">
         {{ echoLog.clazz.substring(0, 4) }}
       </span>
-      <button class="button clear-button" @click="resetEchoLog()">清空</button>
       <button class="button search-button" @click="findEchoLog(false)">搜索</button>
     </div>
     <div class="find-toolbar-row">
@@ -570,7 +570,7 @@ export default {
 
 .keyword-input {
   flex: 1 1 180px;
-  min-width: 180px;
+  min-width: 140px;
   justify-content: flex-start;
 }
 
