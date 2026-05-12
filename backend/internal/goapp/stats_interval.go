@@ -11,8 +11,13 @@ type ProportionStat struct {
 }
 
 func newProportionStat(count int64, total int64) *ProportionStat {
+	stat := &ProportionStat{Count: count, Total: total}
 	if total <= 0 || count < 0 {
-		return &ProportionStat{Count: count, Total: total}
+		return stat
+	}
+	stat.Rate = rounded(float64(count)/float64(total)*100, 2)
+	if count > total {
+		return stat
 	}
 
 	p := float64(count) / float64(total)
@@ -25,11 +30,7 @@ func newProportionStat(count int64, total int64) *ProportionStat {
 	low := math.Max(0, center-margin)
 	high := math.Min(1, center+margin)
 
-	return &ProportionStat{
-		Count:    count,
-		Total:    total,
-		Rate:     rounded(p*100, 2),
-		CI95Low:  rounded(low*100, 2),
-		CI95High: rounded(high*100, 2),
-	}
+	stat.CI95Low = rounded(low*100, 2)
+	stat.CI95High = rounded(high*100, 2)
+	return stat
 }

@@ -190,6 +190,10 @@ func (a *App) handleTuneEchoLog(w http.ResponseWriter, r *http.Request) {
 			writeJSON(w, appError("failed to tune echo log", 500))
 			return
 		}
+		if err := a.applyEchoSummaryDelta(r.Context(), tx, nil, echoLog); err != nil {
+			writeJSON(w, appError("failed to tune echo log", 500))
+			return
+		}
 	}
 	beforeEcho := *echoLog
 	applyEchoChanges(echoLog, EchoLog{Substat1: payload.Substat1, Substat2: payload.Substat2, Substat3: payload.Substat3, Substat4: payload.Substat4, Substat5: payload.Substat5, SubstatAll: payload.SubstatAll, S1Desc: payload.S1Desc, S2Desc: payload.S2Desc, S3Desc: payload.S3Desc, S4Desc: payload.S4Desc, S5Desc: payload.S5Desc, Clazz: payload.Clazz, UserID: payload.UserID})

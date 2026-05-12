@@ -31,6 +31,24 @@ func rounded(val float64, precision int) float64 {
 	return math.Round(val*p) / p
 }
 
+func int64FromAny(value any) (int64, bool) {
+	switch typed := value.(type) {
+	case int:
+		return int64(typed), true
+	case int64:
+		return typed, true
+	case int32:
+		return int64(typed), true
+	case float64:
+		if math.Trunc(typed) != typed {
+			return 0, false
+		}
+		return int64(typed), true
+	default:
+		return 0, false
+	}
+}
+
 func cloneTuneStats(src *TuneStatsResponse) *TuneStatsResponse {
 	if src == nil {
 		return nil

@@ -92,7 +92,7 @@ func buildTuneStatsBaselineCompare(userStats *TuneStatsResponse, globalStats *Tu
 }
 
 func buildSignificanceSummary(userStat *ProportionStat, globalStat *ProportionStat) *SignificanceSummary {
-	if userStat == nil || globalStat == nil || userStat.Total <= 0 || globalStat.Total <= 0 {
+	if userStat == nil || globalStat == nil || !isValidObservedCount(userStat.Count, userStat.Total) || !isValidObservedCount(globalStat.Count, globalStat.Total) {
 		return nil
 	}
 	p1 := float64(userStat.Count) / float64(userStat.Total)
@@ -147,4 +147,8 @@ func buildBiasHint(userStat *ProportionStat, globalStat *ProportionStat, deltaRa
 		return &BiasHintSummary{Code: "difference_not_significant", Message: "和全站存在差距，但暂未达到统计显著"}
 	}
 	return &BiasHintSummary{Code: "no_clear_difference", Message: "和全站相比暂无明确偏差"}
+}
+
+func isValidObservedCount(count int64, total int64) bool {
+	return total > 0 && count >= 0 && count <= total
 }

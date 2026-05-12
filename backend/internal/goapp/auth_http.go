@@ -176,9 +176,17 @@ func writeJSON(w http.ResponseWriter, payload any) {
 }
 
 func writeJSONWithStatus(w http.ResponseWriter, status int, payload any) {
+	body, err := json.Marshal(payload)
+	if err != nil {
+		body, _ = json.Marshal(ErrorResponse{
+			Code:    500,
+			Message: "failed to encode response",
+		})
+		status = http.StatusInternalServerError
+	}
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(status)
-	_ = json.NewEncoder(w).Encode(payload)
+	_, _ = w.Write(body)
 }
 
 func success(message string, data any) SuccessResponse {

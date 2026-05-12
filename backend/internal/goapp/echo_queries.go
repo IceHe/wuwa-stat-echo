@@ -3,6 +3,7 @@ package goapp
 import (
 	"context"
 	"fmt"
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -351,19 +352,19 @@ func (a *App) handleEchoLogsAnalysis(w http.ResponseWriter, r *http.Request) {
 	window := parseStatsWindow(r.URL.Query().Get("window"))
 	if window.isAll() && size == 0 && substatSinceDate == "" {
 		if data, err := a.loadEchoSummaryFromAggregate(r.Context(), userID, targetBits); err == nil && data != nil {
-			if userID > 0 {
-				if globalData, globalErr := a.loadEchoSummaryFromAggregate(r.Context(), 0, targetBits); globalErr == nil && globalData != nil {
-					data["baseline_compare"] = map[string]any{
-						"target_rate": buildRateComparison(
-							data["target_rate_stats"].(*ProportionStat),
-							globalData["target_rate_stats"].(*ProportionStat),
-						),
+			if isUsableEchoLogsAnalysisSummary(data) {
+				if userID > 0 {
+					if globalData, globalErr := a.loadEchoSummaryFromAggregate(r.Context(), 0, targetBits); globalErr == nil && globalData != nil && isUsableEchoLogsAnalysisSummary(globalData) {
+						if baselineCompare := buildEchoAnalysisBaselineCompare(data, globalData); baselineCompare != nil {
+							data["baseline_compare"] = baselineCompare
+						}
 					}
 				}
+				data["window"] = window.Name
+				writeJSON(w, success("echo logs analysis", data))
+				return
 			}
-			data["window"] = window.Name
-			writeJSON(w, success("echo logs analysis", data))
-			return
+			log.Printf("invalid agg_echo_summary detected, falling back to raw echo logs: user_id=%d target_bits=%d", userID, targetBits)
 		}
 	}
 	effectiveSize := window.applyLimit(size)
@@ -381,11 +382,41 @@ func (a *App) handleEchoLogsAnalysis(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		globalResp := computeEchoLogsAnalysisFromItems(globalItems, globalTotal, targetBits)
-		resp["baseline_compare"] = map[string]any{
-			"target_rate": buildRateComparison(resp["target_rate_stats"].(*ProportionStat), globalResp["target_rate_stats"].(*ProportionStat)),
+		if baselineCompare := buildEchoAnalysisBaselineCompare(resp, globalResp); baselineCompare != nil {
+			resp["baseline_compare"] = baselineCompare
 		}
 	}
 	writeJSON(w, success("echo logs analysis", resp))
+}
+
+func buildEchoAnalysisBaselineCompare(userData map[string]any, globalData map[string]any) map[string]any {
+	userStat, userOK := userData["target_rate_stats"].(*ProportionStat)
+	globalStat, globalOK := globalData["target_rate_stats"].(*ProportionStat)
+	if !userOK || !globalOK {
+		return nil
+	}
+	comparison := buildRateComparison(userStat, globalStat)
+	if comparison == nil {
+		return nil
+	}
+	return map[string]any{
+		"target_rate": comparison,
+	}
+}
+
+func isUsableEchoLogsAnalysisSummary(data map[string]any) bool {
+	if len(data) == 0 {
+		return false
+	}
+	sampleSize, ok := int64FromAny(data["sample_size"])
+	if !ok || sampleSize < 0 {
+		return false
+	}
+	targetCount, ok := int64FromAny(data["target"])
+	if !ok || targetCount < 0 {
+		return false
+	}
+	return targetCount <= sampleSize
 }
 
 func (a *App) handleViewerScoreTemplateSync(w http.ResponseWriter, r *http.Request) {

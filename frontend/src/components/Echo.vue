@@ -753,7 +753,7 @@ export default {
           })
     }
 
-    const currentUser = ref({
+    const buildEmptyEchoLogsAnalysis = () => ({
       target_echo_distance: -1,
       target_substat_distance: -1,
       target: 0,
@@ -764,17 +764,17 @@ export default {
       exp_consumed: 0,
       exp_consumed_avg: 0.0,
     })
-    const allUsers = ref({
-      target_echo_distance: -1,
-      target_substat_distance: -1,
-      target: 0,
-      target_avg_echo: 0.0,
-      target_avg_substat: 0.0,
-      tuner_consumed: 0,
-      tuner_consumed_avg: 0.0,
-      exp_consumed: 0,
-      exp_consumed_avg: 0.0,
-    })
+    const normalizeEchoLogsAnalysis = (data) => {
+      if (!data || typeof data !== 'object') {
+        return buildEmptyEchoLogsAnalysis()
+      }
+      return {
+        ...buildEmptyEchoLogsAnalysis(),
+        ...data,
+      }
+    }
+    const currentUser = ref(buildEmptyEchoLogsAnalysis())
+    const allUsers = ref(buildEmptyEchoLogsAnalysis())
     const refreshEchoLogsAnalysis = (size = 0) => {
       const activeUserId = getActiveUserId()
       if (activeUserId > 0) {
@@ -782,32 +782,34 @@ export default {
             .get(`${API_BASE_URL}/echo_logs/analysis?size=${size}&user_id=${activeUserId}&target_bits=${targetSubstatBitmap.value}&substat_since_date=${template.value.substat_since_date}`)
             .then((response) => {
               console.log('current user: ', response.data) // DEBUG
-              currentUser.value = response.data.data
+              if (response.data?.code === 200) {
+                currentUser.value = normalizeEchoLogsAnalysis(response.data.data)
+                return
+              }
+              console.error('获取当前玩家声骸分析 失败:', response.data)
+              currentUser.value = buildEmptyEchoLogsAnalysis()
             })
             .catch((error) => {
               console.error('请求失败:', error)
+              currentUser.value = buildEmptyEchoLogsAnalysis()
             })
       } else {
-        currentUser.value = {
-          target_echo_distance: -1,
-          target_substat_distance: -1,
-          target: 0,
-          target_avg_echo: 0.0,
-          target_avg_substat: 0.0,
-          tuner_consumed: 0,
-          tuner_consumed_avg: 0.0,
-          exp_consumed: 0,
-          exp_consumed_avg: 0.0,
-        }
+        currentUser.value = buildEmptyEchoLogsAnalysis()
       }
       axios
           .get(`${API_BASE_URL}/echo_logs/analysis?size=${size}&target_bits=${targetSubstatBitmap.value}`)
           .then((response) => {
             console.log('all users: ', response.data) // DEBUG
-            allUsers.value = response.data.data
+            if (response.data?.code === 200) {
+              allUsers.value = normalizeEchoLogsAnalysis(response.data.data)
+              return
+            }
+            console.error('获取全站声骸分析 失败:', response.data)
+            allUsers.value = buildEmptyEchoLogsAnalysis()
           })
           .catch((error) => {
             console.error('请求失败:', error)
+            allUsers.value = buildEmptyEchoLogsAnalysis()
           })
     }
     onMounted(refreshEchoLogsAnalysis)
