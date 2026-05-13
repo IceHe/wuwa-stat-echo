@@ -1,93 +1,94 @@
 <!-- 用多种按钮来记录不同的调谐记录 -->
 <template>
-  <div style="min-width: 750px;">
-    <div style="display: flex;">
+  <div style="min-width: 750px">
+    <div style="display: flex">
       <span class="name">目标词条</span>
       <button
-          class="target_button"
-          v-for="substat in SUBSTAT"
-          :key="substat"
-          @click="toggleTargetSubstat(substat.bitmap)"
-          :style="(targetSubstatBitmap & substat.bitmap ? 'background-color: yellow;' : '') + `color: ${substat.font_color}`"
+        class="target_button"
+        v-for="substat in SUBSTAT"
+        :key="substat"
+        @click="toggleTargetSubstat(substat.bitmap)"
+        :style="
+          (targetSubstatBitmap & substat.bitmap ? 'background-color: yellow;' : '') +
+          `color: ${substat.font_color}`
+        "
       >
         {{ substat.name.substring(0, 4) }}
       </button>
     </div>
-    <table class="my-table" style="margin-bottom: 5px;">
+    <table class="my-table" style="margin-bottom: 5px">
       <thead>
-      <tr>
-        <th rowspan="2" style="width: 12%;">玩家</th>
-        <th colspan="3">
-          目标
-          <span style="color: gray;">(默认未出货时回收调谐器&密音筒)</span>
-        </th>
-        <th colspan="2">调谐器</th>
-        <th colspan="2">金密音筒</th>
-      </tr>
-      <tr>
-        <th rowspan="2" style="width: 8%;">总数</th>
-        <th style="width: 15%;">平均间隔声骸</th>
-        <th style="width: 15%;">平均间隔词条</th>
-        <th rowspan="2" style="width: 12%;">总消耗</th>
-        <th rowspan="2" style="width: 12%;">平均消耗</th>
-        <th rowspan="2" style="width: 12%;">总消耗</th>
-        <th rowspan="2" style="width: 12%;">平均消耗</th>
-      </tr>
+        <tr>
+          <th rowspan="2" style="width: 12%">玩家</th>
+          <th colspan="3">
+            目标
+            <span style="color: gray">(默认未出货时回收调谐器&密音筒)</span>
+          </th>
+          <th colspan="2">调谐器</th>
+          <th colspan="2">金密音筒</th>
+        </tr>
+        <tr>
+          <th rowspan="2" style="width: 8%">总数</th>
+          <th style="width: 15%">平均间隔声骸</th>
+          <th style="width: 15%">平均间隔词条</th>
+          <th rowspan="2" style="width: 12%">总消耗</th>
+          <th rowspan="2" style="width: 12%">平均消耗</th>
+          <th rowspan="2" style="width: 12%">总消耗</th>
+          <th rowspan="2" style="width: 12%">平均消耗</th>
+        </tr>
       </thead>
       <tbody>
-      <tr>
-        <td>
-          <!--当前玩家-->
-          {{ echoLog.user_id }}
-        </td>
-        <td>
-          <span style="color: red">{{ currentUser.target }}</span>
-        </td>
-        <td>
-          <span style="color: orange">{{ currentUser.target_avg_echo }}</span>
-        </td>
-        <td>
-          <span style="color: orange">{{ currentUser.target_avg_substat }}</span>
-        </td>
-        <td>
-          <span style="color: red">{{ currentUser.tuner_consumed }}</span>
-        </td>
-        <td>
-          <span style="color: orange">{{ currentUser.tuner_consumed_avg }}</span>
-        </td>
-        <td>
-          <span style="color: red">{{ currentUser.exp_consumed }}</span>
-        </td>
-        <td>
-          <span style="color: orange">{{ currentUser.exp_consumed_avg }}</span>
-        </td>
-      </tr>
-      <tr>
-        <td>
-          所有玩家
-        </td>
-        <td>
-          <span style="color: red">{{ allUsers.target }}</span>
-        </td>
-        <td>
-          <span style="color: orange">{{ allUsers.target_avg_echo }}</span>
-        </td>
-        <td>
-          <span style="color: orange">{{ allUsers.target_avg_substat }}</span>
-        </td>
-        <td>
-          <span style="color: red">{{ allUsers.tuner_consumed }}</span>
-        </td>
-        <td>
-          <span style="color: orange">{{ allUsers.tuner_consumed_avg }}</span>
-        </td>
-        <td>
-          <span style="color: red">{{ allUsers.exp_consumed }}</span>
-        </td>
-        <td>
-          <span style="color: orange">{{ allUsers.exp_consumed_avg }}</span>
-        </td>
-      </tr>
+        <tr>
+          <td>
+            <!--当前玩家-->
+            {{ echoLog.user_id }}
+          </td>
+          <td>
+            <span style="color: red">{{ currentUser.target }}</span>
+          </td>
+          <td>
+            <span style="color: orange">{{ currentUser.target_avg_echo }}</span>
+          </td>
+          <td>
+            <span style="color: orange">{{ currentUser.target_avg_substat }}</span>
+          </td>
+          <td>
+            <span style="color: red">{{ currentUser.tuner_consumed }}</span>
+          </td>
+          <td>
+            <span style="color: orange">{{ currentUser.tuner_consumed_avg }}</span>
+          </td>
+          <td>
+            <span style="color: red">{{ currentUser.exp_consumed }}</span>
+          </td>
+          <td>
+            <span style="color: orange">{{ currentUser.exp_consumed_avg }}</span>
+          </td>
+        </tr>
+        <tr>
+          <td>所有玩家</td>
+          <td>
+            <span style="color: red">{{ allUsers.target }}</span>
+          </td>
+          <td>
+            <span style="color: orange">{{ allUsers.target_avg_echo }}</span>
+          </td>
+          <td>
+            <span style="color: orange">{{ allUsers.target_avg_substat }}</span>
+          </td>
+          <td>
+            <span style="color: red">{{ allUsers.tuner_consumed }}</span>
+          </td>
+          <td>
+            <span style="color: orange">{{ allUsers.tuner_consumed_avg }}</span>
+          </td>
+          <td>
+            <span style="color: red">{{ allUsers.exp_consumed }}</span>
+          </td>
+          <td>
+            <span style="color: orange">{{ allUsers.exp_consumed_avg }}</span>
+          </td>
+        </tr>
       </tbody>
     </table>
 
@@ -96,10 +97,10 @@
     <!--    词条 x 数量 - 间隔-->
     <!--  </span>-->
     <!--</div>-->
-    <div style="display: flex;">
+    <div style="display: flex">
       <span class="name">
         当前声骸:
-        <span style="font-weight: bolder;">
+        <span style="font-weight: bolder">
           {{ echoLog.id }}
         </span>
         <br />
@@ -108,74 +109,105 @@
           {{ echoLog.clazz.substring(0, 4) }}
         </span>
       </span>
-      <button class="substat"
-              key="1"
-              :style="(echoLog.pos === 0 ? 'background-color: yellow;' : '') + `color: ${getSubstatColor(echoLog.substat1)};`"
+      <button
+        class="substat"
+        key="1"
+        :style="
+          (echoLog.pos === 0 ? 'background-color: yellow;' : '') +
+          `color: ${getSubstatColor(echoLog.substat1)};`
+        "
       >
-        {{ echoLog.s1_desc ? echoLog.s1_desc : "1" }}
+        {{ echoLog.s1_desc ? echoLog.s1_desc : '1' }}
       </button>
-      <button class="substat"
-              key="2"
-              :style="(echoLog.pos === 1 ? 'background-color: yellow;' : '') + `color: ${getSubstatColor(echoLog.substat2)};`"
+      <button
+        class="substat"
+        key="2"
+        :style="
+          (echoLog.pos === 1 ? 'background-color: yellow;' : '') +
+          `color: ${getSubstatColor(echoLog.substat2)};`
+        "
       >
-        {{ echoLog.s2_desc ? echoLog.s2_desc : "2" }}
+        {{ echoLog.s2_desc ? echoLog.s2_desc : '2' }}
       </button>
-      <button class="substat"
-              key="3"
-              :style="(echoLog.pos === 2 ? 'background-color: yellow;' : '') + `color: ${getSubstatColor(echoLog.substat3)};`"
+      <button
+        class="substat"
+        key="3"
+        :style="
+          (echoLog.pos === 2 ? 'background-color: yellow;' : '') +
+          `color: ${getSubstatColor(echoLog.substat3)};`
+        "
       >
-        {{ echoLog.s3_desc ? echoLog.s3_desc : "3" }}
+        {{ echoLog.s3_desc ? echoLog.s3_desc : '3' }}
       </button>
-      <button class="substat"
-              key="4"
-              :style="(echoLog.pos === 3 ? 'background-color: yellow;' : '') + `color: ${getSubstatColor(echoLog.substat4)};`"
+      <button
+        class="substat"
+        key="4"
+        :style="
+          (echoLog.pos === 3 ? 'background-color: yellow;' : '') +
+          `color: ${getSubstatColor(echoLog.substat4)};`
+        "
       >
-        {{ echoLog.s4_desc ? echoLog.s4_desc : "4" }}
+        {{ echoLog.s4_desc ? echoLog.s4_desc : '4' }}
       </button>
-      <button class="substat"
-              key="5"
-              :style="(echoLog.pos === 4 ? 'background-color: yellow;' : '') + `color: ${getSubstatColor(echoLog.substat5)};`"
+      <button
+        class="substat"
+        key="5"
+        :style="
+          (echoLog.pos === 4 ? 'background-color: yellow;' : '') +
+          `color: ${getSubstatColor(echoLog.substat5)};`
+        "
       >
-        {{ echoLog.s5_desc ? echoLog.s5_desc : "5" }}
+        {{ echoLog.s5_desc ? echoLog.s5_desc : '5' }}
       </button>
     </div>
-    <div v-for="substat in SUBSTAT" :key="substat" style="display: flex;">
+    <div v-for="substat in SUBSTAT" :key="substat" style="display: flex">
       <span class="name">
         {{ substat.name.substring(0, 4) }}
-        <span :style="recentTuneStats.substat_dict?.[substat.num]?.total > 6 ? 'color: green;' : (
-            recentTuneStats.substat_dict?.[substat.num]?.total < 3 ? 'color: red;' : ''
-          )">
+        <span
+          :style="
+            recentTuneStats.substat_dict?.[substat.num]?.total > 6
+              ? 'color: green;'
+              : recentTuneStats.substat_dict?.[substat.num]?.total < 3
+                ? 'color: red;'
+                : ''
+          "
+        >
           x {{ recentTuneStats.substat_dict?.[substat.num]?.total }}
         </span>
-        <span :style="
-          recentTuneStats.substat_distance?.[substat.num] >= 39 ? 'color: red;' : (
-            recentTuneStats.substat_distance?.[substat.num] >= 20 ? 'color: orange;' : ''
-          )
-        ">
+        <span
+          :style="
+            recentTuneStats.substat_distance?.[substat.num] >= 39
+              ? 'color: red;'
+              : recentTuneStats.substat_distance?.[substat.num] >= 20
+                ? 'color: orange;'
+                : ''
+          "
+        >
           - {{ recentTuneStats.substat_distance?.[substat.num] }}
         </span>
       </span>
       <button
-          class="button"
-          v-for="value in SUBSTAT_VALUE_MAP[substat.num]"
-          :key="value"
-          :style="`color: ${substat.font_color}; display: ${
-            recentTuneStats.substat_dict?.[substat.num]?.value_dict[value.value_number]?.total > 0
-            ? 'hidden' : ''
-          }`"
+        class="button"
+        v-for="value in SUBSTAT_VALUE_MAP[substat.num]"
+        :key="value"
+        :style="`color: ${substat.font_color}; display: ${
+          recentTuneStats.substat_dict?.[substat.num]?.value_dict[value.value_number]?.total > 0
+            ? 'hidden'
+            : ''
+        }`"
       >
-        <span v-if="recentTuneStats.substat_dict?.[substat.num]?.value_dict[value.value_number]?.total"
-              style="font-weight: bold;"
+        <span
+          v-if="recentTuneStats.substat_dict?.[substat.num]?.value_dict[value.value_number]?.total"
+          style="font-weight: bold"
         >
           {{ value.desc }}
           x {{ recentTuneStats.substat_dict?.[substat.num]?.value_dict[value.value_number]?.total }}
         </span>
       </button>
       <span v-if="substat.num === 5">
-        &nbsp;
-        当前玩家 距离上次双暴
-        <span style="color: red;">{{ currentUser.target_echo_distance }}</span> 个声骸
-        <span style="color: orange;">{{ currentUser.target_substat_distance }}</span> 个词条
+        &nbsp; 当前玩家 距离上次双暴
+        <span style="color: red">{{ currentUser.target_echo_distance }}</span> 个声骸
+        <span style="color: orange">{{ currentUser.target_substat_distance }}</span> 个词条
       </span>
       <!--<span v-if="substat.num === 6">-->
       <!--  &nbsp;-->
@@ -185,33 +217,34 @@
       <!--</span>-->
     </div>
   </div>
-  <span style="margin-bottom: 5px;"></span>
+  <span style="margin-bottom: 5px"></span>
 </template>
 
 <script>
 import axios from 'axios'
-import { API_BASE_URL,
+import {
+  API_BASE_URL,
   CLASS_COLORS,
   CLASSES,
   getSubstatColor,
   SUBSTAT,
-  SUBSTAT_VALUE_MAP
+  SUBSTAT_VALUE_MAP,
 } from '@/stores/constants.ts'
-import {onMounted, ref} from 'vue'
-import {useRoute, useRouter} from 'vue-router';
-import {template} from "@antfu/utils";
+import { onMounted, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { template } from '@antfu/utils'
 
 export default {
   name: 'Echo',
-  methods: {template},
+  methods: { template },
   computed: {
     CLASS_COLORS() {
       return CLASS_COLORS
-    }
+    },
   },
   props: {},
   setup: function (props) {
-    const route = useRoute();
+    const route = useRoute()
     const echoLog = ref({
       clazz: '',
       user_id: 0,
@@ -223,11 +256,11 @@ export default {
       substat4: 0,
       substat5: 0,
       substat_all: 0,
-      s1_desc: "",
-      s2_desc: "",
-      s3_desc: "",
-      s4_desc: "",
-      s5_desc: "",
+      s1_desc: '',
+      s2_desc: '',
+      s3_desc: '',
+      s4_desc: '',
+      s5_desc: '',
       // tuned_at: new Date().toISOString(), // FIXME
     })
 
@@ -235,7 +268,7 @@ export default {
       const targetEchoId = Number(echoId ? echoId : echoLog.value.id)
       try {
         const response = await axios.get(`${API_BASE_URL}/echo_log/${targetEchoId}`)
-        console.log("get echo log:", response.data) // DEBUG
+        console.log('get echo log:', response.data) // DEBUG
         if (response.data.code === 200) {
           echoLog.value = response.data.data
           echoLog.value.pos = 0
@@ -260,11 +293,11 @@ export default {
               substat4: 0,
               substat5: 0,
               substat_all: 0,
-              s1_desc: "",
-              s2_desc: "",
-              s3_desc: "",
-              s4_desc: "",
-              s5_desc: "",
+              s1_desc: '',
+              s2_desc: '',
+              s3_desc: '',
+              s4_desc: '',
+              s5_desc: '',
             }
             return false
           }
@@ -285,11 +318,11 @@ export default {
             substat4: 0,
             substat5: 0,
             substat_all: 0,
-            s1_desc: "",
-            s2_desc: "",
-            s3_desc: "",
-            s4_desc: "",
-            s5_desc: "",
+            s1_desc: '',
+            s2_desc: '',
+            s3_desc: '',
+            s4_desc: '',
+            s5_desc: '',
           }
           return false
         }
@@ -323,14 +356,18 @@ export default {
     })
     const refreshEchoLogsAnalysis = async (size = 0) => {
       try {
-        const response = await axios.get(`${API_BASE_URL}/echo_logs/analysis?size=${size}&user_id=${echoLog.value.user_id}&target_bits=${targetSubstatBitmap.value}`)
+        const response = await axios.get(
+          `${API_BASE_URL}/echo_logs/analysis?size=${size}&user_id=${echoLog.value.user_id}&target_bits=${targetSubstatBitmap.value}&include_baseline=0`,
+        )
         console.log('current user: ', response.data) // DEBUG
         currentUser.value = response.data.data
       } catch (error) {
         console.error('请求失败:', error)
       }
       try {
-        const response = await axios.get(`${API_BASE_URL}/echo_logs/analysis?page_size=${size}&target_bits=${targetSubstatBitmap.value}`)
+        const response = await axios.get(
+          `${API_BASE_URL}/echo_logs/analysis?page_size=${size}&target_bits=${targetSubstatBitmap.value}`,
+        )
         console.log('all users: ', response.data) // DEBUG
         allUsers.value = response.data.data
       } catch (error) {
@@ -352,8 +389,10 @@ export default {
     })
     const refreshRecentTuneStats = async (size = 52) => {
       try {
-        const response = await axios.get(`${API_BASE_URL}/tune_stats?size=${size}&user_id=${echoLog.value.user_id}`)
-        console.log("refreshRecentTuneStats: ", response.data) // DEBUG
+        const response = await axios.get(
+          `${API_BASE_URL}/tune_stats?size=${size}&user_id=${echoLog.value.user_id}&include_baseline=0`,
+        )
+        console.log('refreshRecentTuneStats: ', response.data) // DEBUG
         recentTuneStats.value = response.data.data
       } catch (error) {
         console.error('请求失败:', error)
@@ -425,6 +464,8 @@ export default {
 }
 
 .force-bold-shadow {
-  text-shadow: 0.5px 0 0 currentColor, /* 右阴影 */ -0.5px 0 0 currentColor; /* 左阴影 */
+  text-shadow:
+    0.5px 0 0 currentColor,
+    /* 右阴影 */ -0.5px 0 0 currentColor; /* 左阴影 */
 }
 </style>

@@ -349,11 +349,12 @@ func (a *App) handleEchoLogsAnalysis(w http.ResponseWriter, r *http.Request) {
 	size := parseIntDefault(r.URL.Query().Get("size"), 0)
 	targetBits := parseInt64Default(r.URL.Query().Get("target_bits"), 0b11)
 	substatSinceDate := strings.TrimSpace(r.URL.Query().Get("substat_since_date"))
+	includeBaseline := parseIntDefault(r.URL.Query().Get("include_baseline"), 1) != 0
 	window := parseStatsWindow(r.URL.Query().Get("window"))
 	if window.isAll() && size == 0 && substatSinceDate == "" {
 		if data, err := a.loadEchoSummaryFromAggregate(r.Context(), userID, targetBits); err == nil && data != nil {
 			if isUsableEchoLogsAnalysisSummary(data) {
-				if userID > 0 {
+				if userID > 0 && includeBaseline {
 					if globalData, globalErr := a.loadEchoSummaryFromAggregate(r.Context(), 0, targetBits); globalErr == nil && globalData != nil && isUsableEchoLogsAnalysisSummary(globalData) {
 						if baselineCompare := buildEchoAnalysisBaselineCompare(data, globalData); baselineCompare != nil {
 							data["baseline_compare"] = baselineCompare
@@ -375,7 +376,7 @@ func (a *App) handleEchoLogsAnalysis(w http.ResponseWriter, r *http.Request) {
 	}
 	resp := computeEchoLogsAnalysisFromItems(items, total, targetBits)
 	resp["window"] = window.Name
-	if userID > 0 {
+	if userID > 0 && includeBaseline {
 		globalItems, globalTotal, globalErr := a.loadEchoLogsAnalysisItems(r.Context(), 0, effectiveSize, targetBits, window, substatSinceDate)
 		if globalErr != nil {
 			writeJSON(w, appError("failed to get echo logs", 500))

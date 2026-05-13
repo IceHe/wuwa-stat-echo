@@ -1,6 +1,6 @@
 <!-- 用多种按钮来记录不同的调谐记录 -->
 <template>
-  <div style="min-width: 750px;">
+  <div style="min-width: 750px">
     <!--<h1>调谐声骸</h1>-->
 
     <div class="template-row">
@@ -17,10 +17,10 @@
       </button>
       <div class="template-scroll">
         <button
-            v-for="resonator in RESONATORS"
-            class="button template-button"
-            :style="getResonatorButtonStyle(resonator, scoreTemplate.resonator === resonator)"
-            @click="setResonator(resonator)"
+          v-for="resonator in RESONATORS"
+          class="button template-button"
+          :style="getResonatorButtonStyle(resonator, scoreTemplate.resonator === resonator)"
+          @click="setResonator(resonator)"
         >
           {{ resonator }}
         </button>
@@ -28,10 +28,10 @@
       <div class="template-cost-group">
         <button class="button template-cost-label">Cost主词条</button>
         <button
-            v-for="cost in ECHO_COST"
-            class="button template-cost-button"
-            :style="getCostButtonStyle(cost, scoreTemplate.cost === cost)"
-            @click="setCost(cost)"
+          v-for="cost in ECHO_COST"
+          class="button template-cost-button"
+          :style="getCostButtonStyle(cost, scoreTemplate.cost === cost)"
+          @click="setCost(cost)"
         >
           {{ cost }}
         </button>
@@ -41,18 +41,19 @@
     <div class="player-info-row">
       <span class="name substat-name-cell">玩家ID</span>
       <input
-          class="button player-info-input"
-          type="text"
-          v-model="echoLog.user_id"
-          placeholder="当前玩家ID"
-          @change="setUserId(echoLog.user_id)" />
+        class="button player-info-input"
+        type="text"
+        v-model="echoLog.user_id"
+        placeholder="当前玩家ID"
+        @change="setUserId(echoLog.user_id)"
+      />
       <span class="button player-info-label">声骸ID</span>
       <input
-          class="button player-info-input echo-id-input"
-          type="text"
-          v-model="echoLog.id"
-          placeholder="当前声骸ID"
-          @change="setEchoId(echoLog.id)"
+        class="button player-info-input echo-id-input"
+        type="text"
+        v-model="echoLog.id"
+        placeholder="当前声骸ID"
+        @change="setEchoId(echoLog.id)"
       />
       <!--      <span class="button">调谐日期</span>-->
       <!--      <input-->
@@ -69,8 +70,8 @@
       <span class="player-stats-text">
         <!--当前玩家 -->
         距上次双暴
-        <span style="color: red;">{{ currentUser.target_echo_distance }}</span> 声骸
-        <span style="color: orange;">{{ currentUser.target_substat_distance }}</span> 词条
+        <span style="color: red">{{ currentUser.target_echo_distance }}</span> 声骸
+        <span style="color: orange">{{ currentUser.target_substat_distance }}</span> 词条
       </span>
       <span class="inline-double-crit-rate player-info-chip">
         双暴成功率 {{ echoAnalysis.two_crit_percent }}%
@@ -84,77 +85,96 @@
     </div>
     <div class="substat-row">
       <span class="name substat-name-cell">
-        <span style="font-weight: bolder; color: red;">
-          声骸副词条
-        </span>
+        <span style="font-weight: bolder; color: red"> 声骸副词条 </span>
         <!--<span style="font-size: small;">ww面板</span>-->
       </span>
       <div class="top-summary-track">
         <div class="substat-summary-buttons">
-          <button class="substat"
-                  key="1"
-                  @click="setPos(0)"
-                  :style="(echoLog.pos === 0 ? 'background-color: yellow;' : '') + `color: ${getSubstatColor(echoLog.substat1)};`"
+          <button
+            class="substat"
+            key="1"
+            @click="setPos(0)"
+            :style="
+              (echoLog.pos === 0 ? 'background-color: yellow;' : '') +
+              `color: ${getSubstatColor(echoLog.substat1)};`
+            "
           >
-            {{ echoLog.s1_desc ? echoLog.s1_desc : "1" }}
+            {{ echoLog.s1_desc ? echoLog.s1_desc : '1' }}
             <br />
-            <span v-if="echoLog.substat1" style="font-weight: bolder;">
+            <span v-if="echoLog.substat1" style="font-weight: bolder">
               {{ echoAnalysis.score.substat1 }} 分
             </span>
           </button>
-          <button class="substat"
-                  key="2"
-                  @click="setPos(1)"
-                  :style="(echoLog.pos === 1 ? 'background-color: yellow;' : '') + `color: ${getSubstatColor(echoLog.substat2)};`"
+          <button
+            class="substat"
+            key="2"
+            @click="setPos(1)"
+            :style="
+              (echoLog.pos === 1 ? 'background-color: yellow;' : '') +
+              `color: ${getSubstatColor(echoLog.substat2)};`
+            "
           >
-            {{ echoLog.s2_desc ? echoLog.s2_desc : "2" }}
+            {{ echoLog.s2_desc ? echoLog.s2_desc : '2' }}
             <br />
-            <span v-if="echoLog.substat2" style="font-weight: bolder;">
+            <span v-if="echoLog.substat2" style="font-weight: bolder">
               {{ echoAnalysis.score.substat2 }} 分
             </span>
           </button>
-          <button class="substat"
-                  key="3"
-                  @click="setPos(2)"
-                  :style="(echoLog.pos === 2 ? 'background-color: yellow;' : '') + `color: ${getSubstatColor(echoLog.substat3)};`"
+          <button
+            class="substat"
+            key="3"
+            @click="setPos(2)"
+            :style="
+              (echoLog.pos === 2 ? 'background-color: yellow;' : '') +
+              `color: ${getSubstatColor(echoLog.substat3)};`
+            "
           >
-            {{ echoLog.s3_desc ? echoLog.s3_desc : "3" }}
+            {{ echoLog.s3_desc ? echoLog.s3_desc : '3' }}
             <br />
-            <span v-if="echoLog.substat3" style="font-weight: bolder;">
+            <span v-if="echoLog.substat3" style="font-weight: bolder">
               {{ echoAnalysis.score.substat3 }} 分
             </span>
           </button>
-          <button class="substat"
-                  key="4"
-                  @click="setPos(3)"
-                  :style="(echoLog.pos === 3 ? 'background-color: yellow;' : '') + `color: ${getSubstatColor(echoLog.substat4)};`"
+          <button
+            class="substat"
+            key="4"
+            @click="setPos(3)"
+            :style="
+              (echoLog.pos === 3 ? 'background-color: yellow;' : '') +
+              `color: ${getSubstatColor(echoLog.substat4)};`
+            "
           >
-            {{ echoLog.s4_desc ? echoLog.s4_desc : "4" }}
+            {{ echoLog.s4_desc ? echoLog.s4_desc : '4' }}
             <br />
-            <span v-if="echoLog.substat4" style="font-weight: bolder;">
+            <span v-if="echoLog.substat4" style="font-weight: bolder">
               {{ echoAnalysis.score.substat4 }} 分
             </span>
           </button>
-          <button class="substat"
-                  key="5"
-                  @click="setPos(4)"
-                  :style="(echoLog.pos === 4 ? 'background-color: yellow;' : '') + `color: ${getSubstatColor(echoLog.substat5)};`"
+          <button
+            class="substat"
+            key="5"
+            @click="setPos(4)"
+            :style="
+              (echoLog.pos === 4 ? 'background-color: yellow;' : '') +
+              `color: ${getSubstatColor(echoLog.substat5)};`
+            "
           >
-            {{ echoLog.s5_desc ? echoLog.s5_desc : "5" }}
+            {{ echoLog.s5_desc ? echoLog.s5_desc : '5' }}
             <br />
-            <span v-if="echoLog.substat5" style="font-weight: bolder;">
+            <span v-if="echoLog.substat5" style="font-weight: bolder">
               {{ echoAnalysis.score.substat5 }} 分
             </span>
           </button>
-          <button class="substat"
-                  key="end"
-                  @click="setPos(5)"
-                  :style="echoLog.pos === 5 ? 'background-color: yellow; color: red;' : 'color: red;'"
-                  :disabled="!canCreate && echoLog.pos !== 5 && !!echoLog.id"
+          <button
+            class="substat"
+            key="end"
+            @click="setPos(5)"
+            :style="echoLog.pos === 5 ? 'background-color: yellow; color: red;' : 'color: red;'"
+            :disabled="!canCreate && echoLog.pos !== 5 && !!echoLog.id"
           >
             {{ echoLog.pos === 5 ? '下一个' : 'END' }}
             <br />
-            <span style="font-weight: bolder;">
+            <span style="font-weight: bolder">
               {{ echoLog.pos === 5 ? '创建声骸' : '结束当前' }}
             </span>
           </button>
@@ -178,12 +198,12 @@
       <div class="top-summary-track">
         <div class="suite-scroll">
           <button
-              class="button suite-button"
-              v-for="clazz in CLASSES"
-              :key="clazz"
-              @click="setClazz(clazz)"
-              :style="echoLog.clazz === clazz ? 'background-color: yellow;' : ''"
-              :disabled="!canCreate && echoLog.pos !== 5 && !!echoLog.id"
+            class="button suite-button"
+            v-for="clazz in CLASSES"
+            :key="clazz"
+            @click="setClazz(clazz)"
+            :style="echoLog.clazz === clazz ? 'background-color: yellow;' : ''"
+            :disabled="!canCreate && echoLog.pos !== 5 && !!echoLog.id"
           >
             <span :style="`color: ${CLASS_COLORS[clazz]};`"> {{ clazz.substring(0, 4) }}</span>
           </button>
@@ -202,37 +222,42 @@
           <span class="substat-name-label" :style="`color: ${substat.font_color};`">
             {{ substat.name.substring(0, 4) }}
           </span>
-          <span :style="
-            recentTuneStats.substat_dict?.[substat.num]?.total > 4
-              ? 'color: green;'
-              : (recentTuneStats.substat_dict?.[substat.num]?.total < 2 ? 'color: red;' : '')
-          ">
+          <span
+            :style="
+              recentTuneStats.substat_dict?.[substat.num]?.total > 4
+                ? 'color: green;'
+                : recentTuneStats.substat_dict?.[substat.num]?.total < 2
+                  ? 'color: red;'
+                  : ''
+            "
+          >
             x{{ recentTuneStats.substat_dict?.[substat.num]?.total }}
           </span>
           <span class="substat-distance-text" :style="getRecentDistanceColor(substat.num)">
             |
             {{ getRecentDistanceDisplay(substat.num) }}
             <sup
-                v-if="isRecentDistanceOverflow(substat.num)"
-                class="distance-overflow-mark"
-                :title="getRecentDistanceTitle(substat.num)"
-            >+</sup>
+              v-if="isRecentDistanceOverflow(substat.num)"
+              class="distance-overflow-mark"
+              :title="getRecentDistanceTitle(substat.num)"
+              >+</sup
+            >
           </span>
         </div>
         <div class="button-mini-bar-shell summary-bar-shell name-mini-bar-shell">
           <div
-              class="button-mini-bar-fill"
-              :style="getRecentSubstatTotalBarStyle(substat.num, substat.font_color)"
+            class="button-mini-bar-fill"
+            :style="getRecentSubstatTotalBarStyle(substat.num, substat.font_color)"
           />
         </div>
       </span>
       <button
-          class="button stat-button"
-          v-for="value in SUBSTAT_VALUE_MAP[substat.num]"
-          :key="value"
-          @click="doTune(value.substat_number, value.value_number); "
-          :style="`color: ${(substat.bitmap & echoLog.substat_all) === 0 ? substat.font_color : '#808080'};`"
-          :disabled="echoLog.pos === 5 || (substat.bitmap & echoLog.substat_all) !== 0"
+        class="button stat-button"
+        v-for="value in SUBSTAT_VALUE_MAP[substat.num]"
+        :key="value"
+        @click="doTune(value.substat_number, value.value_number)"
+        :style="`color: ${(substat.bitmap & echoLog.substat_all) === 0 ? substat.font_color : '#808080'};`"
+        :disabled="echoLog.pos === 5 || (substat.bitmap & echoLog.substat_all) !== 0"
       >
         <span class="stat-button-label">
           {{ value.desc }}
@@ -242,149 +267,153 @@
         </span>
         <div class="button-mini-bar-shell">
           <div
-              class="button-mini-bar-fill"
-              :style="getRecentValueBarStyle(substat.num, value.value_number, substat.font_color)"
+            class="button-mini-bar-fill"
+            :style="getRecentValueBarStyle(substat.num, value.value_number, substat.font_color)"
           />
         </div>
       </button>
       <span
-          class="substat-current-position-rate"
-          :style="`color: ${substat.font_color};`"
-          :title="`${substat.name} 条件出率（当前孔位）：${echoAnalysis.substat_dict?.[substat.num]?.cur_pos_percent || '暂无数据'}。基于历史记录并排除已出现副词条。`"
+        class="substat-current-position-rate"
+        :style="`color: ${substat.font_color};`"
+        :title="`${substat.name} 条件出率（当前孔位）：${echoAnalysis.substat_dict?.[substat.num]?.cur_pos_percent || '暂无数据'}。基于历史记录并排除已出现副词条。`"
       >
         {{ echoAnalysis.substat_dict?.[substat.num]?.cur_pos_percent || '' }}
       </span>
       <button
-          v-if="substat.num === 5"
-          class="button stat-button shortcut-stat-button"
-          @click="openDecisionLab"
+        v-if="substat.num === 5"
+        class="button stat-button shortcut-stat-button"
+        @click="openDecisionLab"
       >
         决策实验室
       </button>
       <button
-          v-else-if="substat.num === 6"
-          class="button stat-button shortcut-stat-button simulator-shortcut-button"
-          @click="openSimulator"
+        v-else-if="substat.num === 6"
+        class="button stat-button shortcut-stat-button simulator-shortcut-button"
+        @click="openSimulator"
       >
         未来模拟器
       </button>
-
     </div>
   </div>
   <div class="target-row">
     <span class="name substat-name-cell">目标词条</span>
     <div class="target-controls">
       <button
-          class="target_button"
-          v-for="substat in SUBSTAT"
-          :key="substat"
-          @click="toggleTargetSubstat(substat.bitmap)"
-          :style="(targetSubstatBitmap & substat.bitmap ? 'background-color: yellow;' : '') + `color: ${substat.font_color}`"
+        class="target_button"
+        v-for="substat in SUBSTAT"
+        :key="substat"
+        @click="toggleTargetSubstat(substat.bitmap)"
+        :style="
+          (targetSubstatBitmap & substat.bitmap ? 'background-color: yellow;' : '') +
+          `color: ${substat.font_color}`
+        "
       >
         {{ substat.name.substring(0, 4) }}
       </button>
       <input
-          class="button target-input"
-          type="date"
-          v-model="template.substat_since_date"
-          @input="setSubstatSinceDate(template.substat_since_date)"
+        class="button target-input"
+        type="date"
+        v-model="template.substat_since_date"
+        @input="setSubstatSinceDate(template.substat_since_date)"
       />
       <span
-          class="target-hint"
-          :title="'仅影响“当前玩家”统计；统计范围为所选日期 04:00 之后的词条记录。'">
+        class="target-hint"
+        :title="'仅影响“当前玩家”统计；统计范围为所选日期 04:00 之后的词条记录。'"
+      >
         ?
       </span>
     </div>
   </div>
   <div class="target-stats-table-wrap">
-    <table class="my-table" style="margin-bottom: 5px;">
+    <table class="my-table" style="margin-bottom: 5px">
       <thead>
-      <tr>
-        <th rowspan="2">玩家</th>
-        <th colspan="3">
-          目标
-          <span style="color: gray;">(默认未出货时回收调谐器&密音筒)</span>
-        </th>
-        <th colspan="2">调谐器</th>
-        <th colspan="2">金密音筒</th>
-      </tr>
-      <tr>
-        <th rowspan="2">总数</th>
-        <th>平均间隔声骸</th>
-        <th>平均间隔词条</th>
-        <th rowspan="2">总消耗</th>
-        <th rowspan="2">平均消耗</th>
-        <th rowspan="2">总消耗</th>
-        <th rowspan="2">平均消耗</th>
-      </tr>
+        <tr>
+          <th rowspan="2">玩家</th>
+          <th colspan="3">
+            目标
+            <span style="color: gray">(默认未出货时回收调谐器&密音筒)</span>
+          </th>
+          <th colspan="2">调谐器</th>
+          <th colspan="2">金密音筒</th>
+        </tr>
+        <tr>
+          <th rowspan="2">总数</th>
+          <th>平均间隔声骸</th>
+          <th>平均间隔词条</th>
+          <th rowspan="2">总消耗</th>
+          <th rowspan="2">平均消耗</th>
+          <th rowspan="2">总消耗</th>
+          <th rowspan="2">平均消耗</th>
+        </tr>
       </thead>
       <tbody>
-      <tr>
-        <td>
-          {{ echoLog.user_id }}
-        </td>
-        <td>
-          <span style="color: red">{{ currentUser.target }}</span>
-        </td>
-        <td>
-          <span style="color: orange">{{ currentUser.target_avg_echo }}</span>
-        </td>
-        <td>
-          <span style="color: orange">{{ currentUser.target_avg_substat }}</span>
-        </td>
-        <td>
-          <span style="color: red">{{ currentUser.tuner_consumed }}</span>
-        </td>
-        <td>
-          <span style="color: orange">{{ currentUser.tuner_consumed_avg }}</span>
-        </td>
-        <td>
-          <span style="color: red">{{ currentUser.exp_consumed }}</span>
-        </td>
-        <td>
-          <span style="color: orange">{{ currentUser.exp_consumed_avg }}</span>
-        </td>
-      </tr>
-      <tr>
-        <td>
-          所有玩家
-        </td>
-        <td>
-          <span style="color: red">{{ allUsers.target }}</span>
-        </td>
-        <td>
-          <span style="color: orange">{{ allUsers.target_avg_echo }}</span>
-        </td>
-        <td>
-          <span style="color: orange">{{ allUsers.target_avg_substat }}</span>
-        </td>
-        <td>
-          <span style="color: red">{{ allUsers.tuner_consumed }}</span>
-        </td>
-        <td>
-          <span style="color: orange">{{ allUsers.tuner_consumed_avg }}</span>
-        </td>
-        <td>
-          <span style="color: red">{{ allUsers.exp_consumed }}</span>
-        </td>
-        <td>
-          <span style="color: orange">{{ allUsers.exp_consumed_avg }}</span>
-        </td>
-      </tr>
+        <tr>
+          <td>
+            {{ echoLog.user_id }}
+          </td>
+          <td>
+            <span style="color: red">{{ currentUser.target }}</span>
+          </td>
+          <td>
+            <span style="color: orange">{{ currentUser.target_avg_echo }}</span>
+          </td>
+          <td>
+            <span style="color: orange">{{ currentUser.target_avg_substat }}</span>
+          </td>
+          <td>
+            <span style="color: red">{{ currentUser.tuner_consumed }}</span>
+          </td>
+          <td>
+            <span style="color: orange">{{ currentUser.tuner_consumed_avg }}</span>
+          </td>
+          <td>
+            <span style="color: red">{{ currentUser.exp_consumed }}</span>
+          </td>
+          <td>
+            <span style="color: orange">{{ currentUser.exp_consumed_avg }}</span>
+          </td>
+        </tr>
+        <tr>
+          <td>所有玩家</td>
+          <td>
+            <span style="color: red">{{ allUsers.target }}</span>
+          </td>
+          <td>
+            <span style="color: orange">{{ allUsers.target_avg_echo }}</span>
+          </td>
+          <td>
+            <span style="color: orange">{{ allUsers.target_avg_substat }}</span>
+          </td>
+          <td>
+            <span style="color: red">{{ allUsers.tuner_consumed }}</span>
+          </td>
+          <td>
+            <span style="color: orange">{{ allUsers.tuner_consumed_avg }}</span>
+          </td>
+          <td>
+            <span style="color: red">{{ allUsers.exp_consumed }}</span>
+          </td>
+          <td>
+            <span style="color: orange">{{ allUsers.exp_consumed_avg }}</span>
+          </td>
+        </tr>
       </tbody>
     </table>
   </div>
-  <span style="margin-bottom: 5px;"></span>
+  <span style="margin-bottom: 5px"></span>
 </template>
 
 <script>
 import axios from 'axios'
-import { API_BASE_URL,
+import {
+  API_BASE_URL,
   CLASS_COLORS,
-  CLASSES, ECHO_COST,
-  getSubstatColor, RESONATORS,
+  CLASSES,
+  ECHO_COST,
+  getSubstatColor,
+  RESONATORS,
   SUBSTAT,
-  SUBSTAT_VALUE_MAP
+  SUBSTAT_VALUE_MAP,
 } from '@/stores/constants.ts'
 import { buildDecisionQueryFromEncoded } from '@/views/decisionSupport.ts'
 import { publishScoreTemplateChange as publishScoreTemplateCrossTab } from '@/stores/scoreTemplateSync'
@@ -396,22 +425,46 @@ import {
   setScoreTemplateContext,
 } from '@/stores/scoreTemplates.ts'
 import { formatEchoPotentialMaxScore } from '@/utils/echoScore.ts'
-import {onMounted, onUnmounted, ref, computed, watch} from 'vue'
+import { onMounted, onUnmounted, ref, computed, watch } from 'vue'
 import emitter from '@/stores/eventBus.js'
-import {useRoute, useRouter} from 'vue-router';
-import {authState} from '@/auth'
+import { useRoute, useRouter } from 'vue-router'
+import { authState } from '@/auth'
 
-const MASK = 0b1111111111111;
+const MASK = 0b1111111111111
 const SUBSTAT_BIT_WIDTH = 13
 const RESONATOR_COLOR_PALETTE = [
-  '#2563eb', '#7c3aed', '#db2777', '#ea580c', '#ca8a04', '#16a34a',
-  '#0891b2', '#4f46e5', '#c026d3', '#dc2626', '#0f766e', '#9333ea',
-  '#0284c7', '#be123c', '#65a30d', '#1d4ed8', '#b45309', '#0d9488',
-  '#7c2d12', '#4338ca', '#15803d', '#9f1239', '#0369a1', '#a16207',
-  '#be185d', '#155e75',
+  '#2563eb',
+  '#7c3aed',
+  '#db2777',
+  '#ea580c',
+  '#ca8a04',
+  '#16a34a',
+  '#0891b2',
+  '#4f46e5',
+  '#c026d3',
+  '#dc2626',
+  '#0f766e',
+  '#9333ea',
+  '#0284c7',
+  '#be123c',
+  '#65a30d',
+  '#1d4ed8',
+  '#b45309',
+  '#0d9488',
+  '#7c2d12',
+  '#4338ca',
+  '#15803d',
+  '#9f1239',
+  '#0369a1',
+  '#a16207',
+  '#be185d',
+  '#155e75',
 ]
 const RESONATOR_BUTTON_COLORS = Object.fromEntries(
-  RESONATORS.map((resonator, index) => [resonator, RESONATOR_COLOR_PALETTE[index % RESONATOR_COLOR_PALETTE.length]])
+  RESONATORS.map((resonator, index) => [
+    resonator,
+    RESONATOR_COLOR_PALETTE[index % RESONATOR_COLOR_PALETTE.length],
+  ]),
 )
 const COST_BUTTON_COLORS = {
   '4C': '#dc2626',
@@ -429,7 +482,7 @@ export default {
   computed: {
     CLASS_COLORS() {
       return CLASS_COLORS
-    }
+    },
   },
   props: {
     syncEchoIdQuery: {
@@ -443,23 +496,26 @@ export default {
     })
   },
   setup: function (props) {
-    const router = useRouter();
-    const route = useRoute();
+    const router = useRouter()
+    const route = useRoute()
     const currentOperatorId = computed(() => authState.user?.id ?? null)
     const canManage = computed(() => authState.user?.permissions?.includes('manage') ?? false)
-    const canModify = computed(() =>
-      canManage.value || (currentOperatorId.value != null && echoLog.value?.operator_id === currentOperatorId.value)
+    const canModify = computed(
+      () =>
+        canManage.value ||
+        (currentOperatorId.value != null && echoLog.value?.operator_id === currentOperatorId.value),
     )
     // 允许创建/结束的条件：
     // - 没有绑定声骸 id（新建）
     // - 当前用户是创建者（canModify）
     // - 当前声骸已结束（pos === 5）
     // - 记录没有 operator_id（旧数据或未记操作者）
-    const canCreate = computed(() =>
-      !echoLog.value.id ||
-      canModify.value ||
-      echoLog.value.pos === 5 ||
-      !echoLog.value.operator_id
+    const canCreate = computed(
+      () =>
+        !echoLog.value.id ||
+        canModify.value ||
+        echoLog.value.pos === 5 ||
+        !echoLog.value.operator_id,
     )
     const updateQueryParam = (key, value) => {
       router.replace({
@@ -467,7 +523,7 @@ export default {
           ...route.query,
           [key]: value,
         },
-      });
+      })
     }
     const updateEchoIdQuery = (value) => {
       if (!props.syncEchoIdQuery) {
@@ -505,7 +561,8 @@ export default {
       })
     }
     const applyScoreTemplate = (payload = {}) => {
-      const nextResonator = typeof payload.resonator === 'string' ? payload.resonator : scoreTemplate.value.resonator
+      const nextResonator =
+        typeof payload.resonator === 'string' ? payload.resonator : scoreTemplate.value.resonator
       const nextCost = typeof payload.cost === 'string' ? payload.cost : scoreTemplate.value.cost
       const resonatorChanged = scoreTemplate.value.resonator !== nextResonator
       const costChanged = scoreTemplate.value.cost !== nextCost
@@ -544,11 +601,18 @@ export default {
       const { silent = false } = options
       const targetEchoId = Number(echoId ? echoId : echoLog.value.id)
       try {
-        const response = await axios.get(`${API_BASE_URL}/echo_log/${targetEchoId}?resonator=${route.query.resonator}&cost=${route.query.cost}`)
-        console.log("get echo log:", response.data) // DEBUG
+        const response = await axios.get(
+          `${API_BASE_URL}/echo_log/${targetEchoId}?resonator=${route.query.resonator}&cost=${route.query.cost}`,
+        )
+        console.log('get echo log:', response.data) // DEBUG
         if (response.data.code === 200) {
-          if (!canManage.value && currentOperatorId.value != null && response.data.data?.operator_id !== currentOperatorId.value) {
+          if (
+            !canManage.value &&
+            currentOperatorId.value != null &&
+            response.data.data?.operator_id !== currentOperatorId.value
+          ) {
             clearEchoEditor()
+            refreshEditorSummary()
             return false
           }
           echoLog.value = response.data.data
@@ -558,28 +622,31 @@ export default {
           updateQueryParam('clazz', echoLog.value.clazz)
           echoLog.value.pos = 0
           if (echoLog.value.substat1 > 0) {
-          echoLog.value.pos = 1
-        }
-        if (echoLog.value.substat2 > 0) echoLog.value.pos = 2
-        if (echoLog.value.substat3 > 0) echoLog.value.pos = 3
-        if (echoLog.value.substat4 > 0) echoLog.value.pos = 4
-        if (echoLog.value.substat5 > 0) echoLog.value.pos = 5
-        updateEchoIdQuery(echoLog.value.id)
-        refreshRecentTuneStats()
-        refreshEchoLogsAnalysis()
-        fetchEchoAnalysis()
-        return true
+            echoLog.value.pos = 1
+          }
+          if (echoLog.value.substat2 > 0) echoLog.value.pos = 2
+          if (echoLog.value.substat3 > 0) echoLog.value.pos = 3
+          if (echoLog.value.substat4 > 0) echoLog.value.pos = 4
+          if (echoLog.value.substat5 > 0) echoLog.value.pos = 5
+          updateEchoIdQuery(echoLog.value.id)
+          refreshEditorSummary()
+          return true
         } else {
           if (silent || (targetEchoId <= 0 && response.data.message === 'echo log not found')) {
             clearEchoEditor()
+            refreshEditorSummary()
             return false
           }
           alert('获取声骸失败')
           return false
         }
       } catch (error) {
-        if (silent || (targetEchoId <= 0 && error?.response?.data?.message === 'echo log not found')) {
+        if (
+          silent ||
+          (targetEchoId <= 0 && error?.response?.data?.message === 'echo log not found')
+        ) {
           clearEchoEditor()
+          refreshEditorSummary()
           return false
         }
         console.error('获取声骸 请求失败:', error)
@@ -593,9 +660,8 @@ export default {
       user_id: normalizeUserId(route.query.user_id),
       substat_since_date: route.query.substat_since_date || '',
     })
-    const getActiveUserId = () => normalizeUserId(
-      template.value.user_id || echoLog.value.user_id || 0
-    )
+    const getActiveUserId = () =>
+      normalizeUserId(template.value.user_id || echoLog.value.user_id || 0)
     const setSubstatSinceDate = (date) => {
       template.value.substat_since_date = date
       updateQueryParam('substat_since_date', date)
@@ -614,11 +680,11 @@ export default {
         substat4: 0,
         substat5: 0,
         substat_all: 0,
-        s1_desc: "",
-        s2_desc: "",
-        s3_desc: "",
-        s4_desc: "",
-        s5_desc: "",
+        s1_desc: '',
+        s2_desc: '',
+        s3_desc: '',
+        s4_desc: '',
+        s5_desc: '',
         // tuned_at: new Date().toISOString(), // FIXME
         pos_total: 0,
       }
@@ -637,17 +703,11 @@ export default {
         ...echoLog.value,
       })
     }
-    const emitRefreshEchoLists = () => {
-      emitter.emit('refreshEchoLogs')
-      emitter.emit('refreshRecentEchoLogs')
-    }
-    const emitRefreshEchoViews = () => {
-      emitRefreshEchoLists()
+    const refreshMountedSubstatLogs = () => {
       emitter.emit('refreshSubstatLogs')
     }
 
-    const addEchoLog = async (doIfSuccess = () => {
-    }) => {
+    const addEchoLog = async (doIfSuccess = () => {}) => {
       echoLog.value = newEchoLog()
       if (!echoLog.value.user_id) {
         alert('请先输入玩家ID')
@@ -658,13 +718,12 @@ export default {
         return false
       }
       try {
-        const response = await axios
-            .post(`${API_BASE_URL}/echo_log`, {
-              user_id: normalizeUserId(echoLog.value.user_id),
-              clazz: echoLog.value.clazz,
-              // tuned_at: echoLog.value.tuned_at, // FIXME
-            })
-        console.log("create echo log: ", response.data) // DEBUG
+        const response = await axios.post(`${API_BASE_URL}/echo_log`, {
+          user_id: normalizeUserId(echoLog.value.user_id),
+          clazz: echoLog.value.clazz,
+          // tuned_at: echoLog.value.tuned_at, // FIXME
+        })
+        console.log('create echo log: ', response.data) // DEBUG
         if (response.data.code === 200) {
           echoLog.value = {
             ...echoLog.value,
@@ -673,8 +732,6 @@ export default {
           }
           updateEchoIdQuery(echoLog.value.id)
           emitSyncEchoLog()
-          emitRefreshEchoLists()
-          updateEchoIdQuery(echoLog.value.id)
           doIfSuccess()
           return true
         } else {
@@ -688,31 +745,29 @@ export default {
       }
     }
 
-    const updateEchoLog = async (doIfSuccess = () => {
-    }) => {
+    const updateEchoLog = async (doIfSuccess = () => {}) => {
       if (!echoLog.value.id) {
         return false
       }
       try {
-        const response = await axios
-            .patch(`${API_BASE_URL}/echo_log`, {
-              id: echoLog.value.id,
-              substat1: echoLog.value.substat1,
-              substat2: echoLog.value.substat2,
-              substat3: echoLog.value.substat3,
-              substat4: echoLog.value.substat4,
-              substat5: echoLog.value.substat5,
-              substat_all: echoLog.value.substat_all,
-              s1_desc: echoLog.value.s1_desc,
-              s2_desc: echoLog.value.s2_desc,
-              s3_desc: echoLog.value.s3_desc,
-              s4_desc: echoLog.value.s4_desc,
-              s5_desc: echoLog.value.s5_desc,
-              clazz: echoLog.value.clazz,
-              user_id: normalizeUserId(echoLog.value.user_id),
-              // tuned_at: echoLog.value.tuned_at, // FIXME
-            })
-        console.log("update echo log:", response.data) // DEBUG
+        const response = await axios.patch(`${API_BASE_URL}/echo_log`, {
+          id: echoLog.value.id,
+          substat1: echoLog.value.substat1,
+          substat2: echoLog.value.substat2,
+          substat3: echoLog.value.substat3,
+          substat4: echoLog.value.substat4,
+          substat5: echoLog.value.substat5,
+          substat_all: echoLog.value.substat_all,
+          s1_desc: echoLog.value.s1_desc,
+          s2_desc: echoLog.value.s2_desc,
+          s3_desc: echoLog.value.s3_desc,
+          s4_desc: echoLog.value.s4_desc,
+          s5_desc: echoLog.value.s5_desc,
+          clazz: echoLog.value.clazz,
+          user_id: normalizeUserId(echoLog.value.user_id),
+          // tuned_at: echoLog.value.tuned_at, // FIXME
+        })
+        console.log('update echo log:', response.data) // DEBUG
         if (response.data.code === 200) {
           echoLog.value = {
             ...echoLog.value,
@@ -738,19 +793,19 @@ export default {
         return
       }
       axios
-          .delete(`${API_BASE_URL}/echo_log/${echoId}/substat_pos/${pos}`)
-          .then((response) => {
-            console.log('delSubstatLog:', response.data) // DEBUG
-            const code = response.data.code
-            if (code === 200) {
-              // alert('删除成功');
-            } else {
-              alert('跟据echoId和pos删除词条失败')
-            }
-          })
-          .catch((error) => {
-            console.error('请求失败:', error)
-          })
+        .delete(`${API_BASE_URL}/echo_log/${echoId}/substat_pos/${pos}`)
+        .then((response) => {
+          console.log('delSubstatLog:', response.data) // DEBUG
+          const code = response.data.code
+          if (code === 200) {
+            // alert('删除成功');
+          } else {
+            alert('跟据echoId和pos删除词条失败')
+          }
+        })
+        .catch((error) => {
+          console.error('请求失败:', error)
+        })
     }
 
     const buildEmptyEchoLogsAnalysis = () => ({
@@ -779,40 +834,48 @@ export default {
       const activeUserId = getActiveUserId()
       if (activeUserId > 0) {
         axios
-            .get(`${API_BASE_URL}/echo_logs/analysis?size=${size}&user_id=${activeUserId}&target_bits=${targetSubstatBitmap.value}&substat_since_date=${template.value.substat_since_date}`)
-            .then((response) => {
-              console.log('current user: ', response.data) // DEBUG
-              if (response.data?.code === 200) {
-                currentUser.value = normalizeEchoLogsAnalysis(response.data.data)
-                return
-              }
-              console.error('获取当前玩家声骸分析 失败:', response.data)
-              currentUser.value = buildEmptyEchoLogsAnalysis()
-            })
-            .catch((error) => {
-              console.error('请求失败:', error)
-              currentUser.value = buildEmptyEchoLogsAnalysis()
-            })
+          .get(
+            `${API_BASE_URL}/echo_logs/analysis?size=${size}&user_id=${activeUserId}&target_bits=${targetSubstatBitmap.value}&substat_since_date=${template.value.substat_since_date}&include_baseline=0`,
+          )
+          .then((response) => {
+            console.log('current user: ', response.data) // DEBUG
+            if (response.data?.code === 200) {
+              currentUser.value = normalizeEchoLogsAnalysis(response.data.data)
+              return
+            }
+            console.error('获取当前玩家声骸分析 失败:', response.data)
+            currentUser.value = buildEmptyEchoLogsAnalysis()
+          })
+          .catch((error) => {
+            console.error('请求失败:', error)
+            currentUser.value = buildEmptyEchoLogsAnalysis()
+          })
       } else {
         currentUser.value = buildEmptyEchoLogsAnalysis()
       }
       axios
-          .get(`${API_BASE_URL}/echo_logs/analysis?size=${size}&target_bits=${targetSubstatBitmap.value}`)
-          .then((response) => {
-            console.log('all users: ', response.data) // DEBUG
-            if (response.data?.code === 200) {
-              allUsers.value = normalizeEchoLogsAnalysis(response.data.data)
-              return
-            }
-            console.error('获取全站声骸分析 失败:', response.data)
-            allUsers.value = buildEmptyEchoLogsAnalysis()
-          })
-          .catch((error) => {
-            console.error('请求失败:', error)
-            allUsers.value = buildEmptyEchoLogsAnalysis()
-          })
+        .get(
+          `${API_BASE_URL}/echo_logs/analysis?size=${size}&target_bits=${targetSubstatBitmap.value}`,
+        )
+        .then((response) => {
+          console.log('all users: ', response.data) // DEBUG
+          if (response.data?.code === 200) {
+            allUsers.value = normalizeEchoLogsAnalysis(response.data.data)
+            return
+          }
+          console.error('获取全站声骸分析 失败:', response.data)
+          allUsers.value = buildEmptyEchoLogsAnalysis()
+        })
+        .catch((error) => {
+          console.error('请求失败:', error)
+          allUsers.value = buildEmptyEchoLogsAnalysis()
+        })
     }
-    onMounted(refreshEchoLogsAnalysis)
+    const refreshEditorSummary = () => {
+      refreshEchoLogsAnalysis()
+      refreshRecentTuneStats()
+      fetchEchoAnalysis()
+    }
 
     const targetSubstatBitmap = ref(0b11)
     const toggleTargetSubstat = (bitmap) => {
@@ -825,26 +888,24 @@ export default {
       updateQueryParam('user_id', normalizedUserId || undefined)
       template.value.user_id = normalizedUserId
       echoLog.value.user_id = normalizedUserId
-      refreshEchoLogsAnalysis()
-      refreshRecentTuneStats()
-      emitter.emit("setUserId", normalizedUserId)
+      emitter.emit('setUserId', normalizedUserId)
       if (echoLog.value.id > 0 && canModify.value) {
-        emitSyncEchoLog()
         updateEchoLog(() => {
-          emitRefreshEchoViews()
           refreshEchoLogsAnalysis()
           refreshRecentTuneStats()
         })
+        return
       }
+      refreshEchoLogsAnalysis()
+      refreshRecentTuneStats()
     }
     const setClazz = (clazz) => {
       updateQueryParam('clazz', clazz)
       template.value.clazz = clazz
       echoLog.value.clazz = clazz
-      emitter.emit("setClazz", clazz)
+      emitter.emit('setClazz', clazz)
       if (echoLog.value.id > 0 && canModify.value) {
-        emitSyncEchoLog()
-        updateEchoLog(() => emitRefreshEchoLists())
+        updateEchoLog()
       }
     }
     const setEchoId = (id) => {
@@ -853,13 +914,13 @@ export default {
       getEchoLog()
     }
     const hasInitializedEchoEditor = ref(false)
-    const initEchoEditor = () => {
+    const initEchoEditor = async () => {
       if (hasInitializedEchoEditor.value || currentOperatorId.value == null) {
         return
       }
       hasInitializedEchoEditor.value = true
       const initialEchoId = props.syncEchoIdQuery ? Number(route.query.echo_id || 0) : 0
-      getEchoLog(initialEchoId > 0 ? initialEchoId : 0, { silent: true })
+      await getEchoLog(initialEchoId > 0 ? initialEchoId : 0, { silent: true })
     }
     onMounted(initEchoEditor)
     watch(currentOperatorId, (nextOperatorId, previousOperatorId) => {
@@ -873,6 +934,7 @@ export default {
         echoLog.value.operator_id !== currentOperatorId.value
       ) {
         clearEchoEditor()
+        refreshEditorSummary()
       }
       initEchoEditor()
     })
@@ -885,7 +947,10 @@ export default {
       }
       if (pos === 5) {
         if (echoLog.value.pos === 5) {
-          addEchoLog()
+          addEchoLog(() => {
+            refreshEchoLogsAnalysis()
+            fetchEchoAnalysis()
+          })
           return
         }
         echoLog.value.pos = 5
@@ -931,18 +996,18 @@ export default {
           alert('请先选择孔位')
           return
       }
-      echoLog.value.substat_all = (
-          echoLog.value.substat1 |
+      echoLog.value.substat_all =
+        (echoLog.value.substat1 |
           echoLog.value.substat2 |
           echoLog.value.substat3 |
           echoLog.value.substat4 |
-          echoLog.value.substat5
-      ) & MASK
+          echoLog.value.substat5) &
+        MASK
 
       echoLog.value.pos = pos
-      emitSyncEchoLog()
       updateEchoLog(() => {
-        emitRefreshEchoViews()
+        refreshMountedSubstatLogs()
+        refreshEditorSummary()
       })
     }
 
@@ -952,14 +1017,13 @@ export default {
         return false
       }
       try {
-        const response = await axios
-            .post(`${API_BASE_URL}/tune_log`, {
-              substat: substat,
-              value: value,
-              position: position,
-              echo_id: echoLog.value.id,
-              user_id: normalizeUserId(echoLog.value.user_id),
-            })
+        const response = await axios.post(`${API_BASE_URL}/tune_log`, {
+          substat: substat,
+          value: value,
+          position: position,
+          echo_id: echoLog.value.id,
+          user_id: normalizeUserId(echoLog.value.user_id),
+        })
         console.log(response.data) // DEBUG
         const code = response.data.code
         if (code === 200) {
@@ -979,7 +1043,7 @@ export default {
       data_total: 0,
       substat_dict: {},
       position_total: [0, 0, 0, 0, 0],
-      substat_pos_total: [[0, 0, 0, 0, 0],],
+      substat_pos_total: [[0, 0, 0, 0, 0]],
       score: {
         substat1: 0,
         substat2: 0,
@@ -992,18 +1056,20 @@ export default {
     })
     const fetchEchoAnalysis = () => {
       axios
-          .post(`${API_BASE_URL}/analyze_echo?resonator=${scoreTemplate.value.resonator}&cost=${scoreTemplate.value.cost}`, {
-            ...echoLog.value
-          })
-          .then((response) => {
-            console.log("analyze_echo:", response.data) // DEBUG
-            echoAnalysis.value = response.data.data
-          })
-          .catch((error) => {
-            console.error('请求失败:', error)
-          })
+        .post(
+          `${API_BASE_URL}/analyze_echo?resonator=${scoreTemplate.value.resonator}&cost=${scoreTemplate.value.cost}`,
+          {
+            ...echoLog.value,
+          },
+        )
+        .then((response) => {
+          console.log('analyze_echo:', response.data) // DEBUG
+          echoAnalysis.value = response.data.data
+        })
+        .catch((error) => {
+          console.error('请求失败:', error)
+        })
     }
-    onMounted(fetchEchoAnalysis)
     onMounted(() => {
       ensureScoreTemplatesLoaded()
     })
@@ -1023,42 +1089,52 @@ export default {
         alert('当前声骸已结束，请先创建新声骸，或手动选择要修改的孔位')
         return
       }
-      if ((1 << substat) & (
-          (echoLog.value.pos !== 0 ? echoLog.value.substat1 : 0) |
+      if (
+        (1 << substat) &
+        ((echoLog.value.pos !== 0 ? echoLog.value.substat1 : 0) |
           (echoLog.value.pos !== 1 ? echoLog.value.substat2 : 0) |
           (echoLog.value.pos !== 2 ? echoLog.value.substat3 : 0) |
           (echoLog.value.pos !== 3 ? echoLog.value.substat4 : 0) |
-          (echoLog.value.pos !== 4 ? echoLog.value.substat5 : 0)
-      )) {
+          (echoLog.value.pos !== 4 ? echoLog.value.substat5 : 0))
+      ) {
         alert('已存在相同词条，请检查')
         return
       }
 
       const tunePos = echoLog.value.pos
-      console.log('add tune log, echo_id:', echoLog.value.id, ', pos:', tunePos, ', substat:', substat, ', value:', value)
+      console.log(
+        'add tune log, echo_id:',
+        echoLog.value.id,
+        ', pos:',
+        tunePos,
+        ', substat:',
+        substat,
+        ', value:',
+        value,
+      )
       const substatDesc = SUBSTAT_VALUE_MAP[substat][value].desc_full
       const nextEchoLog = {
         ...echoLog.value,
       }
       switch (tunePos) {
         case 0:
-          nextEchoLog.substat1 = 1 << substat | 1 << (value + 13)
+          nextEchoLog.substat1 = (1 << substat) | (1 << (value + 13))
           nextEchoLog.s1_desc = substatDesc
           break
         case 1:
-          nextEchoLog.substat2 = 1 << substat | 1 << (value + 13)
+          nextEchoLog.substat2 = (1 << substat) | (1 << (value + 13))
           nextEchoLog.s2_desc = substatDesc
           break
         case 2:
-          nextEchoLog.substat3 = 1 << substat | 1 << (value + 13)
+          nextEchoLog.substat3 = (1 << substat) | (1 << (value + 13))
           nextEchoLog.s3_desc = substatDesc
           break
         case 3:
-          nextEchoLog.substat4 = 1 << substat | 1 << (value + 13)
+          nextEchoLog.substat4 = (1 << substat) | (1 << (value + 13))
           nextEchoLog.s4_desc = substatDesc
           break
         case 4:
-          nextEchoLog.substat5 = 1 << substat | 1 << (value + 13)
+          nextEchoLog.substat5 = (1 << substat) | (1 << (value + 13))
           nextEchoLog.s5_desc = substatDesc
           break
         default:
@@ -1066,13 +1142,13 @@ export default {
           return
       }
 
-      nextEchoLog.substat_all = (
-          nextEchoLog.substat1 |
+      nextEchoLog.substat_all =
+        (nextEchoLog.substat1 |
           nextEchoLog.substat2 |
           nextEchoLog.substat3 |
           nextEchoLog.substat4 |
-          nextEchoLog.substat5
-      ) & MASK
+          nextEchoLog.substat5) &
+        MASK
       try {
         const response = await axios.post(`${API_BASE_URL}/echo_log/tune`, {
           id: nextEchoLog.id,
@@ -1109,10 +1185,8 @@ export default {
         echoLog.value = savedEchoLog
         updateEchoIdQuery(echoLog.value.id)
         emitSyncEchoLog()
-        fetchEchoAnalysis()
-        emitRefreshEchoViews()
-        refreshRecentTuneStats()
-        refreshEchoLogsAnalysis()
+        refreshMountedSubstatLogs()
+        refreshEditorSummary()
       } catch (error) {
         console.error('调谐声骸 请求失败:', error)
         alert('添加调谐记录失败')
@@ -1127,16 +1201,17 @@ export default {
     })
     const refreshRecentTuneStats = (size = 39) => {
       axios
-          .get(`${API_BASE_URL}/tune_stats?size=${size}&user_id=${normalizeUserId(template.value.user_id)}`)
-          .then((response) => {
-            console.log(response.data) // DEBUG
-            recentTuneStats.value = response.data.data
-          })
-          .catch((error) => {
-            console.error('请求失败:', error)
-          })
+        .get(
+          `${API_BASE_URL}/tune_stats?size=${size}&user_id=${normalizeUserId(template.value.user_id)}&include_baseline=0`,
+        )
+        .then((response) => {
+          console.log(response.data) // DEBUG
+          recentTuneStats.value = response.data.data
+        })
+        .catch((error) => {
+          console.error('请求失败:', error)
+        })
     }
-    onMounted(refreshRecentTuneStats)
 
     const getRecentValueCount = (substatNum, valueNum) =>
       recentTuneStats.value.substat_dict?.[substatNum]?.value_dict?.[valueNum]?.total ?? 0
@@ -1153,8 +1228,13 @@ export default {
     }
 
     const getSelectedSubstats = () =>
-      [echoLog.value.substat1, echoLog.value.substat2, echoLog.value.substat3, echoLog.value.substat4, echoLog.value.substat5]
-        .filter((substat) => substat > 0)
+      [
+        echoLog.value.substat1,
+        echoLog.value.substat2,
+        echoLog.value.substat3,
+        echoLog.value.substat4,
+        echoLog.value.substat5,
+      ].filter((substat) => substat > 0)
 
     const getSubstatFullName = (substatNum) =>
       SUBSTAT_VALUE_MAP[substatNum]?.[0]?.desc_full?.replace(/\s.*$/, '') ?? ''
@@ -1178,11 +1258,9 @@ export default {
     const getRecentRawDistance = (substatNum) =>
       recentTuneStats.value.substat_distance?.[substatNum] ?? -1
 
-    const getRecentDistanceLimit = () =>
-      Math.max(recentTuneStats.value.data_total ?? 0, 0)
+    const getRecentDistanceLimit = () => Math.max(recentTuneStats.value.data_total ?? 0, 0)
 
-    const isRecentDistanceOverflow = (substatNum) =>
-      getRecentRawDistance(substatNum) < 0
+    const isRecentDistanceOverflow = (substatNum) => getRecentRawDistance(substatNum) < 0
 
     const getRecentDistanceDisplay = (substatNum) => {
       const distance = getRecentRawDistance(substatNum)
@@ -1213,7 +1291,9 @@ export default {
 
     const getRecentGlobalMaxValueCount = () => {
       const counts = SUBSTAT.flatMap((substat) =>
-        SUBSTAT_VALUE_MAP[substat.num].map((value) => getRecentValueCount(substat.num, value.value_number))
+        SUBSTAT_VALUE_MAP[substat.num].map((value) =>
+          getRecentValueCount(substat.num, value.value_number),
+        ),
       )
       const maxCount = Math.max(...counts, 0)
       return maxCount > 0 ? maxCount : 1
@@ -1222,7 +1302,7 @@ export default {
     const getRecentValueBarStyle = (substatNum, valueNum, color) => {
       const count = getRecentValueCount(substatNum, valueNum)
       const maxCount = getRecentGlobalMaxValueCount()
-      const width = count > 0 ? Math.max(10, Math.round(count * 100 / maxCount)) : 0
+      const width = count > 0 ? Math.max(10, Math.round((count * 100) / maxCount)) : 0
       return {
         width: `${width}%`,
         backgroundColor: color,
@@ -1232,8 +1312,9 @@ export default {
 
     const getRecentSubstatTotalBarStyle = (substatNum, color) => {
       const total = getRecentSubstatTotal(substatNum)
-      const maxTotal = Math.max(...SUBSTAT.map((substat) => getRecentSubstatTotal(substat.num)), 0) || 1
-      const width = total > 0 ? Math.max(10, Math.round(total * 100 / maxTotal)) : 0
+      const maxTotal =
+        Math.max(...SUBSTAT.map((substat) => getRecentSubstatTotal(substat.num)), 0) || 1
+      const width = total > 0 ? Math.max(10, Math.round((total * 100) / maxTotal)) : 0
       return {
         width: `${width}%`,
         backgroundColor: color,
@@ -1241,42 +1322,24 @@ export default {
       }
     }
 
-    const tuneStats = ref({
-      data_total: 0,
-      substat_dict: {},
-      position_total: [0, 0, 0, 0, 0],
-      substat_pos_total: [[0, 0, 0, 0, 0],],
-    })
-    const fetchTuneStats = () => {
-      axios
-          .get(`${API_BASE_URL}/tune_stats?`)
-          .then((response) => {
-            console.log("tune_stats:", response.data) // DEBUG
-            tuneStats.value = response.data.data
-          })
-          .catch((error) => {
-            console.error('请求失败:', error)
-          })
-    }
-    onMounted(fetchTuneStats)
-
-    const buildCurrentDecisionQuery = (trials = 3000) => buildDecisionQueryFromEncoded({
-      userId: normalizeUserId(echoLog.value.user_id || template.value.user_id || 0),
-      resonator: scoreTemplate.value.resonator || '',
-      cost: scoreTemplate.value.cost || '1C',
-      goal: '毕业',
-      window: 'all',
-      targetBits: Number(targetSubstatBitmap.value || 3),
-      trials,
-      substats: [
-        Number(echoLog.value.substat1 || 0),
-        Number(echoLog.value.substat2 || 0),
-        Number(echoLog.value.substat3 || 0),
-        Number(echoLog.value.substat4 || 0),
-        Number(echoLog.value.substat5 || 0),
-      ],
-      autorun: true,
-    })
+    const buildCurrentDecisionQuery = (trials = 3000) =>
+      buildDecisionQueryFromEncoded({
+        userId: normalizeUserId(echoLog.value.user_id || template.value.user_id || 0),
+        resonator: scoreTemplate.value.resonator || '',
+        cost: scoreTemplate.value.cost || '1C',
+        goal: '毕业',
+        window: 'all',
+        targetBits: Number(targetSubstatBitmap.value || 3),
+        trials,
+        substats: [
+          Number(echoLog.value.substat1 || 0),
+          Number(echoLog.value.substat2 || 0),
+          Number(echoLog.value.substat3 || 0),
+          Number(echoLog.value.substat4 || 0),
+          Number(echoLog.value.substat5 || 0),
+        ],
+        autorun: true,
+      })
 
     const openDecisionLab = () => {
       router.push({
@@ -1300,7 +1363,6 @@ export default {
       recentTuneStats,
       currentUser,
       allUsers,
-      tuneStats,
       echoAnalysis,
       scoreTemplate,
       applyScoreTemplate,
@@ -1749,7 +1811,7 @@ export default {
   border-collapse: collapse; /* 关键：合并边框 */
   border: 1px solid #e0e0e0; /* 表格边框 */
   font-weight: bolder;
-//font-size: medium;
+  //font-size: medium;
 }
 
 .my-table td,

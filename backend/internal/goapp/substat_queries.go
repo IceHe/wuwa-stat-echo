@@ -42,6 +42,7 @@ func (a *App) handleTuneStats(w http.ResponseWriter, r *http.Request) {
 	userID := parseInt64Default(r.URL.Query().Get("user_id"), 0)
 	afterID := parseInt64Default(r.URL.Query().Get("after_id"), 0)
 	beforeID := parseInt64Default(r.URL.Query().Get("before_id"), 0)
+	includeBaseline := parseIntDefault(r.URL.Query().Get("include_baseline"), 1) != 0
 	window := parseStatsWindow(r.URL.Query().Get("window"))
 
 	var (
@@ -61,7 +62,7 @@ func (a *App) handleTuneStats(w http.ResponseWriter, r *http.Request) {
 	if stats != nil {
 		stats.Window = window.Name
 	}
-	if userID > 0 {
+	if userID > 0 && includeBaseline {
 		var globalStats *TuneStatsResponse
 		if window.isAll() && size == 0 && afterID == 0 && beforeID == 0 {
 			globalStats, err = a.loadTuneStatsFromAggregate(r.Context(), 0)
