@@ -460,12 +460,17 @@ const RESONATOR_COLOR_PALETTE = [
   '#be185d',
   '#155e75',
 ]
-const RESONATOR_BUTTON_COLORS = Object.fromEntries(
-  RESONATORS.map((resonator, index) => [
-    resonator,
-    RESONATOR_COLOR_PALETTE[index % RESONATOR_COLOR_PALETTE.length],
-  ]),
-)
+const RESONATOR_BUTTON_COLORS = {
+  ...Object.fromEntries(
+    RESONATORS.map((resonator, index) => [
+      resonator,
+      RESONATOR_COLOR_PALETTE[index % RESONATOR_COLOR_PALETTE.length],
+    ]),
+  ),
+  爱弥斯: '#dc2626',
+  西格莉卡: '#ea580c',
+  达妮娅: '#db2777',
+}
 const COST_BUTTON_COLORS = {
   '4C': '#dc2626',
   '3C属伤': '#7c3aed',

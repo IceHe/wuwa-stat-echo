@@ -289,16 +289,16 @@ func scoreEcho(e EchoLog, resonator, cost string) *EchoScore {
 	}
 	fields := []*float64{&score.Substat1, &score.Substat2, &score.Substat3, &score.Substat4, &score.Substat5}
 	substats := []int64{e.Substat1, e.Substat2, e.Substat3, e.Substat4, e.Substat5}
-	total := 0.0
+	rawTotal := 0.0
 	for i, substat := range substats {
 		if substat == 0 {
 			continue
 		}
-		value := substatValueScore(substat, template)
-		*fields[i] = rounded(value/maxScore*50, 2)
-		total += *fields[i]
+		value := substatValueScore(substat, template) / maxScore * 50
+		*fields[i] = rounded(value, 2)
+		rawTotal += value
 	}
-	score.SubstatAll = rounded(template.MainstatMaxScore[cost]+total, 2)
+	score.SubstatAll = rounded(template.MainstatMaxScore[cost]+rawTotal, 2)
 	return score
 }
 

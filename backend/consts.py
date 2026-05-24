@@ -259,17 +259,13 @@ class ResonatorTemplate:
         score = EchoScore()
         max_score = self.echo_max_score[cost[:1]]
         if max_score > 0:
-            if echo_log.substat1 > 0:
-                score.substat1 = round(self.substat_score(echo_log.substat1) / max_score * 50, 2)
-            if echo_log.substat2 > 0:
-                score.substat2 = round(self.substat_score(echo_log.substat2) / max_score * 50, 2)
-            if echo_log.substat3 > 0:
-                score.substat3 = round(self.substat_score(echo_log.substat3) / max_score * 50, 2)
-            if echo_log.substat4 > 0:
-                score.substat4 = round(self.substat_score(echo_log.substat4) / max_score * 50, 2)
-            if echo_log.substat5 > 0:
-                score.substat5 = round(self.substat_score(echo_log.substat5) / max_score * 50, 2)
-            score_total = score.substat1 + score.substat2 + score.substat3 + score.substat4 + score.substat5
+            score_total = 0.0
+            for attr in ('substat1', 'substat2', 'substat3', 'substat4', 'substat5'):
+                substat = getattr(echo_log, attr)
+                if substat > 0:
+                    raw_score = self.substat_score(substat) / max_score * 50
+                    setattr(score, attr, round(raw_score, 2))
+                    score_total += raw_score
             score.substat_all = round(self.mainstat_max_score[cost] + score_total, 2)
         return score
 
@@ -651,6 +647,23 @@ def init_resonator_templates():
             '攻击固定值': 0.12,
             '共鸣解放': 0.77,
             '共鸣效率': 0.2,
+        }
+    )
+    resonator_templates['达妮娅'] = ResonatorTemplate(
+        name='达妮娅',
+        echo_max_score={'4': 85.9393, '3': 83.88, '1': 84.979},
+        mainstat_max_score={
+            '4C': 6.14 + 1.74,
+            '3C属伤': 5.36 + 1.49,
+            '3C攻击': 5.36 + 1.49,
+            '3C其它': 1.49,
+            '1C': 7.41,
+        },
+        substat_weight={
+            '攻击': 1.2,
+            '攻击固定值': 0.11,
+            '共鸣效率': 0.2,
+            '共鸣解放': 0.85,
         }
     )
     return resonator_templates
