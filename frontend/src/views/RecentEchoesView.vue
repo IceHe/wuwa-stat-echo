@@ -103,19 +103,19 @@
             <div class="find-toolbar-row">
               <span class="name">当前孔位</span>
               <div class="find-position-row">
-                <button class="substat" @click="filters.pos = 0" :style="filters.pos === 0 ? 'background-color: yellow; font-color: red' : ''">
+                <button class="substat" @click="setPos(0)" :style="filters.pos === 0 ? 'background-color: yellow; font-color: red' : ''">
                   {{ filters.s1_desc ? filters.s1_desc : '1' }}
                 </button>
-                <button class="substat" @click="filters.pos = 1" :style="filters.pos === 1 ? 'background-color: yellow; font-color: red' : ''">
+                <button class="substat" @click="setPos(1)" :style="filters.pos === 1 ? 'background-color: yellow; font-color: red' : ''">
                   {{ filters.s2_desc ? filters.s2_desc : '2' }}
                 </button>
-                <button class="substat" @click="filters.pos = 2" :style="filters.pos === 2 ? 'background-color: yellow; font-color: red' : ''">
+                <button class="substat" @click="setPos(2)" :style="filters.pos === 2 ? 'background-color: yellow; font-color: red' : ''">
                   {{ filters.s3_desc ? filters.s3_desc : '3' }}
                 </button>
-                <button class="substat" @click="filters.pos = 3" :style="filters.pos === 3 ? 'background-color: yellow; font-color: red' : ''">
+                <button class="substat" @click="setPos(3)" :style="filters.pos === 3 ? 'background-color: yellow; font-color: red' : ''">
                   {{ filters.s4_desc ? filters.s4_desc : '4' }}
                 </button>
-                <button class="substat" @click="filters.pos = 4" :style="filters.pos === 4 ? 'background-color: yellow; font-color: red' : ''">
+                <button class="substat" @click="setPos(4)" :style="filters.pos === 4 ? 'background-color: yellow; font-color: red' : ''">
                   {{ filters.s5_desc ? filters.s5_desc : '5' }}
                 </button>
               </div>
@@ -439,6 +439,22 @@ const getSubstatSetButtonStyle = (substat: { num: number; font_color: string }) 
     ? `background-color: #fff4a3; color: ${substat.font_color}; border-color: ${substat.font_color}; font-weight: 700;`
     : `color: ${substat.font_color};`
 )
+
+const substatFilterKeys = ['substat1', 'substat2', 'substat3', 'substat4', 'substat5'] as const
+const substatDescKeys = ['s1_desc', 's2_desc', 's3_desc', 's4_desc', 's5_desc'] as const
+
+const setPos = (pos: number) => {
+  if (pos < 0 || pos > 4) {
+    alert('请先选择孔位')
+    return
+  }
+
+  const substatKey = substatFilterKeys[pos]
+  const descKey = substatDescKeys[pos]
+  filters.value[substatKey] = 0
+  filters.value[descKey] = ''
+  filters.value.pos = pos
+}
 
 const setSubstatToCurrentPos = (substatBits: number, substatDesc: string) => {
   switch (filters.value.pos) {

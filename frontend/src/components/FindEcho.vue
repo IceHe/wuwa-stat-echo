@@ -70,35 +70,35 @@
         <div class="find-position-row">
           <button class="substat"
                   key="1"
-                  @click="echoLog.pos = 0"
+                  @click="setPos(0)"
                   :style="echoLog.pos === 0 ? 'background-color: yellow; font-color: red' : ''"
           >
             {{ echoLog.s1_desc ? echoLog.s1_desc : "1" }}
           </button>
           <button class="substat"
                   key="2"
-                  @click="echoLog.pos = 1"
+                  @click="setPos(1)"
                   :style="echoLog.pos === 1 ? 'background-color: yellow; font-color: red' : ''"
           >
             {{ echoLog.s2_desc ? echoLog.s2_desc : "2" }}
           </button>
           <button class="substat"
                   key="3"
-                  @click="echoLog.pos = 2"
+                  @click="setPos(2)"
                   :style="echoLog.pos === 2 ? 'background-color: yellow; font-color: red' : ''"
           >
             {{ echoLog.s3_desc ? echoLog.s3_desc : "3" }}
           </button>
           <button class="substat"
                   key="4"
-                  @click="echoLog.pos = 3"
+                  @click="setPos(3)"
                   :style="echoLog.pos === 3 ? 'background-color: yellow; font-color: red' : ''"
           >
             {{ echoLog.s4_desc ? echoLog.s4_desc : "4" }}
           </button>
           <button class="substat"
                   key="5"
-                  @click="echoLog.pos = 4"
+                  @click="setPos(4)"
                   :style="echoLog.pos === 4 ? 'background-color: yellow; font-color: red' : ''"
           >
             {{ echoLog.s5_desc ? echoLog.s5_desc : "5" }}
@@ -416,6 +416,24 @@ export default {
         : `color: ${substat.font_color};`
     )
 
+    const setPos = (pos) => {
+      if (pos < 0 || pos > 4) {
+        alert('请先选择孔位')
+        return
+      }
+
+      const substatKey = `substat${pos + 1}`
+      const descKey = `s${pos + 1}_desc`
+      const hadSubstat = echoLog.value[substatKey] > 0
+      echoLog.value[substatKey] = 0
+      echoLog.value[descKey] = ''
+      echoLog.value.pos = pos
+
+      if (hadSubstat) {
+        findEchoLog(false)
+      }
+    }
+
     const setSubstatToCurrentPos = (substatBits, substatDesc) => {
       switch (echoLog.value.pos) {
         case 0:
@@ -501,6 +519,7 @@ export default {
       setClazz,
       setUserId,
       setSearchMode,
+      setPos,
       newEchoLog,
       resetEchoLog,
       addAnyTuneToFind,
