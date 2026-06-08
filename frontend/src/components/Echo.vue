@@ -257,7 +257,7 @@
         :key="value"
         @click="doTune(value.substat_number, value.value_number)"
         :style="`color: ${(substat.bitmap & echoLog.substat_all) === 0 ? substat.font_color : '#808080'};`"
-        :disabled="echoLog.pos === 5 || (substat.bitmap & echoLog.substat_all) !== 0"
+        :disabled="isTuning || echoLog.pos === 5 || (substat.bitmap & echoLog.substat_all) !== 0"
       >
         <span class="stat-button-label">
           {{ value.desc }}
@@ -881,6 +881,20 @@ export default {
       refreshRecentTuneStats()
       fetchEchoAnalysis()
     }
+    const handleDeletedEchoLog = (payload) => {
+      const deletedId = Number(typeof payload === 'object' ? payload?.id : payload)
+      if (deletedId <= 0 || Number(echoLog.value?.id || 0) !== deletedId) {
+        return
+      }
+      clearEchoEditor()
+      refreshEditorSummary()
+    }
+    onMounted(() => {
+      emitter.on('deleteEchoLog', handleDeletedEchoLog)
+    })
+    onUnmounted(() => {
+      emitter.off('deleteEchoLog', handleDeletedEchoLog)
+    })
 
     const targetSubstatBitmap = ref(0b11)
     const toggleTargetSubstat = (bitmap) => {
@@ -1079,7 +1093,15 @@ export default {
       ensureScoreTemplatesLoaded()
     })
 
+    const isTuning = ref(false)
+    const formatTuneFailureMessage = (message) => {
+      const detail = String(message || '').trim()
+      return detail ? `添加调谐记录失败：${detail}` : '添加调谐记录失败'
+    }
     const doTune = async (substat, value) => {
+      if (isTuning.value) {
+        return
+      }
       if (!echoLog.value.id) {
         if (!echoLog.value.user_id) {
           alert('请先输入玩家ID')
@@ -1154,6 +1176,7 @@ export default {
           nextEchoLog.substat4 |
           nextEchoLog.substat5) &
         MASK
+      isTuning.value = true
       try {
         const response = await axios.post(`${API_BASE_URL}/echo_log/tune`, {
           id: nextEchoLog.id,
@@ -1175,8 +1198,8 @@ export default {
           value,
         })
         console.log('tune echo log:', response.data) // DEBUG
-        if (response.data.code !== 200) {
-          alert('添加调谐记录失败')
+        if (response.data?.code !== 200) {
+          alert(formatTuneFailureMessage(response.data?.message))
           return
         }
 
@@ -1194,7 +1217,9 @@ export default {
         refreshEditorSummary()
       } catch (error) {
         console.error('调谐声骸 请求失败:', error)
-        alert('添加调谐记录失败')
+        alert(formatTuneFailureMessage(error?.response?.data?.message || error?.message))
+      } finally {
+        isTuning.value = false
       }
     }
 
@@ -1369,6 +1394,7 @@ export default {
       currentUser,
       allUsers,
       echoAnalysis,
+      isTuning,
       scoreTemplate,
       applyScoreTemplate,
       template,

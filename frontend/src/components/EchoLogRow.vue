@@ -230,6 +230,10 @@ export default {
           const code = response.data.code
           if (code === 200) {
             props.echoLog.deleted = 1
+            emitter.emit('deleteEchoLog', {
+              id,
+              deleted: response.data?.data?.deleted ?? 1,
+            })
           } else {
             alert('删除失败')
           }
