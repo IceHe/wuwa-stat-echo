@@ -18,6 +18,7 @@ export const getSubstatColor = (bits: number) => {
 }
 
 export const CLASS_COLORS: Record<string, string> = {
+    碎梦亡鬼之魇: '#c54bd6',
     斑驳粉饰之沫: '#c86f8f',
     听唤语义之愿: '#6c63a8',
     流金溯真之式: '#e9b439',
@@ -52,6 +53,7 @@ export const CLASS_COLORS: Record<string, string> = {
 
 
 export const CLASSES: string[] = [
+    '碎梦亡鬼之魇',
     '斑驳粉饰之沫',
     '剪心辑梦之影',
     '雪落无声之愿',
