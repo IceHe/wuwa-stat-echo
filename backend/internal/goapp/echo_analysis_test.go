@@ -79,8 +79,24 @@ func TestDaniyaTemplateConfigAndUnknownFallback(t *testing.T) {
 	if !ok {
 		t.Fatalf("expected 达妮娅 score template")
 	}
-	if daniya.EchoMaxScore["3"] != 83.88 || daniya.SubstatWeight["攻击"] != 1.2 || daniya.SubstatWeight["共鸣解放"] != 0.85 {
+	if daniya.EchoMaxScore["4"] != 85.939 || daniya.EchoMaxScore["3"] != 83.88 || daniya.SubstatWeight["攻击"] != 1.2 || daniya.SubstatWeight["共鸣解放"] != 0.85 {
 		t.Fatalf("unexpected 达妮娅 template: %+v", daniya)
+	}
+
+	rebecca, ok := resonatorTemplates["丽贝卡"]
+	if !ok {
+		t.Fatalf("expected 丽贝卡 score template")
+	}
+	if rebecca.EchoMaxScore["4"] != 85.475 || rebecca.SubstatWeight["普攻"] != 0.81 || rebecca.SubstatWeight["共鸣效率"] != 0.25 {
+		t.Fatalf("unexpected 丽贝卡 template: %+v", rebecca)
+	}
+
+	lucy, ok := resonatorTemplates["露西"]
+	if !ok {
+		t.Fatalf("expected 露西 score template")
+	}
+	if lucy.EchoMaxScore["4"] != 86.518 || lucy.SubstatWeight["重击"] != 0.9 || lucy.MainstatMaxScore["1C"] != 6.44 {
+		t.Fatalf("unexpected 露西 template: %+v", lucy)
 	}
 
 	score := scoreEcho(EchoLog{}, "未配置角色", "3C属伤")

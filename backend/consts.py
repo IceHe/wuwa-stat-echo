@@ -651,7 +651,7 @@ def init_resonator_templates():
     )
     resonator_templates['达妮娅'] = ResonatorTemplate(
         name='达妮娅',
-        echo_max_score={'4': 85.9393, '3': 83.88, '1': 84.979},
+        echo_max_score={'4': 85.939, '3': 83.88, '1': 84.979},
         mainstat_max_score={
             '4C': 6.14 + 1.74,
             '3C属伤': 5.36 + 1.49,
@@ -664,6 +664,41 @@ def init_resonator_templates():
             '攻击固定值': 0.11,
             '共鸣效率': 0.2,
             '共鸣解放': 0.85,
+        }
+    )
+    resonator_templates['丽贝卡'] = ResonatorTemplate(
+        name='丽贝卡',
+        echo_max_score={'4': 85.475, '3': 83.416, '1': 82.715},
+        mainstat_max_score={
+            '4C': 5.18 + 1.47,
+            '3C属伤': 5.39 + 1.49,
+            '3C攻击': 5.39 + 1.49,
+            '3C其它': 1.49,
+            '1C': 6.52,
+        },
+        substat_weight={
+            '攻击': 1.2,
+            '攻击固定值': 0.11,
+            '共鸣效率': 0.25,
+            '共鸣解放': 0.09,
+            '普攻': 0.81,
+        }
+    )
+    resonator_templates['露西'] = ResonatorTemplate(
+        name='露西',
+        echo_max_score={'4': 86.518, '3': 84.46, '1': 83.758},
+        mainstat_max_score={
+            '4C': 6.1 + 1.73,
+            '3C属伤': 5.32 + 1.47,
+            '3C攻击': 5.32 + 1.47,
+            '3C其它': 1.47,
+            '1C': 6.44,
+        },
+        substat_weight={
+            '攻击': 1.2,
+            '攻击固定值': 0.11,
+            '共鸣效率': 0.2,
+            '重击': 0.9,
         }
     )
     return resonator_templates
