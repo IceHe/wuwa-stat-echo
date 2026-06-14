@@ -6,7 +6,7 @@ import type {ResonatorTemplate} from '@/utils/echoScore'
 
 const storageKey = 'wuwa-echo-score-template-config'
 const contextKey = 'wuwa-echo-score-template-context'
-const builtinVersion = 'builtin-2026-06-08'
+const builtinVersion = 'builtin-2026-06-15'
 
 const buildTemplate = (
     name: string,

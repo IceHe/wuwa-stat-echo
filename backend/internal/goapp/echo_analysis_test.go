@@ -99,6 +99,22 @@ func TestDaniyaTemplateConfigAndUnknownFallback(t *testing.T) {
 		t.Fatalf("unexpected 露西 template: %+v", lucy)
 	}
 
+	roccia, ok := resonatorTemplates["洛瑟菈"]
+	if !ok {
+		t.Fatalf("expected 洛瑟菈 score template")
+	}
+	if roccia.EchoMaxScore["4"] != 87.71 || roccia.SubstatWeight["普攻"] != 0.9 || roccia.MainstatMaxScore["4C"] != 8.4 {
+		t.Fatalf("unexpected 洛瑟菈 template: %+v", roccia)
+	}
+
+	chisa, ok := resonatorTemplates["千咲"]
+	if !ok {
+		t.Fatalf("expected 千咲 score template")
+	}
+	if chisa.EchoMaxScore["1"] != 79.977 || chisa.SubstatWeight["共鸣效率"] != 0.25 || chisa.SubstatWeight["共鸣解放"] != 0.605 {
+		t.Fatalf("unexpected 千咲 template: %+v", chisa)
+	}
+
 	score := scoreEcho(EchoLog{}, "未配置角色", "3C属伤")
 	if score.Resonator != "通用" {
 		t.Fatalf("expected unknown resonator to fall back to 通用, got %q", score.Resonator)
