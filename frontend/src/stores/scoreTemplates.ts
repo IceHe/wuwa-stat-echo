@@ -6,7 +6,7 @@ import type {ResonatorTemplate} from '@/utils/echoScore'
 
 const storageKey = 'wuwa-echo-score-template-config'
 const contextKey = 'wuwa-echo-score-template-context'
-const builtinVersion = 'builtin-2026-06-15'
+const builtinVersion = 'builtin-2026-06-08'
 
 const buildTemplate = (
     name: string,
@@ -256,13 +256,20 @@ const builtinTemplates: Record<string, ResonatorTemplate> = {
         '3C其它': 1.47,
         '1C': 6.44,
     }, {攻击: 1.2, 攻击固定值: 0.11, 共鸣效率: 0.2, 重击: 0.9}),
-    洛瑟菈: buildTemplate('洛瑟菈', {4: 87.71, 3: 84.46, 1: 83.758}, {
+    校长霜渐: buildTemplate('校长霜渐', {4: 87.71, 3: 84.46, 1: 83.758}, {
         '4C': 6.27 + 2.13,
         '3C属伤': 5.32 + 1.47,
         '3C攻击': 5.32 + 1.47,
         '3C其它': 1.47,
         '1C': 6.44,
     }, {攻击: 1.2, 攻击固定值: 0.11, 普攻: 0.9}),
+    校长声骸: buildTemplate('校长声骸', {4: 74.609, 3: 71.8, 1: 71.098}, {
+        '4C': 7.07 + 2.51,
+        '3C属伤': 6.26 + 1.74,
+        '3C攻击': 6.26 + 1.74,
+        '3C其它': 1.74,
+        '1C': 7.59,
+    }, {暴击: 1.4, 暴击伤害: 1, 攻击: 1.3, 攻击固定值: 0.12, 普攻: 0.2, 共鸣技能: 0.12}),
     千咲: buildTemplate('千咲', {4: 82.527, 3: 78.527, 1: 79.977}, {
         '4C': 5.49 + 2.27,
         '3C属伤': 5.25 + 1.59,
