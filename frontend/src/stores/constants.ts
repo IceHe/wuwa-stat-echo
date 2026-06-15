@@ -88,7 +88,8 @@ export const CLASSES: string[] = [
 
 export const RESONATORS: string[] = [
     '千咲',
-    '洛瑟菈',
+    '校长霜渐',
+    '校长声骸',
     '露西',
     '丽贝卡',
     '达妮娅',

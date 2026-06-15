@@ -99,12 +99,20 @@ func TestDaniyaTemplateConfigAndUnknownFallback(t *testing.T) {
 		t.Fatalf("unexpected 露西 template: %+v", lucy)
 	}
 
-	roccia, ok := resonatorTemplates["洛瑟菈"]
+	rocciaFrost, ok := resonatorTemplates["校长霜渐"]
 	if !ok {
-		t.Fatalf("expected 洛瑟菈 score template")
+		t.Fatalf("expected 校长霜渐 score template")
 	}
-	if roccia.EchoMaxScore["4"] != 87.71 || roccia.SubstatWeight["普攻"] != 0.9 || roccia.MainstatMaxScore["4C"] != 8.4 {
-		t.Fatalf("unexpected 洛瑟菈 template: %+v", roccia)
+	if rocciaFrost.EchoMaxScore["4"] != 87.71 || rocciaFrost.SubstatWeight["普攻"] != 0.9 || rocciaFrost.MainstatMaxScore["4C"] != 8.4 {
+		t.Fatalf("unexpected 校长霜渐 template: %+v", rocciaFrost)
+	}
+
+	rocciaEcho, ok := resonatorTemplates["校长声骸"]
+	if !ok {
+		t.Fatalf("expected 校长声骸 score template")
+	}
+	if rocciaEcho.EchoMaxScore["4"] != 74.609 || rocciaEcho.SubstatWeight["攻击"] != 1.3 || rocciaEcho.SubstatWeight["共鸣技能"] != 0.12 {
+		t.Fatalf("unexpected 校长声骸 template: %+v", rocciaEcho)
 	}
 
 	chisa, ok := resonatorTemplates["千咲"]
