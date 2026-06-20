@@ -22,12 +22,22 @@ type substatGapState struct {
 	endID     int64
 }
 
+type maxGapEvent struct {
+	id     int64
+	userID int64
+	hit    bool
+}
+
 func cloneSubstatMaxGapResponse(src *SubstatMaxGapResponse) *SubstatMaxGapResponse {
 	if src == nil {
 		return nil
 	}
 	out := *src
 	out.Rows = append([]SubstatMaxGapRow(nil), src.Rows...)
+	if src.DoubleCritEchoGap != nil {
+		doubleCritEchoGap := *src.DoubleCritEchoGap
+		out.DoubleCritEchoGap = &doubleCritEchoGap
+	}
 	return &out
 }
 
@@ -165,12 +175,22 @@ func (a *App) computeSubstatMaxGap(ctx context.Context, userID int64) (*SubstatM
 		userTotals[rowUserID] = userIndex + 1
 		total++
 	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	doubleCritEchoGap, echoLogTotal, err := a.computeDoubleCritEchoMaxGap(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
 
 	result := &SubstatMaxGapResponse{
-		UserID:       userID,
-		ScopeLabel:   map[bool]string{true: "全部玩家", false: "玩家 " + strconv.FormatInt(userID, 10)}[userID == 0],
-		TuneLogTotal: total,
-		Rows:         make([]SubstatMaxGapRow, 0, len(substatDefs)),
+		UserID:            userID,
+		ScopeLabel:        map[bool]string{true: "全部玩家", false: "玩家 " + strconv.FormatInt(userID, 10)}[userID == 0],
+		TuneLogTotal:      total,
+		EchoLogTotal:      echoLogTotal,
+		DoubleCritEchoGap: doubleCritEchoGap,
+		Rows:              make([]SubstatMaxGapRow, 0, len(substatDefs)),
 	}
 	now := time.Now()
 	result.GeneratedAt = &now
@@ -226,4 +246,118 @@ func (a *App) computeSubstatMaxGap(ctx context.Context, userID int64) (*SubstatM
 		})
 	}
 	return result, nil
+}
+
+func (a *App) computeDoubleCritEchoMaxGap(ctx context.Context, userID int64) (*MaxGapMetricRow, int, error) {
+	query := "select id, user_id, substat1, substat2, substat3, substat4, substat5 from wuwa_echo_log where deleted = 0"
+	args := []any{}
+	if userID > 0 {
+		query += " and user_id = $1"
+		args = append(args, userID)
+	}
+	query += " order by user_id asc, id asc"
+
+	rows, err := a.db.Query(ctx, query, args...)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+
+	events := []maxGapEvent{}
+	for rows.Next() {
+		var id int64
+		var rowUserID int64
+		var substat1, substat2, substat3, substat4, substat5 int64
+		if err := rows.Scan(&id, &rowUserID, &substat1, &substat2, &substat3, &substat4, &substat5); err != nil {
+			return nil, 0, err
+		}
+		substatAll := (substat1 | substat2 | substat3 | substat4 | substat5) & substatMask
+		events = append(events, maxGapEvent{
+			id:     id,
+			userID: rowUserID,
+			hit:    substatAll&0b11 == 0b11,
+		})
+	}
+	if err := rows.Err(); err != nil {
+		return nil, 0, err
+	}
+
+	state, total := computeMaxGapFromEvents(events)
+	return &MaxGapMetricRow{
+		Label:           "双暴声骸",
+		OwnerUserID:     state.userID,
+		MaxGap:          state.maxGap,
+		OccurrenceCount: state.count,
+		LeadingGap:      state.leading,
+		TrailingGap:     state.trailing,
+		MaxGapStartID:   state.startID,
+		MaxGapEndID:     state.endID,
+	}, total, nil
+}
+
+func computeMaxGapFromEvents(events []maxGapEvent) (substatGapState, int) {
+	best := substatGapState{startID: -1, endID: -1}
+	perUserStates := map[int64]*substatGapState{}
+	userTotals := map[int64]int{}
+
+	for _, event := range events {
+		if _, ok := perUserStates[event.userID]; !ok {
+			perUserStates[event.userID] = &substatGapState{
+				userID:  event.userID,
+				startID: -1,
+				endID:   -1,
+			}
+		}
+		userIndex := userTotals[event.userID]
+		if event.hit {
+			state := perUserStates[event.userID]
+			state.count++
+			if !state.seen {
+				state.seen = true
+				state.leading = userIndex
+			} else {
+				gap := userIndex - state.lastIndex - 1
+				if gap > state.maxGap {
+					state.maxGap = gap
+					state.startID = state.lastID
+					state.endID = event.id
+				}
+			}
+			state.lastIndex = userIndex
+			state.lastID = event.id
+		}
+		userTotals[event.userID] = userIndex + 1
+	}
+
+	for ownerUserID, state := range perUserStates {
+		userTotal := userTotals[ownerUserID]
+		if !state.seen {
+			state.leading = userTotal
+			state.trailing = userTotal
+			state.maxGap = userTotal
+			state.startID = -1
+			state.endID = -1
+		} else {
+			state.trailing = userTotal - state.lastIndex - 1
+			if state.leading >= state.maxGap {
+				state.maxGap = state.leading
+				state.startID = -1
+				state.endID = state.lastID
+			}
+			if state.trailing > state.maxGap {
+				state.maxGap = state.trailing
+				state.startID = state.lastID
+				state.endID = -1
+			}
+		}
+		if best.userID == 0 && !best.seen && best.maxGap == 0 && best.startID == -1 && best.endID == -1 {
+			best = *state
+			continue
+		}
+		if state.maxGap > best.maxGap {
+			best = *state
+		}
+	}
+
+	return best, len(events)
 }

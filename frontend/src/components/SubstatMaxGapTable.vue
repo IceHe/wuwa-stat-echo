@@ -25,6 +25,7 @@
       <div class="summary-row">
         <span>统计范围：{{ stats.scope_label || '全部玩家' }}</span>
         <span>词条总数：{{ stats.tune_log_total }}</span>
+        <span>声骸总数：{{ stats.echo_log_total }}</span>
       </div>
       <div class="summary-row">
         <span>统计截止于：{{ formatTime(stats.generated_at) }}</span>
@@ -42,6 +43,36 @@
     </div>
 
     <div class="table-wrap">
+      <h2 class="section-title">双暴声骸最大间隔</h2>
+      <table class="my-table">
+        <thead>
+        <tr>
+          <th>统计项</th>
+          <th>最大间隔</th>
+          <th>双暴声骸数</th>
+          <th>最大间隔起点声骸 ID</th>
+          <th>最大间隔终点声骸 ID</th>
+          <th v-if="showOwnerColumn">玩家 ID</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr v-if="stats.double_crit_echo_gap">
+          <td class="metric-label">{{ stats.double_crit_echo_gap.label }}</td>
+          <td class="number-cell">{{ stats.double_crit_echo_gap.max_gap }}</td>
+          <td class="number-cell">{{ stats.double_crit_echo_gap.occurrence_count }}</td>
+          <td class="number-cell">{{ formatGapEdge(stats.double_crit_echo_gap.max_gap_start_id) }}</td>
+          <td class="number-cell">{{ formatGapEdge(stats.double_crit_echo_gap.max_gap_end_id) }}</td>
+          <td v-if="showOwnerColumn" class="number-cell">{{ stats.double_crit_echo_gap.owner_user_id || '-' }}</td>
+        </tr>
+        <tr v-else>
+          <td :colspan="showOwnerColumn ? 6 : 5">暂无数据</td>
+        </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="table-wrap">
+      <h2 class="section-title">副词条最大间隔</h2>
       <table class="my-table">
         <thead>
         <tr>
@@ -86,10 +117,23 @@ type MaxGapRow = {
   max_gap_end_id: number
 }
 
+type MaxGapMetricRow = {
+  label: string
+  owner_user_id: number
+  max_gap: number
+  occurrence_count: number
+  leading_gap: number
+  trailing_gap: number
+  max_gap_start_id: number
+  max_gap_end_id: number
+}
+
 type MaxGapResponse = {
   user_id: number
   scope_label: string
   tune_log_total: number
+  echo_log_total: number
+  double_crit_echo_gap: MaxGapMetricRow | null
   generated_at: string
   last_forced_refresh_at: string
   refresh_available_at: string
@@ -109,6 +153,8 @@ const stats = reactive<MaxGapResponse>({
   user_id: 0,
   scope_label: '',
   tune_log_total: 0,
+  echo_log_total: 0,
+  double_crit_echo_gap: null,
   generated_at: '',
   last_forced_refresh_at: '',
   refresh_available_at: '',
@@ -134,6 +180,8 @@ const applyStats = (payload?: Partial<MaxGapResponse>) => {
   stats.user_id = Number(payload?.user_id || 0)
   stats.scope_label = payload?.scope_label || ''
   stats.tune_log_total = Number(payload?.tune_log_total || 0)
+  stats.echo_log_total = Number(payload?.echo_log_total || 0)
+  stats.double_crit_echo_gap = payload?.double_crit_echo_gap || null
   stats.generated_at = payload?.generated_at || ''
   stats.last_forced_refresh_at = payload?.last_forced_refresh_at || ''
   stats.refresh_available_at = payload?.refresh_available_at || ''
@@ -296,6 +344,19 @@ button:disabled {
 .table-wrap {
   width: 100%;
   overflow-x: auto;
+}
+
+.section-title {
+  margin: 2px 0 8px;
+  color: #1f2937;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.metric-label {
+  color: #b91c1c;
+  font-weight: 700;
+  white-space: nowrap;
 }
 
 .my-table th,

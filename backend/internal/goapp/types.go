@@ -231,10 +231,23 @@ type SubstatMaxGapRow struct {
 	MaxGapEndID     int64  `json:"max_gap_end_id"`
 }
 
+type MaxGapMetricRow struct {
+	Label           string `json:"label"`
+	OwnerUserID     int64  `json:"owner_user_id,omitempty"`
+	MaxGap          int    `json:"max_gap"`
+	OccurrenceCount int    `json:"occurrence_count"`
+	LeadingGap      int    `json:"leading_gap"`
+	TrailingGap     int    `json:"trailing_gap"`
+	MaxGapStartID   int64  `json:"max_gap_start_id"`
+	MaxGapEndID     int64  `json:"max_gap_end_id"`
+}
+
 type SubstatMaxGapResponse struct {
 	UserID              int64              `json:"user_id"`
 	ScopeLabel          string             `json:"scope_label"`
 	TuneLogTotal        int                `json:"tune_log_total"`
+	EchoLogTotal        int                `json:"echo_log_total"`
+	DoubleCritEchoGap   *MaxGapMetricRow   `json:"double_crit_echo_gap,omitempty"`
 	GeneratedAt         *time.Time         `json:"generated_at,omitempty"`
 	LastForcedRefreshAt *time.Time         `json:"last_forced_refresh_at,omitempty"`
 	RefreshAvailableAt  *time.Time         `json:"refresh_available_at,omitempty"`
