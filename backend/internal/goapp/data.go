@@ -98,6 +98,7 @@ var resonatorTemplates = map[string]resonatorTemplate{
 	"校长霜渐": template("校长霜渐", map[string]float64{"4": 87.71, "3": 84.46, "1": 83.758}, map[string]float64{"4C": 6.27 + 2.13, "3C属伤": 5.32 + 1.47, "3C攻击": 5.32 + 1.47, "3C其它": 1.47, "1C": 6.44}, map[string]float64{"攻击": 1.2, "攻击固定值": 0.11, "普攻": 0.9}),
 	"校长声骸": template("校长声骸", map[string]float64{"4": 74.609, "3": 71.8, "1": 71.098}, map[string]float64{"4C": 7.07 + 2.51, "3C属伤": 6.26 + 1.74, "3C攻击": 6.26 + 1.74, "3C其它": 1.74, "1C": 7.59}, map[string]float64{"暴击": 1.4, "暴击伤害": 1, "攻击": 1.3, "攻击固定值": 0.12, "普攻": 0.2, "共鸣技能": 0.12}),
 	"千咲":   template("千咲", map[string]float64{"4": 82.527, "3": 78.527, "1": 79.977}, map[string]float64{"4C": 5.49 + 2.27, "3C属伤": 5.25 + 1.59, "3C攻击": 5.25 + 1.59, "3C其它": 1.59, "1C": 4.8}, map[string]float64{"共鸣效率": 0.25, "共鸣解放": 0.605}),
+	"秧秧玄翎": template("秧秧玄翎", map[string]float64{"4": 86.473, "3": 82.473, "1": 78.923}, map[string]float64{"4C": 6.36 + 2.16, "3C属伤": 5 + 1.51, "3C攻击": 5 + 1.51, "3C其它": 1.51, "1C": 4.56}, map[string]float64{"暴击": 1.75, "攻击": 1.2, "攻击固定值": 0.12, "共鸣效率": 0.15, "普攻": 0.11, "重击": 0.968}),
 }
 
 func defaultResonatorTemplate() resonatorTemplate {
