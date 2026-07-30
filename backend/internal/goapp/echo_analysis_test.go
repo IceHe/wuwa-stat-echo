@@ -123,6 +123,14 @@ func TestDaniyaTemplateConfigAndUnknownFallback(t *testing.T) {
 		t.Fatalf("unexpected 千咲 template: %+v", chisa)
 	}
 
+	sui, ok := resonatorTemplates["穗穗"]
+	if !ok {
+		t.Fatalf("expected 穗穗 score template")
+	}
+	if sui.EchoMaxScore["4"] != 54.427 || sui.MainstatMaxScore["3C属伤"] != 13.13 || sui.SubstatWeight["生命"] != 1.2 || sui.SubstatWeight["共鸣效率"] != 1 {
+		t.Fatalf("unexpected 穗穗 template: %+v", sui)
+	}
+
 	score := scoreEcho(EchoLog{}, "未配置角色", "3C属伤")
 	if score.Resonator != "通用" {
 		t.Fatalf("expected unknown resonator to fall back to 通用, got %q", score.Resonator)

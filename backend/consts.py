@@ -701,6 +701,25 @@ def init_resonator_templates():
             '重击': 0.9,
         }
     )
+    resonator_templates['穗穗'] = ResonatorTemplate(
+        name='穗穗',
+        echo_max_score={'4': 54.427, '3': 52.478, '1': 58.154},
+        mainstat_max_score={
+            '4C': 10.61,
+            '3C属伤': 7.84 + 5.29,
+            '3C攻击': 7.84 + 5.29,
+            '3C其它': 7.84 + 5.29,
+            '1C': 7.84 + 5.29,
+        },
+        substat_weight={
+            '暴击': 0.1,
+            '暴击伤害': 0.33,
+            '共鸣效率': 1,
+            '共鸣技能': 0.33,
+            '生命': 1.2,
+            '生命固定值': 0.01,
+        }
+    )
     return resonator_templates
 
 

@@ -6,7 +6,7 @@ import type {ResonatorTemplate} from '@/utils/echoScore'
 
 const storageKey = 'wuwa-echo-score-template-config'
 const contextKey = 'wuwa-echo-score-template-context'
-const builtinVersion = 'builtin-2026-07-12'
+const builtinVersion = 'builtin-2026-07-31'
 
 const buildTemplate = (
     name: string,
@@ -284,6 +284,13 @@ const builtinTemplates: Record<string, ResonatorTemplate> = {
         '3C其它': 1.51,
         '1C': 4.56,
     }, {暴击: 1.75, 攻击: 1.2, 攻击固定值: 0.12, 共鸣效率: 0.15, 普攻: 0.11, 重击: 0.968}),
+    穗穗: buildTemplate('穗穗', {4: 54.427, 3: 52.478, 1: 58.154}, {
+        '4C': 10.61,
+        '3C属伤': 7.84 + 5.29,
+        '3C攻击': 7.84 + 5.29,
+        '3C其它': 7.84 + 5.29,
+        '1C': 7.84 + 5.29,
+    }, {暴击: 0.1, 暴击伤害: 0.33, 共鸣效率: 1, 共鸣技能: 0.33, 生命: 1.2, 生命固定值: 0.01}),
 }
 
 type RemoteTemplatePayload = {

@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-const scoreTemplateConfigVersion = "2026-07-12"
+const scoreTemplateConfigVersion = "2026-07-31"
 
 func (a *App) handleGetScoreTemplates(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, success("score templates", map[string]any{
