@@ -127,7 +127,7 @@ func TestDaniyaTemplateConfigAndUnknownFallback(t *testing.T) {
 	if !ok {
 		t.Fatalf("expected 穗穗 score template")
 	}
-	if sui.EchoMaxScore["4"] != 54.427 || sui.MainstatMaxScore["3C属伤"] != 13.13 || sui.SubstatWeight["生命"] != 1.2 || sui.SubstatWeight["共鸣效率"] != 1 {
+	if sui.EchoMaxScore["4"] != 54.427 || sui.MainstatMaxScore["3C属伤"] != 13.13 || sui.SubstatWeight["生命"] != 1.2 || sui.SubstatWeight["共鸣效率"] != 1 || sui.SubstatWeight["攻击"] != 0 || sui.SubstatWeight["攻击固定值"] != 0 {
 		t.Fatalf("unexpected 穗穗 template: %+v", sui)
 	}
 
