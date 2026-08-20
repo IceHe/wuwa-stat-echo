@@ -93,6 +93,7 @@ export const CLASSES: string[] = [
 ]
 
 export const RESONATORS: string[] = [
+    '清霄',
     '穗穗',
     '秧秧玄翎',
     '校长霜渐',

@@ -722,6 +722,27 @@ def init_resonator_templates():
             '生命固定值': 0.01,
         }
     )
+    resonator_templates['清霄'] = ResonatorTemplate(
+        name='清霄',
+        echo_max_score={'4': 83.051, '3': 79.801, '1': 79.1},
+        mainstat_max_score={
+            '4C': 6.62 + 2.25,
+            '3C属伤': 5.63 + 1.56,
+            '3C攻击': 5.63 + 1.56,
+            '3C其它': 1.56,
+            '1C': 6.82,
+        },
+        substat_weight={
+            '暴击': 1.7,
+            '暴击伤害': 1,
+            '攻击': 1.2,
+            '攻击固定值': 0.11,
+            '共鸣效率': 0.2,
+            '重击': 0.77,
+            '普攻': 0.44,
+            '共鸣解放': 0.605,
+        }
+    )
     return resonator_templates
 
 
