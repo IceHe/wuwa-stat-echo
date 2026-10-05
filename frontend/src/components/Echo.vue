@@ -1655,15 +1655,16 @@ export default {
   position: fixed;
   inset: 0;
   z-index: 1000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   background: rgb(15 23 42 / 45%);
 }
 
 .mainstat-picker {
-  width: min(640px, calc(100vw - 32px));
-  max-height: min(620px, calc(100vh - 48px));
+  position: absolute;
+  top: 52px;
+  left: clamp(16px, 4vw, 80px);
+  right: min(25vw, 500px);
+  width: auto;
+  max-height: calc(100vh - 104px);
   overflow-y: auto;
   padding: 24px;
   background: #f8fafc;
@@ -1781,6 +1782,12 @@ export default {
   font-size: 11px;
   font-weight: 700;
   line-height: 1.25;
+}
+
+@media (max-width: 1180px) {
+  .mainstat-picker {
+    right: 16px;
+  }
 }
 
 .substat-row {
