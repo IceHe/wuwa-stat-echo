@@ -3,6 +3,7 @@ import { computed, onMounted } from 'vue'
 import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
 
 import { authState, clearStoredAuthToken, restoreAuthSession } from '@/auth'
+import { isEchoSubstatColorful, toggleEchoSubstatColorMode } from '@/stores/echoColorMode'
 
 
 const route = useRoute()
@@ -10,6 +11,10 @@ const router = useRouter()
 
 const showShell = computed(() => route.name !== 'login')
 const currentUserName = computed(() => authState.user?.name || '已登录')
+const isEchoEditor = computed(() => route.name === 'echo')
+const echoColorModeTitle = computed(() =>
+  isEchoSubstatColorful.value ? '关闭词条彩色配色' : '开启词条彩色配色',
+)
 
 const handleLogout = async () => {
   clearStoredAuthToken()
@@ -40,6 +45,23 @@ onMounted(async () => {
           <RouterLink :to="`/echo-viewer?operator_id=${authState.user?.id || ''}`" target="_blank">实时查看</RouterLink>
         </nav>
         <div class="session">
+          <button
+            v-if="isEchoEditor"
+            type="button"
+            class="substat-color-toggle"
+            :class="{ 'is-active': isEchoSubstatColorful }"
+            :aria-label="echoColorModeTitle"
+            :aria-pressed="isEchoSubstatColorful"
+            :title="echoColorModeTitle"
+            @click="toggleEchoSubstatColorMode"
+          >
+            <span class="substat-color-toggle-swatch" aria-hidden="true">
+              <i></i>
+              <i></i>
+              <i></i>
+              <i></i>
+            </span>
+          </button>
           <span>{{ currentUserName }}</span>
           <button type="button" @click="handleLogout">退出</button>
         </div>
@@ -103,6 +125,53 @@ onMounted(async () => {
   color: #fff;
   background: #23404b;
   cursor: pointer;
+}
+
+.session .substat-color-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 1px solid rgba(35, 64, 75, 0.2);
+  border-radius: 6px;
+  color: #23404b;
+  background: #fff;
+}
+
+.session .substat-color-toggle.is-active {
+  border-color: #246356;
+  background: #e6f6ed;
+}
+
+.substat-color-toggle-swatch {
+  display: grid;
+  grid-template-columns: repeat(2, 7px);
+  gap: 2px;
+}
+
+.substat-color-toggle-swatch i {
+  display: block;
+  width: 7px;
+  height: 7px;
+  border-radius: 2px;
+}
+
+.substat-color-toggle-swatch i:nth-child(1) {
+  background: #ef5350;
+}
+
+.substat-color-toggle-swatch i:nth-child(2) {
+  background: #f2b63d;
+}
+
+.substat-color-toggle-swatch i:nth-child(3) {
+  background: #4eb67c;
+}
+
+.substat-color-toggle-swatch i:nth-child(4) {
+  background: #676cff;
 }
 
 .page {

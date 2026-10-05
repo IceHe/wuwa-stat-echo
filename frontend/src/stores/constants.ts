@@ -52,6 +52,9 @@ export const CLASS_COLORS: Record<string, string> = {
     流云逝尽之空: '#196965',
     剪心辑梦之影: '#5a426a',
     雪落无声之愿: '#7aa7d9',
+    衔梦照世之心: '#b65f9a',
+    镜影流电之瞬: '#5b78c7',
+    茜染怀想之花: '#d9798e',
 }
 
 
@@ -90,10 +93,13 @@ export const CLASSES: string[] = [
     '隐世回光',
     '轻云出月',
     '不绝余音',
+    '衔梦照世之心',
+    '镜影流电之瞬',
+    '茜染怀想之花',
 ]
 
 export const RESONATORS: string[] = [
-    '清霄',
+    '清宵',
     '穗穗',
     '秧秧玄翎',
     '校长霜渐',

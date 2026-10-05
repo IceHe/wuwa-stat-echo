@@ -278,10 +278,7 @@ func scoreEcho(e EchoLog, resonator, cost string) *EchoScore {
 	if cost == "" {
 		cost = "1C"
 	}
-	template, ok := resonatorTemplates[resonator]
-	if !ok {
-		template = defaultResonatorTemplate()
-	}
+	template := scoreTemplateForResonator(resonator)
 	score := &EchoScore{Name: template.Name, Resonator: template.Name}
 	maxScore := template.EchoMaxScore[cost[:1]]
 	if maxScore <= 0 {

@@ -216,10 +216,16 @@
         </div>
       </div>
     </div>
-    <div v-for="substat in SUBSTAT" :key="substat" :style="'display: flex;'">
+    <div
+      v-for="substat in SUBSTAT"
+      :key="substat"
+      class="substat-entry-row"
+      :class="{ 'is-colorful': isEchoSubstatColorful }"
+      :style="getSubstatThemeStyle(substat)"
+    >
       <span class="name substat-name-cell">
         <div class="substat-summary-text">
-          <span class="substat-name-label" :style="`color: ${substat.font_color};`">
+          <span class="substat-name-label" :style="`color: ${getSubstatDisplayColor(substat)};`">
             {{ substat.name.substring(0, 4) }}
           </span>
           <span
@@ -247,7 +253,7 @@
         <div class="button-mini-bar-shell summary-bar-shell name-mini-bar-shell">
           <div
             class="button-mini-bar-fill"
-            :style="getRecentSubstatTotalBarStyle(substat.num, substat.font_color)"
+            :style="getRecentSubstatTotalBarStyle(substat.num, getSubstatDisplayColor(substat))"
           />
         </div>
       </span>
@@ -256,7 +262,7 @@
         v-for="value in SUBSTAT_VALUE_MAP[substat.num]"
         :key="value"
         @click="doTune(value.substat_number, value.value_number)"
-        :style="`color: ${(substat.bitmap & echoLog.substat_all) === 0 ? substat.font_color : '#808080'};`"
+        :style="getStatButtonStyle(substat)"
         :disabled="isTuning || echoLog.pos === 5 || (substat.bitmap & echoLog.substat_all) !== 0"
       >
         <span class="stat-button-label">
@@ -268,13 +274,13 @@
         <div class="button-mini-bar-shell">
           <div
             class="button-mini-bar-fill"
-            :style="getRecentValueBarStyle(substat.num, value.value_number, substat.font_color)"
+            :style="getRecentValueBarStyle(substat.num, value.value_number, getSubstatDisplayColor(substat))"
           />
         </div>
       </button>
       <span
         class="substat-current-position-rate"
-        :style="`color: ${substat.font_color};`"
+        :style="`color: ${getSubstatDisplayColor(substat)};`"
         :title="`${substat.name} 条件出率（当前孔位）：${echoAnalysis.substat_dict?.[substat.num]?.cur_pos_percent || '暂无数据'}。基于历史记录并排除已出现副词条。`"
       >
         {{ echoAnalysis.substat_dict?.[substat.num]?.cur_pos_percent || '' }}
@@ -297,16 +303,13 @@
   </div>
   <div class="target-row">
     <span class="name substat-name-cell">目标词条</span>
-    <div class="target-controls">
+    <div class="target-controls" :class="{ 'is-colorful': isEchoSubstatColorful }">
       <button
         class="target_button"
         v-for="substat in SUBSTAT"
         :key="substat"
         @click="toggleTargetSubstat(substat.bitmap)"
-        :style="
-          (targetSubstatBitmap & substat.bitmap ? 'background-color: yellow;' : '') +
-          `color: ${substat.font_color}`
-        "
+        :style="getTargetSubstatStyle(substat)"
       >
         {{ substat.name.substring(0, 4) }}
       </button>
@@ -429,6 +432,7 @@ import { onMounted, onUnmounted, ref, computed, watch } from 'vue'
 import emitter from '@/stores/eventBus.js'
 import { useRoute, useRouter } from 'vue-router'
 import { authState } from '@/auth'
+import { isEchoSubstatColorful } from '@/stores/echoColorMode'
 
 const MASK = 0b1111111111111
 const SUBSTAT_BIT_WIDTH = 13
@@ -482,6 +486,21 @@ const getTemplateButtonStyle = (color, selected) => ({
   color,
   backgroundColor: selected ? '#fef08a' : '#ffffff',
 })
+const SUBSTAT_COLOR_THEMES = [
+  { color: '#dc3545', surface: '#fff0f2', border: '#ef6471', track: '#ffd0d5' },
+  { color: '#dc3545', surface: '#fff0f2', border: '#ef6471', track: '#ffd0d5' },
+  { color: '#a96400', surface: '#fff9e9', border: '#f2b63d', track: '#fde8ad' },
+  { color: '#15805c', surface: '#effcf6', border: '#55c69a', track: '#c7f2dc' },
+  { color: '#278862', surface: '#edfcf4', border: '#5dcf91', track: '#c8f3dc' },
+  { color: '#a96400', surface: '#fff9e9', border: '#f2b63d', track: '#fde8ad' },
+  { color: '#15805c', surface: '#effcf6', border: '#55c69a', track: '#c7f2dc' },
+  { color: '#278862', surface: '#edfcf4', border: '#5dcf91', track: '#c8f3dc' },
+  { color: '#15805c', surface: '#effcf6', border: '#55c69a', track: '#c7f2dc' },
+  { color: '#5d62e8', surface: '#f1f1ff', border: '#8589ff', track: '#d9dcff' },
+  { color: '#5d62e8', surface: '#f1f1ff', border: '#8589ff', track: '#d9dcff' },
+  { color: '#5d62e8', surface: '#f1f1ff', border: '#8589ff', track: '#d9dcff' },
+  { color: '#5d62e8', surface: '#f1f1ff', border: '#8589ff', track: '#d9dcff' },
+]
 export default {
   name: 'Echo',
   computed: {
@@ -1246,6 +1265,49 @@ export default {
     const getRecentValueCount = (substatNum, valueNum) =>
       recentTuneStats.value.substat_dict?.[substatNum]?.value_dict?.[valueNum]?.total ?? 0
 
+    const getSubstatTheme = (substat) =>
+      SUBSTAT_COLOR_THEMES[substat.num] || {
+        color: substat.font_color,
+        surface: '#ffffff',
+        border: '#d1d5db',
+        track: '#e5e7eb',
+      }
+    const getSubstatDisplayColor = (substat) =>
+      isEchoSubstatColorful.value ? getSubstatTheme(substat).color : substat.font_color
+    const getSubstatThemeStyle = (substat) => {
+      if (!isEchoSubstatColorful.value) {
+        return {}
+      }
+      const theme = getSubstatTheme(substat)
+      return {
+        '--substat-color': theme.color,
+        '--substat-surface': theme.surface,
+        '--substat-border': theme.border,
+        '--substat-track': theme.track,
+      }
+    }
+    const getStatButtonStyle = (substat) => ({
+      color:
+        (substat.bitmap & echoLog.value.substat_all) === 0
+          ? getSubstatDisplayColor(substat)
+          : '#808080',
+    })
+    const getTargetSubstatStyle = (substat) => {
+      const isSelected = (targetSubstatBitmap.value & substat.bitmap) !== 0
+      if (!isEchoSubstatColorful.value) {
+        return {
+          color: substat.font_color,
+          backgroundColor: isSelected ? 'yellow' : '',
+        }
+      }
+      const theme = getSubstatTheme(substat)
+      return {
+        color: theme.color,
+        backgroundColor: isSelected ? theme.track : theme.surface,
+        borderColor: theme.border,
+      }
+    }
+
     const bitPos = (value) => {
       if (!value) {
         return -1
@@ -1410,6 +1472,10 @@ export default {
       getRecentValueCount,
       getPotentialMaxScore,
       getRecentValueBarStyle,
+      getSubstatDisplayColor,
+      getSubstatThemeStyle,
+      getStatButtonStyle,
+      getTargetSubstatStyle,
       getRecentSubstatTotal,
       getRecentDistanceColor,
       getRecentDistanceDisplay,
@@ -1427,6 +1493,7 @@ export default {
       getCostButtonStyle: (cost, selected) =>
         getTemplateButtonStyle(COST_BUTTON_COLORS[cost] || '#475569', selected),
       getSubstatColor,
+      isEchoSubstatColorful,
       toggleTargetSubstat,
       setSubstatSinceDate,
       CLASSES,
@@ -1702,6 +1769,28 @@ export default {
   max-width: 120px;
   height: 40px;
   overflow: hidden;
+}
+
+.substat-entry-row {
+  display: flex;
+}
+
+.substat-entry-row.is-colorful .stat-button {
+  border: 1px solid var(--substat-border);
+  background: var(--substat-surface);
+}
+
+.substat-entry-row.is-colorful .stat-button:disabled {
+  color: #8b95a3 !important;
+  opacity: 0.72;
+}
+
+.substat-entry-row.is-colorful .button-mini-bar-shell {
+  background: var(--substat-track);
+}
+
+.target-controls.is-colorful .target_button {
+  border: 1px solid currentColor;
 }
 
 .stat-button-label {

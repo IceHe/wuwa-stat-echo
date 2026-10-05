@@ -98,10 +98,7 @@ func (a *App) handleAnalyzeEcho(w http.ResponseWriter, r *http.Request) {
 		stats = &TuneStatsResponse{SubstatDict: newSubstatDict(), PositionTotal: make([]int, 5), SubstatPosTotal: make([][]int, 13)}
 	}
 	resonator := r.URL.Query().Get("resonator")
-	template, ok := resonatorTemplates[resonator]
-	if !ok {
-		template = defaultResonatorTemplate()
-	}
+	template := scoreTemplateForResonator(resonator)
 	stats.ResonatorTemplate = &template
 	stats.Score = scoreEcho(payload, resonator, r.URL.Query().Get("cost"))
 	pos := currentPos(payload)

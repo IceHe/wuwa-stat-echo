@@ -722,8 +722,8 @@ def init_resonator_templates():
             '生命固定值': 0.01,
         }
     )
-    resonator_templates['清霄'] = ResonatorTemplate(
-        name='清霄',
+    resonator_templates['清宵'] = ResonatorTemplate(
+        name='清宵',
         echo_max_score={'4': 83.051, '3': 79.801, '1': 79.1},
         mainstat_max_score={
             '4C': 6.62 + 2.25,
@@ -747,3 +747,9 @@ def init_resonator_templates():
 
 
 RESONATOR_TEMPLATES = init_resonator_templates()
+
+
+def get_resonator_template(resonator: str) -> ResonatorTemplate:
+    if resonator == '清霄':
+        resonator = '清宵'
+    return RESONATOR_TEMPLATES[resonator]

@@ -6,7 +6,9 @@ import type {ResonatorTemplate} from '@/utils/echoScore'
 
 const storageKey = 'wuwa-echo-score-template-config'
 const contextKey = 'wuwa-echo-score-template-context'
-const builtinVersion = 'builtin-2026-08-20'
+const builtinVersion = 'builtin-2026-08-23'
+
+const normalizeResonatorName = (resonator: string) => resonator === '清霄' ? '清宵' : resonator
 
 const buildTemplate = (
     name: string,
@@ -291,7 +293,7 @@ const builtinTemplates: Record<string, ResonatorTemplate> = {
         '3C其它': 7.84 + 5.29,
         '1C': 7.84 + 5.29,
     }, {暴击: 0.1, 暴击伤害: 0.33, 攻击: 0, 攻击固定值: 0, 共鸣效率: 1, 共鸣技能: 0.33, 生命: 1.2, 生命固定值: 0.01}),
-    清霄: buildTemplate('清霄', {4: 83.051, 3: 79.801, 1: 79.1}, {
+    清宵: buildTemplate('清宵', {4: 83.051, 3: 79.801, 1: 79.1}, {
         '4C': 6.62 + 2.25,
         '3C属伤': 5.63 + 1.56,
         '3C攻击': 5.63 + 1.56,
@@ -370,6 +372,10 @@ const applyTemplatePayload = (payload: RemoteTemplatePayload | null, source: str
     if (!templates || Object.keys(templates).length === 0) {
         return false
     }
+    if (templates['清霄'] && !templates['清宵']) {
+        templates['清宵'] = {...templates['清霄'], name: '清宵'}
+        delete templates['清霄']
+    }
     scoreTemplateState.templates = templates
     scoreTemplateState.version = payload?.version || builtinVersion
     scoreTemplateState.updatedAt = payload?.updated_at || ''
@@ -386,7 +392,7 @@ const hydrate = () => {
     }
     const storedContext = readContext()
     if (storedContext) {
-        scoreTemplateContext.resonator = storedContext.resonator || ''
+        scoreTemplateContext.resonator = normalizeResonatorName(storedContext.resonator || '')
         scoreTemplateContext.cost = storedContext.cost || ''
     }
 }
@@ -395,7 +401,7 @@ hydrate()
 
 export const setScoreTemplateContext = (payload: { resonator?: string; cost?: string }) => {
     const next = {
-        resonator: typeof payload.resonator === 'string' ? payload.resonator : scoreTemplateContext.resonator,
+        resonator: normalizeResonatorName(typeof payload.resonator === 'string' ? payload.resonator : scoreTemplateContext.resonator),
         cost: typeof payload.cost === 'string' ? payload.cost : scoreTemplateContext.cost,
     }
     scoreTemplateContext.resonator = next.resonator
@@ -404,7 +410,7 @@ export const setScoreTemplateContext = (payload: { resonator?: string; cost?: st
 }
 
 export const getResonatorTemplate = (resonator: string) =>
-    scoreTemplateState.templates[resonator] ||
+    scoreTemplateState.templates[normalizeResonatorName(resonator)] ||
     scoreTemplateState.templates['通用'] ||
     scoreTemplateState.templates[''] ||
     null

@@ -20,10 +20,7 @@ func substatWeight(encoded int64, resonator string) float64 {
 	if num < 0 || num >= len(substatDefs) {
 		return 0
 	}
-	template, ok := resonatorTemplates[resonator]
-	if !ok {
-		template = defaultResonatorTemplate()
-	}
+	template := scoreTemplateForResonator(resonator)
 	return template.SubstatWeight[substatDefs[num].NameCN]
 }
 
@@ -31,10 +28,7 @@ func maxEchoScore(resonator, cost string) float64 {
 	if cost == "" {
 		cost = "1C"
 	}
-	template, ok := resonatorTemplates[resonator]
-	if !ok {
-		template = defaultResonatorTemplate()
-	}
+	template := scoreTemplateForResonator(resonator)
 	if len(cost) == 0 {
 		return 0
 	}
@@ -72,10 +66,7 @@ func scorePercentile(samples []simulatorSample, echo EchoLog, resonator, cost st
 }
 
 func defaultTargetBits(resonator, goal string) int64 {
-	template, ok := resonatorTemplates[resonator]
-	if !ok {
-		template = defaultResonatorTemplate()
-	}
+	template := scoreTemplateForResonator(resonator)
 	type weightedSubstat struct {
 		num    int
 		weight float64

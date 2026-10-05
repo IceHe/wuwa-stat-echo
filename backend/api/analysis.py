@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends
 from sqlmodel import func, Session, select, and_
 
 from auth import require_view_permission
-from consts import SUBSTAT_DICT, RESONATOR_TEMPLATES
+from consts import SUBSTAT_DICT, get_resonator_template
 from custom_types import SubstatItem, SubstatValueStat
 from db import get_session
 from model import SubstatLog, EchoLog
@@ -277,7 +277,7 @@ async def analyze_echo_log(
                         pos_stat.total * 100 / pos_total, 1
                     )) + '%') if show and pos_stat.total > 0 else ''
 
-        resonator_template = RESONATOR_TEMPLATES[resonator]
+        resonator_template = get_resonator_template(resonator)
         tune_stats["score"] = resonator_template.echo_score(echo_log, cost)
         tune_stats["score"].resonator = resonator_template.name
         tune_stats["resonator_template"] = resonator_template

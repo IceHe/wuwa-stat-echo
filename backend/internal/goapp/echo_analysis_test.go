@@ -131,12 +131,15 @@ func TestDaniyaTemplateConfigAndUnknownFallback(t *testing.T) {
 		t.Fatalf("unexpected 穗穗 template: %+v", sui)
 	}
 
-	qingxiao, ok := resonatorTemplates["清霄"]
+	qingxiao, ok := resonatorTemplates["清宵"]
 	if !ok {
-		t.Fatalf("expected 清霄 score template")
+		t.Fatalf("expected 清宵 score template")
 	}
 	if qingxiao.EchoMaxScore["4"] != 83.051 || qingxiao.MainstatMaxScore["1C"] != 6.82 || qingxiao.SubstatWeight["暴击"] != 1.7 || qingxiao.SubstatWeight["重击"] != 0.77 || qingxiao.SubstatWeight["攻击固定值"] != 0.11 {
-		t.Fatalf("unexpected 清霄 template: %+v", qingxiao)
+		t.Fatalf("unexpected 清宵 template: %+v", qingxiao)
+	}
+	if scoreEcho(EchoLog{}, "清霄", "4C").Resonator != "清宵" {
+		t.Fatalf("expected legacy 清霄 alias to resolve to 清宵 template")
 	}
 
 	score := scoreEcho(EchoLog{}, "未配置角色", "3C属伤")
