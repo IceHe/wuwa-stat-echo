@@ -6,7 +6,7 @@ import type {ResonatorTemplate} from '@/utils/echoScore'
 
 const storageKey = 'wuwa-echo-score-template-config'
 const contextKey = 'wuwa-echo-score-template-context'
-const builtinVersion = 'builtin-2026-08-23'
+const builtinVersion = 'builtin-xwuid-2026-09-14'
 
 const normalizeResonatorName = (resonator: string) => resonator === '清霄' ? '清宵' : resonator
 
@@ -305,6 +305,7 @@ const builtinTemplates: Record<string, ResonatorTemplate> = {
 type RemoteTemplatePayload = {
     version?: string
     updated_at?: string
+    templates?: ResonatorTemplate[]
     resonator_templates?: Record<string, ResonatorTemplate>
 }
 
@@ -339,13 +340,13 @@ const readContext = () => {
         return null
     }
     try {
-        return JSON.parse(raw) as { resonator?: string; cost?: string }
+        return JSON.parse(raw) as { resonator?: string; cost?: string; mainstat?: string }
     } catch {
         return null
     }
 }
 
-const writeContext = (payload: { resonator: string; cost: string }) => {
+const writeContext = (payload: { resonator: string; cost: string; mainstat: string }) => {
     if (typeof window === 'undefined') {
         return
     }
@@ -365,11 +366,15 @@ export const scoreTemplateState = reactive({
 export const scoreTemplateContext = reactive({
     resonator: '',
     cost: '',
+    mainstat: '',
 })
 
 const applyTemplatePayload = (payload: RemoteTemplatePayload | null, source: string) => {
-    const templates = payload?.resonator_templates
-    if (!templates || Object.keys(templates).length === 0) {
+    const templateRows = payload?.templates
+    const templates = templateRows?.length
+      ? Object.fromEntries(templateRows.map((template) => [template.name || '', template]))
+      : payload?.resonator_templates
+    if (!templates || Object.keys(templates).filter(Boolean).length === 0) {
         return false
     }
     if (templates['清霄'] && !templates['清宵']) {
@@ -394,18 +399,21 @@ const hydrate = () => {
     if (storedContext) {
         scoreTemplateContext.resonator = normalizeResonatorName(storedContext.resonator || '')
         scoreTemplateContext.cost = storedContext.cost || ''
+        scoreTemplateContext.mainstat = storedContext.mainstat || ''
     }
 }
 
 hydrate()
 
-export const setScoreTemplateContext = (payload: { resonator?: string; cost?: string }) => {
+export const setScoreTemplateContext = (payload: { resonator?: string; cost?: string; mainstat?: string }) => {
     const next = {
         resonator: normalizeResonatorName(typeof payload.resonator === 'string' ? payload.resonator : scoreTemplateContext.resonator),
         cost: typeof payload.cost === 'string' ? payload.cost : scoreTemplateContext.cost,
+        mainstat: typeof payload.mainstat === 'string' ? payload.mainstat : scoreTemplateContext.mainstat,
     }
     scoreTemplateContext.resonator = next.resonator
     scoreTemplateContext.cost = next.cost
+    scoreTemplateContext.mainstat = next.mainstat
     writeContext(next)
 }
 
@@ -414,6 +422,49 @@ export const getResonatorTemplate = (resonator: string) =>
     scoreTemplateState.templates['通用'] ||
     scoreTemplateState.templates[''] ||
     null
+
+export const getScoreTemplateOptions = () =>
+    Object.entries(scoreTemplateState.templates)
+        .filter(([name, template]) => Boolean(name) && Boolean(template?.name))
+        .map(([name, template]) => ({ name, template }))
+
+export const sortScoreTemplateOptions = (
+    options: Array<{ name: string; template: ResonatorTemplate }>,
+) => {
+    // Newest limited characters appear first; permanent and launch characters
+    // are assigned to the separate trailing group below.
+    const releaseOrder = [
+        '心', '锁暝', '景燃', '清宵', '秧秧玄翎', '穗穗', '洛瑟菈', '绯雪', '珂莱塔',
+        '折枝', '弗洛洛', '暗主', '坎特蕾拉', '洛可可', '椿', '长离', '夏空', '西格莉卡',
+        '仇远', '尤诺', '卡提希娅', '风主', '今汐', '相里要', '奥古斯塔', '雷主',
+        '露西', '丽贝卡', '达妮娅', '爱弥斯', '莫宁', '嘉贝莉娜', '露帕', '布兰特',
+        '陆·赫斯', '琳奈', '千咲', '赞妮', '菲比', '守岸人', '灯灯', '光主',
+        '秧秧', '秋水', '忌炎', '鉴心', '吟霖', '卡卡罗', '维里奈', '凌阳', '安可',
+        '桃祈', '丹瑾', '渊武', '莫特斐', '炽霞', '白芷', '散华', '釉瑚',
+    ]
+    const permanentFiveStars = new Set(['维里奈', '卡卡罗', '凌阳', '安可', '鉴心', '吟霖'])
+    const initialFourStars = new Set(['秧秧', '白芷', '炽霞', '散华', '莫特斐', '渊武', '丹瑾', '桃祈'])
+    const releaseIndex = new Map(releaseOrder.map((name, index) => [name, index]))
+    const baseName = (name: string) => {
+        const normalized = name.replace(/（\d+）$/, '')
+        if (normalized.startsWith('洛瑟菈-')) return '洛瑟菈'
+        if (normalized === '秧秧·玄翎') return '秧秧玄翎'
+        if (normalized === '角色') return '角色'
+        return normalized
+    }
+    const rank = (name: string) => {
+        const base = baseName(name)
+        if (permanentFiveStars.has(base) || initialFourStars.has(base)) {
+            return 10000 + (permanentFiveStars.has(base) ? 0 : 1000) + (releaseIndex.get(base) ?? 0)
+        }
+        if (base === '角色') return 20000
+        return releaseIndex.get(base) ?? 5000
+    }
+    return [...options].sort((a, b) => {
+        const rankDiff = rank(a.name) - rank(b.name)
+        return rankDiff || a.name.localeCompare(b.name, 'zh-Hans-CN')
+    })
+}
 
 export const refreshScoreTemplates = async (force = false) => {
     if (scoreTemplateState.loading) {

@@ -35,9 +35,9 @@ func maxEchoScore(resonator, cost string) float64 {
 	return template.EchoMaxScore[cost[:1]]
 }
 
-func scorePercentile(samples []simulatorSample, echo EchoLog, resonator, cost string) float64 {
+func scorePercentile(samples []simulatorSample, echo EchoLog, resonator, cost, mainstat string) float64 {
 	stage := filledSubstatSlots(echo)
-	current := scoreEcho(echo, resonator, cost).SubstatAll
+	current := scoreEcho(echo, resonator, cost, mainstat).SubstatAll
 	if current <= 0 {
 		return 0
 	}
@@ -55,7 +55,7 @@ func scorePercentile(samples []simulatorSample, echo EchoLog, resonator, cost st
 			continue
 		}
 		total++
-		if scoreEcho(item, resonator, cost).SubstatAll <= current {
+		if scoreEcho(item, resonator, cost, mainstat).SubstatAll <= current {
 			lowerOrEqual++
 		}
 	}

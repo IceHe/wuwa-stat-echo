@@ -30,6 +30,8 @@
 - 副词条概率、档位分布、位置分布统计
 - 双暴与目标词条组合分析
 - 基于共鸣者模板的声骸评分
+- 按 Cost 选择合法主词条，并将主词条纳入 XW-UID 兼容评分
+- 评分模板按共鸣者登场顺序排列，并用循环颜色区分相邻模板
 - WebSocket 实时刷新部分统计结果
 
 ## 快速启动
@@ -93,6 +95,10 @@ npm run dev
 这些变量也可以放在 `backend/.env` 中，由后端代码和 `systemd` 服务共同读取。
 
 ## 文档入口
+
+- `AGENTS.md`：每轮修改后的测试、文档、部署与 Git 完成 checklist
+- `docs/score-template-system.md`：评分模板来源、Cost/主词条、排序与颜色规则
+- `docs/change-log.md`：项目变更记录
 
 - `backend/README.md`：后端说明与启动方式
 - `backend/docs/ARCHITECTURE.md`：系统架构与模块划分

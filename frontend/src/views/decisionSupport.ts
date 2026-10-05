@@ -1,4 +1,5 @@
-import { ECHO_COST, RESONATORS, SUBSTAT, SUBSTAT_VALUE_MAP } from '@/stores/constants'
+import { ECHO_COST, getMainstatOptions, SUBSTAT, SUBSTAT_VALUE_MAP } from '@/stores/constants'
+import { getScoreTemplateOptions } from '@/stores/scoreTemplates'
 
 export const WINDOW_OPTIONS = [
   { value: 'all', label: '全量样本' },
@@ -11,7 +12,8 @@ export const WINDOW_OPTIONS = [
 
 export const GOAL_OPTIONS = ['保底', '小毕业', '毕业', '神品']
 export const COST_OPTIONS = ECHO_COST
-export const RESONATOR_OPTIONS = RESONATORS
+export const MAINSTAT_OPTIONS = getMainstatOptions
+export const getResonatorOptions = () => getScoreTemplateOptions().map((item) => item.name)
 
 export const TARGET_PRESETS = [
   { value: 3, label: '双暴' },
@@ -31,6 +33,7 @@ export type DecisionFormState = {
   userId: string
   resonator: string
   cost: string
+  mainstat: string
   goal: string
   trials: number
   window: string
@@ -42,6 +45,7 @@ export const createDefaultDecisionForm = (): DecisionFormState => ({
   userId: '',
   resonator: '弗洛洛',
   cost: '4C',
+  mainstat: '暴击',
   goal: '毕业',
   trials: 5000,
   window: 'all',
@@ -107,6 +111,7 @@ export const applyQueryToDecisionForm = (
   const userId = read('user_id')
   const resonator = read('resonator')
   const cost = read('cost')
+  const mainstat = read('mainstat')
   const goal = read('goal')
   const window = read('window')
   const targetBits = read('target_bits')
@@ -115,6 +120,7 @@ export const applyQueryToDecisionForm = (
   if (userId) form.userId = userId
   if (resonator) form.resonator = resonator
   if (cost) form.cost = cost
+  if (mainstat) form.mainstat = mainstat
   if (goal) form.goal = goal
   if (window) form.window = window
   if (targetBits) form.targetBits = Number(targetBits)
@@ -134,6 +140,7 @@ export const buildDecisionQueryFromEncoded = (input: {
   userId?: number | string
   resonator?: string
   cost?: string
+  mainstat?: string
   goal?: string
   window?: string
   targetBits?: number
@@ -145,6 +152,7 @@ export const buildDecisionQueryFromEncoded = (input: {
   if (input.userId) query.user_id = String(input.userId)
   if (input.resonator) query.resonator = input.resonator
   if (input.cost) query.cost = input.cost
+  if (input.mainstat) query.mainstat = input.mainstat
   if (input.goal) query.goal = input.goal
   if (input.window) query.window = input.window
   if (input.targetBits) query.target_bits = String(input.targetBits)

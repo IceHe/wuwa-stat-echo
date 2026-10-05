@@ -53,7 +53,7 @@ func (a *App) simulateEchoFuture(samples []simulatorSample, req *EchoDecisionReq
 	scoreSum := 0.0
 	for i := 0; i < trials; i++ {
 		final := simulateEchoRollout(samples, req.Echo, steps)
-		finalScore := scoreEcho(final, req.Resonator, req.Cost).SubstatAll
+		finalScore := scoreEcho(final, req.Resonator, req.Cost, req.Mainstat).SubstatAll
 		scoreSum += finalScore
 		bucket := scoreBucket(finalScore, maxScore)
 		buckets[bucket]++

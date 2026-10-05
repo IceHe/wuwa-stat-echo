@@ -16,10 +16,17 @@ type substatDef struct {
 }
 
 type resonatorTemplate struct {
-	Name             string             `json:"name"`
-	EchoMaxScore     map[string]float64 `json:"echo_max_score"`
-	MainstatMaxScore map[string]float64 `json:"mainstat_max_score"`
-	SubstatWeight    map[string]float64 `json:"substat_weight"`
+	ID               string                        `json:"id,omitempty"`
+	Variant          string                        `json:"variant,omitempty"`
+	Name             string                        `json:"name"`
+	SourceName       string                        `json:"source_name,omitempty"`
+	EchoMaxScore     map[string]float64            `json:"echo_max_score"`
+	MainstatMaxScore map[string]float64            `json:"mainstat_max_score"`
+	SubstatWeight    map[string]float64            `json:"substat_weight"`
+	MainProps        map[string]map[string]float64 `json:"main_props,omitempty"`
+	SkillWeight      []float64                     `json:"skill_weight,omitempty"`
+	PropsGrade       [][]float64                   `json:"props_grade,omitempty"`
+	TotalGrade       []float64                     `json:"total_grade,omitempty"`
 }
 
 var substatDefs = []substatDef{
@@ -101,6 +108,24 @@ var resonatorTemplates = map[string]resonatorTemplate{
 	"秧秧玄翎": template("秧秧玄翎", map[string]float64{"4": 86.473, "3": 82.473, "1": 78.923}, map[string]float64{"4C": 6.36 + 2.16, "3C属伤": 5 + 1.51, "3C攻击": 5 + 1.51, "3C其它": 1.51, "1C": 4.56}, map[string]float64{"暴击": 1.75, "攻击": 1.2, "攻击固定值": 0.12, "共鸣效率": 0.15, "普攻": 0.11, "重击": 0.968}),
 	"穗穗":   template("穗穗", map[string]float64{"4": 54.427, "3": 52.478, "1": 58.154}, map[string]float64{"4C": 10.61, "3C属伤": 7.84 + 5.29, "3C攻击": 7.84 + 5.29, "3C其它": 7.84 + 5.29, "1C": 7.84 + 5.29}, map[string]float64{"暴击": 0.1, "暴击伤害": 0.33, "共鸣效率": 1, "共鸣技能": 0.33, "生命": 1.2, "生命固定值": 0.01, "攻击": 0, "攻击固定值": 0}),
 	"清宵":   template("清宵", map[string]float64{"4": 83.051, "3": 79.801, "1": 79.1}, map[string]float64{"4C": 6.62 + 2.25, "3C属伤": 5.63 + 1.56, "3C攻击": 5.63 + 1.56, "3C其它": 1.56, "1C": 6.82}, map[string]float64{"暴击": 1.7, "暴击伤害": 1, "共鸣效率": 0.2, "重击": 0.77, "普攻": 0.44, "共鸣解放": 0.605, "攻击": 1.2, "攻击固定值": 0.11}),
+}
+
+func init() {
+	for _, template := range xwuidTemplates {
+		resonatorTemplates[template.Name] = resonatorTemplate{
+			ID:               template.ID,
+			Variant:          template.Variant,
+			Name:             template.Name,
+			SourceName:       template.SourceName,
+			EchoMaxScore:     map[string]float64{"1": template.ScoreMax[0], "3": template.ScoreMax[1], "4": template.ScoreMax[2]},
+			MainstatMaxScore: map[string]float64{},
+			SubstatWeight:    template.SubProps,
+			MainProps:        template.MainProps,
+			SkillWeight:      template.SkillWeight,
+			PropsGrade:       template.PropsGrade,
+			TotalGrade:       template.TotalGrade,
+		}
+	}
 }
 
 func defaultResonatorTemplate() resonatorTemplate {

@@ -31,13 +31,19 @@
           <label class="field">
             <span>共鸣者</span>
             <select v-model="form.resonator">
-              <option v-for="item in RESONATOR_OPTIONS" :key="item" :value="item">{{ item }}</option>
+              <option v-for="item in getResonatorOptions()" :key="item" :value="item">{{ item }}</option>
             </select>
           </label>
           <label class="field">
             <span>Cost</span>
             <select v-model="form.cost">
               <option v-for="item in COST_OPTIONS" :key="item" :value="item">{{ item }}</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>主词条</span>
+            <select v-model="form.mainstat">
+              <option v-for="item in getMainstatOptions(form.cost)" :key="item" :value="item">{{ item }}</option>
             </select>
           </label>
           <label class="field">
@@ -185,8 +191,9 @@ import { RouterLink, useRoute } from 'vue-router'
 import { API_BASE_URL } from '@/stores/constants'
 import {
   COST_OPTIONS,
+  MAINSTAT_OPTIONS,
   GOAL_OPTIONS,
-  RESONATOR_OPTIONS,
+  getResonatorOptions,
   TARGET_PRESETS,
   WINDOW_OPTIONS,
   applyQueryToDecisionForm,
@@ -228,6 +235,7 @@ const errorMessage = ref('')
 const strategies = ref<StrategyItem[]>([])
 const futureSummary = ref<Summary | null>(null)
 const route = useRoute()
+const getMainstatOptions = MAINSTAT_OPTIONS
 
 const strategyLabel = (value: string) => {
   switch (value) {
@@ -250,6 +258,7 @@ const payload = computed(() => ({
   user_id: Number(form.userId || 0),
   resonator: form.resonator,
   cost: form.cost,
+  mainstat: form.mainstat,
   goal: form.goal,
   target_bits: form.targetBits,
   window: form.window,

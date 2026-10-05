@@ -98,10 +98,10 @@ const addLog = (type: 'info' | 'error' | 'message', message: string) => {
 }
 
 const handleScoreTemplateChanged = (payload: ScoreTemplateChangeEvent) => {
-  const label = payload.field === 'resonator' ? '评分模板' : 'Cost主词条'
+  const label = payload.field === 'resonator' ? '评分模板' : payload.field === 'cost' ? 'Cost' : '主词条'
   const templateName = payload.resonator || '未设置'
   const cost = payload.cost || '未设置'
-  addLog('info', `${label}切换为 ${payload.value}，当前评分上下文: ${templateName} / ${cost}`)
+  addLog('info', `${label}切换为 ${payload.value}，当前评分上下文: ${templateName} / ${cost} / ${payload.mainstat || '未设置'}`)
 }
 
 const applyRemoteScoreTemplateChange = (payload: ScoreTemplateChangeEvent) => {

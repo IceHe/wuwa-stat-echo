@@ -1,8 +1,9 @@
 export type ScoreTemplateChangeEvent = {
-  field: 'resonator' | 'cost'
+  field: 'resonator' | 'cost' | 'mainstat'
   value: string
   resonator: string
   cost: string
+  mainstat: string
 }
 
 const channelName = 'wuwa-echo-score-template-sync'

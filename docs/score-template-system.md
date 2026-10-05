@@ -1,0 +1,39 @@
+# 评分模板系统
+
+## 模板来源
+
+评分模板以 XW-UID 旧版声骸评分逻辑为准。模板数据位于 `backend/xwuid/xwuid_echo_templates.py`，后端使用 `backend/internal/goapp/xwuid_templates_generated.go` 中的 Go 快照。参考项目更新后，使用 `backend/scripts/generate-xwuid-go.py` 重新生成 Go 文件。
+
+当前模板快照包含 68 条角色/模态模板，其中包括：
+
+- `心`
+- `锁暝`
+- 洛瑟菈的霜渐、声骸等模态模板
+
+模板名称展示时会去掉 `-通用` 后缀；特殊模态名称仍保留必要的模态信息。
+
+## Cost 与主词条
+
+录入页先选择 Cost，再选择主词条。合法主词条范围如下：
+
+| Cost | 主词条 |
+| --- | --- |
+| 1C | 生命%、攻击%、防御% |
+| 3C | 共鸣效率、生命%、攻击%、防御%、冷凝/热熔/导电/气动/衍射/湮灭伤害加成 |
+| 4C | 暴击、暴击伤害、治疗效果加成 |
+
+主词条通过 `mainstat` 参数传入分析接口和决策模拟接口。后端按照角色模板的 `main_props` 与对应 Cost 满值计算主词条分，并把主词条分计入声骸总分。
+
+## 排序与颜色
+
+前端评分模板按照共鸣者登场顺序从最新到最早排列；常驻五星和初始四星位于右侧。按钮颜色根据当前排序索引从高区分度调色板循环使用，相邻模板不会使用相近色。颜色用于文字和边框，当前选中项额外使用黄色背景。
+
+## 验证
+
+模板数据变更后至少执行：
+
+```bash
+cd backend && go test ./...
+cd frontend && npm run build
+python3 -m py_compile backend/xwuid/xwuid_echo_templates.py backend/xwuid/xwuid_echo_score.py
+```

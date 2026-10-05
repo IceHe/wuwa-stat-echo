@@ -195,14 +195,16 @@ type SubstatItem struct {
 }
 
 type EchoScore struct {
-	Name       string  `json:"name"`
-	Resonator  string  `json:"resonator,omitempty"`
-	Substat1   float64 `json:"substat1"`
-	Substat2   float64 `json:"substat2"`
-	Substat3   float64 `json:"substat3"`
-	Substat4   float64 `json:"substat4"`
-	Substat5   float64 `json:"substat5"`
-	SubstatAll float64 `json:"substat_all"`
+	Name          string  `json:"name"`
+	Resonator     string  `json:"resonator,omitempty"`
+	Mainstat      string  `json:"mainstat,omitempty"`
+	MainstatScore float64 `json:"mainstat_score,omitempty"`
+	Substat1      float64 `json:"substat1"`
+	Substat2      float64 `json:"substat2"`
+	Substat3      float64 `json:"substat3"`
+	Substat4      float64 `json:"substat4"`
+	Substat5      float64 `json:"substat5"`
+	SubstatAll    float64 `json:"substat_all"`
 }
 
 type TuneStatsResponse struct {

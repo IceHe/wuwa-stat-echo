@@ -5,12 +5,20 @@ import (
 	"time"
 )
 
-const scoreTemplateConfigVersion = "2026-08-23"
+const scoreTemplateConfigVersion = "xwuid-2026-09-14"
 
 func (a *App) handleGetScoreTemplates(w http.ResponseWriter, r *http.Request) {
+	templates := make([]resonatorTemplate, 0, len(xwuidTemplates))
+	for _, template := range xwuidTemplates {
+		converted, ok := resonatorTemplates[template.Name]
+		if ok {
+			templates = append(templates, converted)
+		}
+	}
 	writeJSON(w, success("score templates", map[string]any{
 		"version":             scoreTemplateConfigVersion,
 		"updated_at":          time.Now().UTC().Format(time.RFC3339),
-		"resonator_templates": resonatorTemplates,
+		"templates":           templates,
+		"resonator_templates": xwuidTemplateByKey,
 	}))
 }

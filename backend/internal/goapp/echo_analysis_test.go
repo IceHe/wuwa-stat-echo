@@ -62,15 +62,12 @@ func TestDaniyaTemplateScoreMatchesReferenceTotal(t *testing.T) {
 		Substat5: (1 << 1) | (1 << (1 + substatBitWidth)),  // 暴击伤害 13.8%
 	}
 
-	score := scoreEcho(echo, "达妮娅", "3C属伤")
+	score := scoreEcho(echo, "达妮娅", "3C属伤", "")
 	if score.Resonator != "达妮娅" {
 		t.Fatalf("expected 达妮娅 template, got %q", score.Resonator)
 	}
-	if math.Abs(score.SubstatAll-35.81) > 0.0001 {
-		t.Fatalf("expected raw-sum total 35.81, got %.2f", score.SubstatAll)
-	}
-	if rounded(score.Substat1+score.Substat2+score.Substat3+score.Substat4+score.Substat5+6.85, 2) != 35.82 {
-		t.Fatalf("fixture must distinguish raw total from displayed-component sum")
+	if math.Abs(score.SubstatAll-22.83) > 0.0001 {
+		t.Fatalf("expected XW-UID-compatible substat total 22.83, got %.2f", score.SubstatAll)
 	}
 }
 
@@ -79,7 +76,7 @@ func TestDaniyaTemplateConfigAndUnknownFallback(t *testing.T) {
 	if !ok {
 		t.Fatalf("expected 达妮娅 score template")
 	}
-	if daniya.EchoMaxScore["4"] != 85.939 || daniya.EchoMaxScore["3"] != 83.88 || daniya.SubstatWeight["攻击"] != 1.2 || daniya.SubstatWeight["共鸣解放"] != 0.85 {
+	if daniya.EchoMaxScore["4"] != 85.939 || daniya.EchoMaxScore["3"] != 83.88 || daniya.SubstatWeight["攻击"] != 0.11 || daniya.SubstatWeight["技能伤害加成"] != 0.85 {
 		t.Fatalf("unexpected 达妮娅 template: %+v", daniya)
 	}
 
@@ -87,7 +84,7 @@ func TestDaniyaTemplateConfigAndUnknownFallback(t *testing.T) {
 	if !ok {
 		t.Fatalf("expected 丽贝卡 score template")
 	}
-	if rebecca.EchoMaxScore["4"] != 85.475 || rebecca.SubstatWeight["普攻"] != 0.81 || rebecca.SubstatWeight["共鸣效率"] != 0.25 {
+	if rebecca.EchoMaxScore["4"] != 86.518 || rebecca.SubstatWeight["技能伤害加成"] != 0.9 || rebecca.SubstatWeight["共鸣效率"] != 0.25 {
 		t.Fatalf("unexpected 丽贝卡 template: %+v", rebecca)
 	}
 
@@ -95,7 +92,7 @@ func TestDaniyaTemplateConfigAndUnknownFallback(t *testing.T) {
 	if !ok {
 		t.Fatalf("expected 露西 score template")
 	}
-	if lucy.EchoMaxScore["4"] != 86.518 || lucy.SubstatWeight["重击"] != 0.9 || lucy.MainstatMaxScore["1C"] != 6.44 {
+	if lucy.EchoMaxScore["4"] != 86.518 || lucy.SubstatWeight["技能伤害加成"] != 0.9 || lucy.MainProps["1"]["攻击%"] != 0.6 {
 		t.Fatalf("unexpected 露西 template: %+v", lucy)
 	}
 
@@ -119,7 +116,7 @@ func TestDaniyaTemplateConfigAndUnknownFallback(t *testing.T) {
 	if !ok {
 		t.Fatalf("expected 千咲 score template")
 	}
-	if chisa.EchoMaxScore["1"] != 79.977 || chisa.SubstatWeight["共鸣效率"] != 0.25 || chisa.SubstatWeight["共鸣解放"] != 0.605 {
+	if chisa.EchoMaxScore["1"] != 74.977 || chisa.SubstatWeight["共鸣效率"] != 0.25 || chisa.SubstatWeight["技能伤害加成"] != 1.1 || chisa.SkillWeight[3] != 0.55 {
 		t.Fatalf("unexpected 千咲 template: %+v", chisa)
 	}
 
@@ -127,7 +124,7 @@ func TestDaniyaTemplateConfigAndUnknownFallback(t *testing.T) {
 	if !ok {
 		t.Fatalf("expected 穗穗 score template")
 	}
-	if sui.EchoMaxScore["4"] != 54.427 || sui.MainstatMaxScore["3C属伤"] != 13.13 || sui.SubstatWeight["生命"] != 1.2 || sui.SubstatWeight["共鸣效率"] != 1 || sui.SubstatWeight["攻击"] != 0 || sui.SubstatWeight["攻击固定值"] != 0 {
+	if sui.EchoMaxScore["4"] != 51.991 || sui.MainProps["3"]["属性伤害加成"] != 0.28 || sui.SubstatWeight["生命%"] != 1.2 || sui.SubstatWeight["共鸣效率"] != 1 || sui.SubstatWeight["攻击"] != 0 {
 		t.Fatalf("unexpected 穗穗 template: %+v", sui)
 	}
 
@@ -135,15 +132,35 @@ func TestDaniyaTemplateConfigAndUnknownFallback(t *testing.T) {
 	if !ok {
 		t.Fatalf("expected 清宵 score template")
 	}
-	if qingxiao.EchoMaxScore["4"] != 83.051 || qingxiao.MainstatMaxScore["1C"] != 6.82 || qingxiao.SubstatWeight["暴击"] != 1.7 || qingxiao.SubstatWeight["重击"] != 0.77 || qingxiao.SubstatWeight["攻击固定值"] != 0.11 {
+	if qingxiao.EchoMaxScore["4"] != 87.344 || qingxiao.MainProps["1"]["攻击%"] != 0.6 || qingxiao.SubstatWeight["暴击"] != 2 || qingxiao.SubstatWeight["技能伤害加成"] != 1.1 || qingxiao.SkillWeight[1] != 0.65 {
 		t.Fatalf("unexpected 清宵 template: %+v", qingxiao)
 	}
-	if scoreEcho(EchoLog{}, "清霄", "4C").Resonator != "清宵" {
+	if scoreEcho(EchoLog{}, "清霄", "4C", "暴击").Resonator != "清宵" {
 		t.Fatalf("expected legacy 清霄 alias to resolve to 清宵 template")
 	}
 
-	score := scoreEcho(EchoLog{}, "未配置角色", "3C属伤")
+	score := scoreEcho(EchoLog{}, "未配置角色", "3C属伤", "")
 	if score.Resonator != "通用" {
 		t.Fatalf("expected unknown resonator to fall back to 通用, got %q", score.Resonator)
+	}
+}
+
+func TestXWUIDTemplateCountAndDuplicateNames(t *testing.T) {
+	if len(xwuidTemplates) != 68 {
+		t.Fatalf("expected 68 XW-UID templates, got %d", len(xwuidTemplates))
+	}
+	for _, name := range []string{"雷主", "洛瑟菈-霜渐", "洛瑟菈-声骸", "心", "锁暝"} {
+		if _, ok := resonatorTemplates[name]; !ok {
+			t.Fatalf("expected template %q", name)
+		}
+	}
+}
+
+func TestXWUIDSkillWeightAndPerEntryTruncation(t *testing.T) {
+	template := scoreTemplateForResonator("达妮娅")
+	encoded := int64(1<<12) | int64(1<<(3+substatBitWidth))
+	weighted := substatValueScoreAt(2, encoded, "3C属伤", template) / template.EchoMaxScore["3"] * 50
+	if got := truncateScore(weighted); got != 4.35 {
+		t.Fatalf("expected XW-UID-truncated skill entry 4.35, got %.2f", got)
 	}
 }

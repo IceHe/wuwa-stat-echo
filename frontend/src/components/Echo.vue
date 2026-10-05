@@ -17,16 +17,18 @@
       </button>
       <div class="template-scroll">
         <button
-          v-for="resonator in RESONATORS"
+          v-for="(resonator, index) in scoreTemplateOptions"
           class="button template-button"
-          :style="getResonatorButtonStyle(resonator, scoreTemplate.resonator === resonator)"
-          @click="setResonator(resonator)"
+          :key="resonator.name"
+          :title="resonator.name"
+          :style="getResonatorButtonStyle(scoreTemplate.resonator === resonator.name, index)"
+          @click="setResonator(resonator.name)"
         >
-          {{ resonator }}
+          {{ resonator.name }}
         </button>
       </div>
       <div class="template-cost-group">
-        <button class="button template-cost-label">Cost主词条</button>
+        <button class="button template-cost-label">Cost</button>
         <button
           v-for="cost in ECHO_COST"
           class="button template-cost-button"
@@ -34,6 +36,30 @@
           @click="setCost(cost)"
         >
           {{ cost }}
+        </button>
+        <button class="button template-cost-label">主词条</button>
+        <button
+          class="button template-cost-button template-mainstat-button"
+          :title="scoreTemplate.mainstat || '请选择主词条'"
+          :style="getCostButtonStyle(scoreTemplate.mainstat, Boolean(scoreTemplate.mainstat))"
+          @click="openMainstatPicker"
+        >
+          {{ scoreTemplate.mainstat || '请选择' }}
+        </button>
+      </div>
+    </div>
+
+    <div v-if="mainstatPickerOpen" class="mainstat-picker-backdrop" @click.self="mainstatPickerOpen = false">
+      <div class="mainstat-picker">
+        <div class="mainstat-picker-title">选择 {{ scoreTemplate.cost || 'Cost' }} 主词条</div>
+        <button
+          v-for="mainstat in mainstatOptions"
+          :key="mainstat"
+          class="button mainstat-option"
+          :class="{ selected: scoreTemplate.mainstat === mainstat }"
+          @click="setMainstat(mainstat)"
+        >
+          {{ mainstat }}
         </button>
       </div>
     </div>
@@ -413,6 +439,7 @@ import {
   CLASS_COLORS,
   CLASSES,
   ECHO_COST,
+  getMainstatOptions,
   getSubstatColor,
   RESONATORS,
   SUBSTAT,
@@ -423,6 +450,8 @@ import { publishScoreTemplateChange as publishScoreTemplateCrossTab } from '@/st
 import {
   ensureScoreTemplatesLoaded,
   getResonatorTemplate,
+  getScoreTemplateOptions,
+  sortScoreTemplateOptions,
   refreshScoreTemplates,
   scoreTemplateState,
   setScoreTemplateContext,
@@ -436,45 +465,16 @@ import { isEchoSubstatColorful } from '@/stores/echoColorMode'
 
 const MASK = 0b1111111111111
 const SUBSTAT_BIT_WIDTH = 13
-const RESONATOR_COLOR_PALETTE = [
+const TEMPLATE_COLOR_PALETTE = [
   '#2563eb',
-  '#7c3aed',
-  '#db2777',
   '#ea580c',
-  '#ca8a04',
   '#16a34a',
-  '#0891b2',
-  '#4f46e5',
   '#c026d3',
+  '#0891b2',
   '#dc2626',
-  '#0f766e',
-  '#9333ea',
-  '#0284c7',
-  '#be123c',
-  '#65a30d',
-  '#1d4ed8',
-  '#b45309',
-  '#0d9488',
-  '#7c2d12',
-  '#4338ca',
-  '#15803d',
-  '#9f1239',
-  '#0369a1',
-  '#a16207',
-  '#be185d',
-  '#155e75',
+  '#ca8a04',
+  '#4f46e5',
 ]
-const RESONATOR_BUTTON_COLORS = {
-  ...Object.fromEntries(
-    RESONATORS.map((resonator, index) => [
-      resonator,
-      RESONATOR_COLOR_PALETTE[index % RESONATOR_COLOR_PALETTE.length],
-    ]),
-  ),
-  爱弥斯: '#dc2626',
-  西格莉卡: '#ea580c',
-  达妮娅: '#db2777',
-}
 const COST_BUTTON_COLORS = {
   '4C': '#dc2626',
   '3C属伤': '#7c3aed',
@@ -484,6 +484,8 @@ const COST_BUTTON_COLORS = {
 }
 const getTemplateButtonStyle = (color, selected) => ({
   color,
+  borderColor: color,
+  borderWidth: '2px',
   backgroundColor: selected ? '#fef08a' : '#ffffff',
 })
 const SUBSTAT_COLOR_THEMES = [
@@ -559,6 +561,7 @@ export default {
     const scoreTemplate = ref({
       resonator: route.query.resonator || '',
       cost: route.query.cost || '',
+      mainstat: route.query.mainstat || '',
     })
     setScoreTemplateContext(scoreTemplate.value)
     const normalizeUserId = (userId) => {
@@ -574,6 +577,7 @@ export default {
         value,
         resonator: scoreTemplate.value.resonator || '',
         cost: scoreTemplate.value.cost || '',
+        mainstat: scoreTemplate.value.mainstat || '',
       }
       emitter.emit('scoreTemplateChanged', payload)
       publishScoreTemplateCrossTab(payload)
@@ -588,16 +592,20 @@ export default {
       const nextResonator =
         typeof payload.resonator === 'string' ? payload.resonator : scoreTemplate.value.resonator
       const nextCost = typeof payload.cost === 'string' ? payload.cost : scoreTemplate.value.cost
+      const nextMainstat = typeof payload.mainstat === 'string' ? payload.mainstat : scoreTemplate.value.mainstat
       const resonatorChanged = scoreTemplate.value.resonator !== nextResonator
       const costChanged = scoreTemplate.value.cost !== nextCost
-      if (!resonatorChanged && !costChanged) {
+      const mainstatChanged = scoreTemplate.value.mainstat !== nextMainstat
+      if (!resonatorChanged && !costChanged && !mainstatChanged) {
         return
       }
       updateQueryParam('resonator', nextResonator || undefined)
       updateQueryParam('cost', nextCost || undefined)
+      updateQueryParam('mainstat', nextMainstat || undefined)
       scoreTemplate.value.resonator = nextResonator
       scoreTemplate.value.cost = nextCost
-      setScoreTemplateContext({ resonator: nextResonator, cost: nextCost })
+      scoreTemplate.value.mainstat = nextMainstat
+      setScoreTemplateContext({ resonator: nextResonator, cost: nextCost, mainstat: nextMainstat })
       fetchEchoAnalysis()
     }
     const setResonator = (resonator) => {
@@ -616,8 +624,24 @@ export default {
       }
       updateQueryParam('cost', cost)
       scoreTemplate.value.cost = cost
-      setScoreTemplateContext({ cost })
+      const nextMainstat = getMainstatOptions(cost).includes(scoreTemplate.value.mainstat) ? scoreTemplate.value.mainstat : ''
+      scoreTemplate.value.mainstat = nextMainstat
+      updateQueryParam('mainstat', nextMainstat || undefined)
+      setScoreTemplateContext({ cost, mainstat: nextMainstat })
       publishScoreTemplateChange('cost', cost)
+      fetchEchoAnalysis()
+    }
+    const mainstatPickerOpen = ref(false)
+    const mainstatOptions = computed(() => getMainstatOptions(scoreTemplate.value.cost))
+    const openMainstatPicker = () => {
+      if (scoreTemplate.value.cost) mainstatPickerOpen.value = true
+    }
+    const setMainstat = (mainstat) => {
+      scoreTemplate.value.mainstat = mainstat
+      mainstatPickerOpen.value = false
+      updateQueryParam('mainstat', mainstat)
+      setScoreTemplateContext({ mainstat })
+      publishScoreTemplateChange('mainstat', mainstat)
       fetchEchoAnalysis()
     }
 
@@ -1095,7 +1119,7 @@ export default {
     const fetchEchoAnalysis = () => {
       axios
         .post(
-          `${API_BASE_URL}/analyze_echo?resonator=${scoreTemplate.value.resonator}&cost=${scoreTemplate.value.cost}`,
+          `${API_BASE_URL}/analyze_echo?resonator=${scoreTemplate.value.resonator}&cost=${scoreTemplate.value.cost}&mainstat=${encodeURIComponent(scoreTemplate.value.mainstat)}`,
           {
             ...echoLog.value,
           },
@@ -1342,6 +1366,7 @@ export default {
         echoLog.value,
         getResonatorTemplate(scoreTemplate.value.resonator || ''),
         getCurrentCost(),
+        scoreTemplate.value.mainstat,
       )
 
     const getRecentSubstatTotal = (substatNum) =>
@@ -1419,6 +1444,7 @@ export default {
         userId: normalizeUserId(echoLog.value.user_id || template.value.user_id || 0),
         resonator: scoreTemplate.value.resonator || '',
         cost: scoreTemplate.value.cost || '1C',
+        mainstat: scoreTemplate.value.mainstat || '',
         goal: '毕业',
         window: 'all',
         targetBits: Number(targetSubstatBitmap.value || 3),
@@ -1462,6 +1488,10 @@ export default {
       template,
       setResonator,
       setCost,
+      setMainstat,
+      openMainstatPicker,
+      mainstatPickerOpen,
+      mainstatOptions,
       setPos,
       setClazz,
       setUserId,
@@ -1488,8 +1518,9 @@ export default {
       refreshScoreTemplates,
       openDecisionLab,
       openSimulator,
-      getResonatorButtonStyle: (resonator, selected) =>
-        getTemplateButtonStyle(RESONATOR_BUTTON_COLORS[resonator] || '#475569', selected),
+      scoreTemplateOptions: computed(() => sortScoreTemplateOptions(getScoreTemplateOptions())),
+      getResonatorButtonStyle: (selected, index) =>
+        getTemplateButtonStyle(TEMPLATE_COLOR_PALETTE[index % TEMPLATE_COLOR_PALETTE.length], selected),
       getCostButtonStyle: (cost, selected) =>
         getTemplateButtonStyle(COST_BUTTON_COLORS[cost] || '#475569', selected),
       getSubstatColor,
@@ -1501,6 +1532,7 @@ export default {
       SUBSTAT_VALUE_MAP,
       RESONATORS,
       ECHO_COST,
+      getMainstatOptions,
     }
   },
 }
@@ -1537,6 +1569,7 @@ export default {
   display: flex;
   align-items: flex-start;
   gap: 0;
+  min-height: 132px;
 }
 
 .player-info-row {
@@ -1586,7 +1619,7 @@ export default {
   width: 44px;
   min-width: 44px;
   max-width: 44px;
-  height: 100px;
+  height: 126px;
   color: #334155;
   font-size: medium;
 }
@@ -1606,7 +1639,12 @@ export default {
   width: 44px;
   min-width: 44px;
   max-width: 44px;
-  height: 100px;
+  height: 126px;
+  padding: 8px 3px;
+  line-height: 1.25;
+  white-space: normal;
+  overflow: hidden;
+  overflow-wrap: anywhere;
 }
 
 .template-cost-group {
@@ -1615,11 +1653,42 @@ export default {
   gap: 0;
 }
 
+.mainstat-picker-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgb(15 23 42 / 45%);
+}
+
+.mainstat-picker {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 10px;
+  width: min(560px, calc(100vw - 32px));
+  padding: 18px;
+  background: white;
+  border: 1px solid #94a3b8;
+  border-radius: 8px;
+}
+
+.mainstat-picker-title {
+  grid-column: 1 / -1;
+  font-weight: 700;
+  text-align: center;
+}
+
+.mainstat-option.selected {
+  outline: 3px solid #f59e0b;
+}
+
 .template-cost-label {
   width: 45px;
   min-width: 45px;
   max-width: 45px;
-  height: 100px;
+  height: 126px;
   color: #334155;
   font-size: medium;
 }
@@ -1629,7 +1698,7 @@ export default {
   width: 40px;
   min-width: 40px;
   max-width: 40px;
-  height: 100px;
+  height: 126px;
 }
 
 .substat-row {

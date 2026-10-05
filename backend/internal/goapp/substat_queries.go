@@ -100,7 +100,7 @@ func (a *App) handleAnalyzeEcho(w http.ResponseWriter, r *http.Request) {
 	resonator := r.URL.Query().Get("resonator")
 	template := scoreTemplateForResonator(resonator)
 	stats.ResonatorTemplate = &template
-	stats.Score = scoreEcho(payload, resonator, r.URL.Query().Get("cost"))
+	stats.Score = scoreEcho(payload, resonator, r.URL.Query().Get("cost"), r.URL.Query().Get("mainstat"))
 	pos := currentPos(payload)
 	critCount := bitCount(payload.SubstatAll & 0b11)
 	if pos >= 0 && pos < len(twoCritPercent) && critCount >= 0 && critCount < len(twoCritPercent[pos]) {

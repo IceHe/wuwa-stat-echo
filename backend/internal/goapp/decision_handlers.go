@@ -11,6 +11,7 @@ type EchoDecisionRequest struct {
 	UserID     int64   `json:"user_id,omitempty"`
 	Resonator  string  `json:"resonator"`
 	Cost       string  `json:"cost"`
+	Mainstat   string  `json:"mainstat"`
 	Goal       string  `json:"goal"`
 	TargetBits int64   `json:"target_bits,omitempty"`
 	Trials     int     `json:"trials,omitempty"`
@@ -43,9 +44,9 @@ func (a *App) handleDecisionEchoNextStep(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	currentScore := scoreEcho(req.Echo, req.Resonator, req.Cost).SubstatAll
+	currentScore := scoreEcho(req.Echo, req.Resonator, req.Cost, req.Mainstat).SubstatAll
 	maxScore := maxEchoScore(req.Resonator, req.Cost)
-	percentile := scorePercentile(samples, req.Echo, req.Resonator, req.Cost)
+	percentile := scorePercentile(samples, req.Echo, req.Resonator, req.Cost, req.Mainstat)
 	targetBits := req.TargetBits
 
 	nextProb := a.computeNextGoodRollProbability(samples, req.Echo, req.Resonator, targetBits)
@@ -94,7 +95,7 @@ func (a *App) handleSimulatorEchoCompare(w http.ResponseWriter, r *http.Request)
 		writeJSON(w, appError("failed to load echo samples", 500))
 		return
 	}
-	currentScore := scoreEcho(req.Echo, req.Resonator, req.Cost).SubstatAll
+	currentScore := scoreEcho(req.Echo, req.Resonator, req.Cost, req.Mainstat).SubstatAll
 	targetBitsHit := (req.Echo.SubstatAll & req.TargetBits) == req.TargetBits
 	stopHit := targetBitsHit && currentScore >= goalThreshold(req.Goal, maxEchoScore(req.Resonator, req.Cost))
 	resp := map[string]any{

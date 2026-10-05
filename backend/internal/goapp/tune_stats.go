@@ -3,7 +3,9 @@ package goapp
 import (
 	"context"
 	"fmt"
+	"math"
 	"strconv"
+	"strings"
 )
 
 func newSubstatDict() map[string]*SubstatItem {
@@ -274,32 +276,71 @@ func (a *App) fillCurrentPositionPercent(e EchoLog, stats *TuneStatsResponse) *T
 	return out
 }
 
-func scoreEcho(e EchoLog, resonator, cost string) *EchoScore {
+func scoreEcho(e EchoLog, resonator, cost, mainstat string) *EchoScore {
 	if cost == "" {
 		cost = "1C"
 	}
 	template := scoreTemplateForResonator(resonator)
-	score := &EchoScore{Name: template.Name, Resonator: template.Name}
+	score := &EchoScore{Name: template.Name, Resonator: template.Name, Mainstat: mainstat}
 	maxScore := template.EchoMaxScore[cost[:1]]
 	if maxScore <= 0 {
 		return score
 	}
+	mainstatValues := map[string]float64{
+		"1C:生命%": 22.8, "1C:攻击%": 18, "1C:防御%": 22.8,
+		"3C:共鸣效率": 32, "3C:生命%": 30, "3C:攻击%": 30, "3C:防御%": 38,
+		"3C:冷凝伤害加成": 30, "3C:热熔伤害加成": 30, "3C:导电伤害加成": 30, "3C:气动伤害加成": 30, "3C:衍射伤害加成": 30, "3C:湮灭伤害加成": 30,
+		"4C:暴击": 22, "4C:暴击伤害": 44, "4C:治疗效果加成": 26,
+	}
+	baseCost := cost[:1]
+	if value := mainstatValues[baseCost+"C:"+mainstat]; value > 0 {
+		propName := xwuidMainPropertyName(mainstat)
+		weight := template.MainProps[baseCost][propName]
+		score.MainstatScore = truncateScore(value * weight / maxScore * 50)
+	}
 	fields := []*float64{&score.Substat1, &score.Substat2, &score.Substat3, &score.Substat4, &score.Substat5}
 	substats := []int64{e.Substat1, e.Substat2, e.Substat3, e.Substat4, e.Substat5}
-	rawTotal := 0.0
+	rawTotal := score.MainstatScore
 	for i, substat := range substats {
 		if substat == 0 {
 			continue
 		}
-		value := substatValueScore(substat, template) / maxScore * 50
-		*fields[i] = rounded(value, 2)
-		rawTotal += value
+		// The editor stores only rolled substats; XW-UID's first two properties
+		// are selectable and fixed main stats, so these entries start at index 2.
+		value := substatValueScoreAt(i+2, substat, cost, template) / maxScore * 50
+		*fields[i] = truncateScore(value)
+		rawTotal += *fields[i]
 	}
-	score.SubstatAll = rounded(template.MainstatMaxScore[cost]+rawTotal, 2)
+	score.SubstatAll = rounded(rawTotal, 2)
 	return score
 }
 
-func substatValueScore(substat int64, template resonatorTemplate) float64 {
+func truncateScore(value float64) float64 {
+	return math.Trunc((value+1e-12)*100) / 100
+}
+
+var xwuidSkillWeightIndex = map[string]int{
+	"普攻":   0,
+	"重击":   1,
+	"共鸣技能": 2,
+	"共鸣解放": 3,
+}
+
+var xwuidSkillPropertyName = map[string]string{
+	"普攻":   "普攻伤害加成",
+	"重击":   "重击伤害加成",
+	"共鸣技能": "共鸣技能伤害加成",
+	"共鸣解放": "共鸣解放伤害加成",
+}
+
+func xwuidMainPropertyName(name string) string {
+	if strings.HasSuffix(name, "伤害加成") && strings.Contains(name, "伤害") {
+		return "属性伤害加成"
+	}
+	return name
+}
+
+func substatValueScoreAt(index int, substat int64, cost string, template resonatorTemplate) float64 {
 	substatNum := bitPos(substat)
 	if substatNum < 0 || substatNum >= len(substatDefs) {
 		return 0
@@ -310,5 +351,19 @@ func substatValueScore(substat int64, template resonatorTemplate) float64 {
 	}
 	def := substatDefs[substatNum]
 	value := def.Values[valueNum].Value
-	return template.SubstatWeight[def.NameCN] * value
+	weight := 0.0
+	if index < 2 {
+		weight = template.MainProps[cost[:1]][xwuidMainPropertyName(def.NameCN)]
+	} else if skillIndex, ok := xwuidSkillWeightIndex[def.NameCN]; ok {
+		weight = template.SubstatWeight["技能伤害加成"]
+		if weight == 0 {
+			weight = template.SubstatWeight[xwuidSkillPropertyName[def.NameCN]]
+		}
+		if skillIndex < len(template.SkillWeight) {
+			weight *= template.SkillWeight[skillIndex]
+		}
+	} else {
+		weight = template.SubstatWeight[def.NameCN]
+	}
+	return weight * value
 }

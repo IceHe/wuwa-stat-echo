@@ -59,6 +59,9 @@ export const CLASS_COLORS: Record<string, string> = {
 
 
 export const CLASSES: string[] = [
+    '衔梦照世之心',
+    '镜影流电之瞬',
+    '茜染怀想之花',
     '冥途夜行之灯',
     '清邪荡煞之心',
     '羽落空尘之歌',
@@ -93,9 +96,6 @@ export const CLASSES: string[] = [
     '隐世回光',
     '轻云出月',
     '不绝余音',
-    '衔梦照世之心',
-    '镜影流电之瞬',
-    '茜染怀想之花',
 ]
 
 export const RESONATORS: string[] = [
@@ -315,10 +315,15 @@ export const SUBSTAT_VALUE_MAP: Record<number, SubstatValue[]> = {
     ],
 }
 
-export const ECHO_COST: string[] = [
-    '4C',
-    '3C属伤',
-    '3C攻击',
-    '3C其它',
-    '1C',
-]
+export const ECHO_COST: string[] = ['4C', '3C', '1C']
+
+export const MAINSTAT_OPTIONS_BY_COST: Record<string, string[]> = {
+    '1C': ['生命%', '攻击%', '防御%'],
+    '3C': ['共鸣效率', '生命%', '攻击%', '防御%', '冷凝伤害加成', '热熔伤害加成', '导电伤害加成', '气动伤害加成', '衍射伤害加成', '湮灭伤害加成'],
+    '4C': ['暴击', '暴击伤害', '治疗效果加成'],
+}
+
+export const getMainstatOptions = (cost: string) => {
+    const normalizedCost = String(cost || '').startsWith('3C') ? '3C' : String(cost || '')
+    return MAINSTAT_OPTIONS_BY_COST[normalizedCost] || []
+}
