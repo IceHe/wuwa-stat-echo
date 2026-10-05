@@ -35,32 +35,32 @@
           :style="getCostButtonStyle(cost, scoreTemplate.cost === cost)"
           @click="setCost(cost)"
         >
-          {{ cost }}
-        </button>
-        <button class="button template-cost-label">主词条</button>
-        <button
-          class="button template-cost-button template-mainstat-button"
-          :title="scoreTemplate.mainstat || '请选择主词条'"
-          :style="getCostButtonStyle(scoreTemplate.mainstat, Boolean(scoreTemplate.mainstat))"
-          @click="openMainstatPicker"
-        >
-          {{ scoreTemplate.mainstat || '请选择' }}
+          <span>{{ cost }}</span>
+          <span class="template-cost-mainstat">{{ scoreTemplate.cost === cost ? (scoreTemplate.mainstat || '选主词条') : '点击选择' }}</span>
         </button>
       </div>
     </div>
 
     <div v-if="mainstatPickerOpen" class="mainstat-picker-backdrop" @click.self="mainstatPickerOpen = false">
       <div class="mainstat-picker">
-        <div class="mainstat-picker-title">选择 {{ scoreTemplate.cost || 'Cost' }} 主词条</div>
-        <button
-          v-for="mainstat in mainstatOptions"
-          :key="mainstat"
-          class="button mainstat-option"
-          :class="{ selected: scoreTemplate.mainstat === mainstat }"
-          @click="setMainstat(mainstat)"
-        >
-          {{ mainstat }}
-        </button>
+        <div class="mainstat-picker-header">
+          <div>
+            <div class="mainstat-picker-eyebrow">Cost {{ scoreTemplate.cost }}</div>
+            <div class="mainstat-picker-title">选择主词条</div>
+          </div>
+          <button class="mainstat-picker-close" type="button" title="关闭" @click="mainstatPickerOpen = false">×</button>
+        </div>
+        <div class="mainstat-picker-grid">
+          <button
+            v-for="mainstat in mainstatOptions"
+            :key="mainstat"
+            class="mainstat-option"
+            :class="{ selected: scoreTemplate.mainstat === mainstat }"
+            @click="setMainstat(mainstat)"
+          >
+            {{ mainstat }}
+          </button>
+        </div>
       </div>
     </div>
 
@@ -620,6 +620,7 @@ export default {
     }
     const setCost = (cost) => {
       if (scoreTemplate.value.cost === cost) {
+        mainstatPickerOpen.value = true
         return
       }
       updateQueryParam('cost', cost)
@@ -629,13 +630,11 @@ export default {
       updateQueryParam('mainstat', nextMainstat || undefined)
       setScoreTemplateContext({ cost, mainstat: nextMainstat })
       publishScoreTemplateChange('cost', cost)
+      mainstatPickerOpen.value = true
       fetchEchoAnalysis()
     }
     const mainstatPickerOpen = ref(false)
     const mainstatOptions = computed(() => getMainstatOptions(scoreTemplate.value.cost))
-    const openMainstatPicker = () => {
-      if (scoreTemplate.value.cost) mainstatPickerOpen.value = true
-    }
     const setMainstat = (mainstat) => {
       scoreTemplate.value.mainstat = mainstat
       mainstatPickerOpen.value = false
@@ -1489,7 +1488,6 @@ export default {
       setResonator,
       setCost,
       setMainstat,
-      openMainstatPicker,
       mainstatPickerOpen,
       mainstatOptions,
       setPos,
@@ -1664,24 +1662,92 @@ export default {
 }
 
 .mainstat-picker {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
-  gap: 10px;
-  width: min(560px, calc(100vw - 32px));
-  padding: 18px;
-  background: white;
-  border: 1px solid #94a3b8;
-  border-radius: 8px;
+  width: min(640px, calc(100vw - 32px));
+  max-height: min(620px, calc(100vh - 48px));
+  overflow-y: auto;
+  padding: 24px;
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 14px;
+  box-shadow: 0 24px 70px rgb(15 23 42 / 28%);
+}
+
+.mainstat-picker-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.mainstat-picker-eyebrow {
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .mainstat-picker-title {
-  grid-column: 1 / -1;
+  margin-top: 4px;
+  color: #0f172a;
+  font-size: 24px;
+  font-weight: 800;
+}
+
+.mainstat-picker-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 1px solid #cbd5e1;
+  border-radius: 50%;
+  background: #ffffff;
+  color: #475569;
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.mainstat-picker-close:hover {
+  border-color: #64748b;
+  color: #0f172a;
+}
+
+.mainstat-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+  gap: 12px;
+}
+
+.mainstat-option {
+  min-height: 72px;
+  padding: 12px 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #1e293b;
+  font-size: 16px;
   font-weight: 700;
-  text-align: center;
+  line-height: 1.35;
+  cursor: pointer;
+  transition: border-color 120ms ease, background-color 120ms ease, box-shadow 120ms ease, transform 120ms ease;
+}
+
+.mainstat-option:hover {
+  border-color: #2563eb;
+  background: #eff6ff;
+  box-shadow: 0 5px 14px rgb(37 99 235 / 14%);
+  transform: translateY(-1px);
 }
 
 .mainstat-option.selected {
-  outline: 3px solid #f59e0b;
+  border-color: #2563eb;
+  background: #dbeafe;
+  box-shadow: inset 0 0 0 2px #2563eb;
+  color: #1d4ed8;
 }
 
 .template-cost-label {
@@ -1694,11 +1760,27 @@ export default {
 }
 
 .template-cost-button {
-  flex: 0 0 40px;
-  width: 40px;
-  min-width: 40px;
-  max-width: 40px;
+  display: flex;
+  flex: 0 0 58px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 58px;
+  min-width: 58px;
+  max-width: 58px;
   height: 126px;
+  gap: 8px;
+  padding: 8px 4px;
+  line-height: 1.1;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.template-cost-mainstat {
+  color: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.25;
 }
 
 .substat-row {
