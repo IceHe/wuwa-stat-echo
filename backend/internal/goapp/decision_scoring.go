@@ -21,7 +21,7 @@ func substatWeight(encoded int64, resonator string) float64 {
 		return 0
 	}
 	template := scoreTemplateForResonator(resonator)
-	return template.SubstatWeight[substatDefs[num].NameCN]
+	return substatWeightForTemplate(template, substatDefs[num].NameCN)
 }
 
 func maxEchoScore(resonator, cost string) float64 {
@@ -75,7 +75,7 @@ func defaultTargetBits(resonator, goal string) int64 {
 	for _, def := range substatDefs {
 		weights = append(weights, weightedSubstat{
 			num:    def.Number,
-			weight: template.SubstatWeight[def.NameCN],
+			weight: substatWeightForTemplate(template, def.NameCN),
 		})
 	}
 	slices.SortFunc(weights, func(a, b weightedSubstat) int {

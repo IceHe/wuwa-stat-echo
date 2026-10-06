@@ -6,7 +6,7 @@ import type {ResonatorTemplate} from '@/utils/echoScore'
 
 const storageKey = 'wuwa-echo-score-template-config'
 const contextKey = 'wuwa-echo-score-template-context'
-const builtinVersion = 'builtin-xwuid-2026-09-14-compat-2026-10-06'
+const builtinVersion = 'builtin-xwuid-2026-09-14-compat-2026-10-06-v2'
 
 const normalizeResonatorName = (resonator: string) => resonator === '清霄' ? '清宵' : resonator
 

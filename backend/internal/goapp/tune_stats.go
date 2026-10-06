@@ -363,7 +363,7 @@ func substatValueScoreAt(index int, substat int64, cost string, template resonat
 			weight *= template.SkillWeight[skillIndex]
 		}
 	} else {
-		weight = template.SubstatWeight[def.NameCN]
+		weight = substatWeightForTemplate(template, def.NameCN)
 	}
 	return weight * value
 }

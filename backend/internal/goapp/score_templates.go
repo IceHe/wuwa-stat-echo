@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-const scoreTemplateConfigVersion = "xwuid-2026-09-14-compat-2026-10-06"
+const scoreTemplateConfigVersion = "xwuid-2026-09-14-compat-2026-10-06-v2"
 
 func (a *App) handleGetScoreTemplates(w http.ResponseWriter, r *http.Request) {
 	templates := make([]resonatorTemplate, 0, len(xwuidTemplates))

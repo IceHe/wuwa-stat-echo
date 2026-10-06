@@ -66,8 +66,8 @@ func TestDaniyaTemplateScoreMatchesReferenceTotal(t *testing.T) {
 	if score.Resonator != "达妮娅" {
 		t.Fatalf("expected 达妮娅 template, got %q", score.Resonator)
 	}
-	if math.Abs(score.SubstatAll-22.83) > 0.0001 {
-		t.Fatalf("expected XW-UID-compatible substat total 22.83, got %.2f", score.SubstatAll)
+	if math.Abs(score.SubstatAll-28.94) > 0.0001 {
+		t.Fatalf("expected XW-UID-compatible substat total 28.94, got %.2f", score.SubstatAll)
 	}
 }
 
@@ -146,11 +146,15 @@ func TestDaniyaTemplateConfigAndUnknownFallback(t *testing.T) {
 }
 
 func TestRebeccaFixedAttackSubstatScore(t *testing.T) {
+	// 攻击 11.6%: substat number 2, value number 7.
 	// 攻击固定值 60: substat number 5, value number 3.
-	echo := EchoLog{Substat1: (1 << 5) | (1 << (3 + substatBitWidth))}
+	echo := EchoLog{
+		Substat1: (1 << 2) | (1 << (7 + substatBitWidth)),
+		Substat2: (1 << 5) | (1 << (3 + substatBitWidth)),
+	}
 	score := scoreEcho(echo, "丽贝卡", "4C", "")
-	if score.Substat1 != 3.81 || score.SubstatAll != 3.81 {
-		t.Fatalf("expected 丽贝卡 攻击固定值 60 to score 3.81, got entry=%.2f total=%.2f", score.Substat1, score.SubstatAll)
+	if score.Substat1 != 8.04 || score.Substat2 != 3.81 || score.SubstatAll != 11.85 {
+		t.Fatalf("expected 丽贝卡 攻击 11.6%% + 攻击固定值 60 to score 8.04 + 3.81 = 11.85, got %.2f + %.2f = %.2f", score.Substat1, score.Substat2, score.SubstatAll)
 	}
 }
 

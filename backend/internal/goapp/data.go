@@ -145,6 +145,34 @@ func xwuidSubstatWeight(name string, weights map[string]float64) map[string]floa
 	return merged
 }
 
+func xwuidSubstatName(name string) string {
+	switch name {
+	case "攻击":
+		return "攻击%"
+	case "攻击固定值":
+		return "攻击"
+	case "防御":
+		return "防御%"
+	case "防御固定值":
+		return "防御"
+	case "生命":
+		return "生命%"
+	case "生命固定值":
+		return "生命"
+	default:
+		return name
+	}
+}
+
+func substatWeightForTemplate(template resonatorTemplate, name string) float64 {
+	// XW-UID distinguishes percentage and fixed stats by suffix. Older local
+	// templates used the editor names directly, so retain that fallback.
+	if _, ok := template.SubstatWeight["攻击%"]; ok {
+		name = xwuidSubstatName(name)
+	}
+	return template.SubstatWeight[name]
+}
+
 func defaultResonatorTemplate() resonatorTemplate {
 	return template("通用", map[string]float64{"4": 80, "3": 80, "1": 80}, map[string]float64{"4C": 8.86, "3C属伤": 6.78, "3C攻击": 6.73, "3C其它": 1.57, "1C": 4.76}, map[string]float64{"共鸣效率": 0.3, "普攻": 0.05, "重击": 0.05, "共鸣技能": 0.05, "共鸣解放": 0.05})
 }

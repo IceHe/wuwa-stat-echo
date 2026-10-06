@@ -60,6 +60,18 @@ const truncateScore = (value: number) => Math.trunc((value + 1e-12) * 100) / 100
 const getXwuidPropertyName = (name: string) =>
   name.endsWith('伤害加成') ? '属性伤害加成' : name
 
+const getXwuidSubstatName = (name: string) => {
+  switch (name) {
+    case '攻击': return '攻击%'
+    case '攻击固定值': return '攻击'
+    case '防御': return '防御%'
+    case '防御固定值': return '防御'
+    case '生命': return '生命%'
+    case '生命固定值': return '生命'
+    default: return name
+  }
+}
+
 const getSubstatNumericValue = (substatNum: number, valueNum: number) => {
   const desc = SUBSTAT_VALUE_MAP[substatNum]?.[valueNum]?.desc ?? '0'
   return Number.parseFloat(String(desc).replace('%', '')) || 0
@@ -106,7 +118,11 @@ const getSubstatWeight = (template: ResonatorTemplate, substatNum: number) => {
     const skillWeight = Number(template.skill_weight?.[skillWeightIndex[fullName]] ?? 0)
     return genericWeight * skillWeight
   }
-  return Number(template.substat_weight?.[fullName] ?? 0)
+  const weights = template.substat_weight || {}
+  const name = Object.prototype.hasOwnProperty.call(weights, '攻击%')
+    ? getXwuidSubstatName(fullName)
+    : fullName
+  return Number(weights[name] ?? 0)
 }
 
 const getScaledSubstatScore = (template: ResonatorTemplate, cost: string, substatNum: number, valueNum: number) => {
