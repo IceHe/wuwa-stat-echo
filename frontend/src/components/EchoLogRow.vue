@@ -181,6 +181,7 @@ export default {
         this.echoLog,
         getResonatorTemplate(scoreTemplateContext.resonator || ''),
         scoreTemplateContext.cost || '1C',
+        scoreTemplateContext.mainstat || '',
       )
     },
     theoreticalMaxScore() {
@@ -188,6 +189,7 @@ export default {
         this.echoLog,
         getResonatorTemplate(scoreTemplateContext.resonator || ''),
         scoreTemplateContext.cost || '1C',
+        scoreTemplateContext.mainstat || '',
       )
     },
     echo() {

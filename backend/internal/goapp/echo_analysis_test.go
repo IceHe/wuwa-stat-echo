@@ -158,6 +158,32 @@ func TestRebeccaFixedAttackSubstatScore(t *testing.T) {
 	}
 }
 
+func TestMainstatScoresUseLevel25Values(t *testing.T) {
+	tests := []struct {
+		name          string
+		resonator     string
+		cost          string
+		mainstat      string
+		mainstatScore float64
+		fixedScore    float64
+		total         float64
+	}{
+		{name: "丽贝卡 1C 攻击%", resonator: "丽贝卡", cost: "1C", mainstat: "攻击%", mainstatScore: 6.44, fixedScore: 0, total: 6.44},
+		{name: "丽贝卡 3C 导电伤害加成", resonator: "丽贝卡", cost: "3C属伤", mainstat: "导电伤害加成", mainstatScore: 5.32, fixedScore: 1.47, total: 6.79},
+		{name: "丽贝卡 4C 暴击", resonator: "丽贝卡", cost: "4C", mainstat: "暴击", mainstatScore: 6.10, fixedScore: 1.73, total: 7.83},
+		{name: "白芷 1C 生命%", resonator: "白芷", cost: "1C", mainstat: "生命%", mainstatScore: 9.01, fixedScore: 6.76, total: 15.77},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			score := scoreEcho(EchoLog{}, test.resonator, test.cost, test.mainstat)
+			if score.MainstatScore != test.mainstatScore || score.MainstatScore2 != test.fixedScore || score.SubstatAll != test.total {
+				t.Fatalf("expected main stats %.2f + %.2f = %.2f, got %.2f + %.2f = %.2f", test.mainstatScore, test.fixedScore, test.total, score.MainstatScore, score.MainstatScore2, score.SubstatAll)
+			}
+		})
+	}
+}
+
 func TestXWUIDTemplateCountAndDuplicateNames(t *testing.T) {
 	if len(xwuidTemplates) != 68 {
 		t.Fatalf("expected 68 XW-UID templates, got %d", len(xwuidTemplates))

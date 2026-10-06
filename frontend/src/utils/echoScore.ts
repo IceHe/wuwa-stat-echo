@@ -102,14 +102,37 @@ const MAINSTAT_VALUES: Record<string, number> = {
   '4C:治疗效果加成': 26,
 }
 
+const FIXED_MAINSTAT_VALUES: Record<string, { name: string; value: number }> = {
+  '1C': { name: '生命', value: 2280 },
+  '3C': { name: '攻击', value: 100 },
+  '4C': { name: '攻击', value: 150 },
+}
+
+const normalizeMainstatCost = (cost: string) =>
+  String(cost || '1C').startsWith('3C') ? '3C' : String(cost || '1C')
+
 const getMainstatScore = (template: ResonatorTemplate, cost: string, mainstat: string) => {
-  const normalizedCost = String(cost || '1C').startsWith('3C') ? '3C' : String(cost || '1C')
+  const normalizedCost = normalizeMainstatCost(cost)
   if (!getMainstatOptions(normalizedCost).includes(mainstat)) return 0
   const value = MAINSTAT_VALUES[`${normalizedCost}:${mainstat}`] || 0
   const propName = mainstat.endsWith('伤害加成') ? '属性伤害加成' : mainstat
   const weight = Number(template.main_props?.[normalizedCost.slice(0, 1)]?.[propName] ?? 0)
-  return truncateScore(value * weight / Number(template.echo_max_score?.[normalizedCost.slice(0, 1)] || 0) * 50)
+  const maxScore = getEchoMaxScoreBase(template, normalizedCost)
+  return maxScore > 0 ? truncateScore(value * weight / maxScore * 50) : 0
 }
+
+const getFixedMainstatScore = (template: ResonatorTemplate, cost: string, mainstat: string) => {
+  const normalizedCost = normalizeMainstatCost(cost)
+  if (!getMainstatOptions(normalizedCost).includes(mainstat)) return 0
+  const fixedMainstat = FIXED_MAINSTAT_VALUES[normalizedCost]
+  const maxScore = getEchoMaxScoreBase(template, normalizedCost)
+  if (!fixedMainstat || maxScore <= 0) return 0
+  const weight = Number(template.main_props?.[normalizedCost.slice(0, 1)]?.[fixedMainstat.name] ?? 0)
+  return truncateScore(fixedMainstat.value * weight / maxScore * 50)
+}
+
+const getMainstatTotalScore = (template: ResonatorTemplate, cost: string, mainstat: string) =>
+  getMainstatScore(template, cost, mainstat) + getFixedMainstatScore(template, cost, mainstat)
 
 const getSubstatWeight = (template: ResonatorTemplate, substatNum: number) => {
   const fullName = getSubstatFullName(substatNum)
@@ -145,7 +168,7 @@ export const calculateEchoPotentialMaxScore = (
     return 0
   }
   const selectedSubstats = getSelectedSubstats(echoLog)
-  const currentTotal = getMainstatScore(template, cost, mainstat) + selectedSubstats.reduce((total, substatBits) => {
+  const currentTotal = getMainstatTotalScore(template, cost, mainstat) + selectedSubstats.reduce((total, substatBits) => {
     const substatNum = bitPos(substatBits & MASK)
     const valueNum = bitPos(substatBits >> SUBSTAT_BIT_WIDTH)
     if (substatNum < 0 || valueNum < 0) {
@@ -185,7 +208,7 @@ export const calculateEchoCurrentScore = (
     return 0
   }
   const selectedSubstats = getSelectedSubstats(echoLog)
-  const currentTotal = getMainstatScore(template, cost, mainstat) + selectedSubstats.reduce((total, substatBits) => {
+  const currentTotal = getMainstatTotalScore(template, cost, mainstat) + selectedSubstats.reduce((total, substatBits) => {
     const substatNum = bitPos(substatBits & MASK)
     const valueNum = bitPos(substatBits >> SUBSTAT_BIT_WIDTH)
     if (substatNum < 0 || valueNum < 0) {

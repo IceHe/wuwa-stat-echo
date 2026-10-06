@@ -8,6 +8,36 @@ import (
 	"strings"
 )
 
+var maxMainstatValues = map[string]float64{
+	"1C:生命%":    22.8,
+	"1C:攻击%":    18,
+	"1C:防御%":    22.8,
+	"3C:共鸣效率":   32,
+	"3C:生命%":    30,
+	"3C:攻击%":    30,
+	"3C:防御%":    38,
+	"3C:冷凝伤害加成": 30,
+	"3C:热熔伤害加成": 30,
+	"3C:导电伤害加成": 30,
+	"3C:气动伤害加成": 30,
+	"3C:衍射伤害加成": 30,
+	"3C:湮灭伤害加成": 30,
+	"4C:暴击":     22,
+	"4C:暴击伤害":   44,
+	"4C:治疗效果加成": 26,
+}
+
+type fixedMainstat struct {
+	Name  string
+	Value float64
+}
+
+var fixedMainstatsByCost = map[string]fixedMainstat{
+	"1": {Name: "生命", Value: 2280},
+	"3": {Name: "攻击", Value: 100},
+	"4": {Name: "攻击", Value: 150},
+}
+
 func newSubstatDict() map[string]*SubstatItem {
 	out := make(map[string]*SubstatItem, len(substatDefs))
 	for _, def := range substatDefs {
@@ -286,21 +316,22 @@ func scoreEcho(e EchoLog, resonator, cost, mainstat string) *EchoScore {
 	if maxScore <= 0 {
 		return score
 	}
-	mainstatValues := map[string]float64{
-		"1C:生命%": 22.8, "1C:攻击%": 18, "1C:防御%": 22.8,
-		"3C:共鸣效率": 32, "3C:生命%": 30, "3C:攻击%": 30, "3C:防御%": 38,
-		"3C:冷凝伤害加成": 30, "3C:热熔伤害加成": 30, "3C:导电伤害加成": 30, "3C:气动伤害加成": 30, "3C:衍射伤害加成": 30, "3C:湮灭伤害加成": 30,
-		"4C:暴击": 22, "4C:暴击伤害": 44, "4C:治疗效果加成": 26,
-	}
 	baseCost := cost[:1]
-	if value := mainstatValues[baseCost+"C:"+mainstat]; value > 0 {
+	mainstatValue, hasMainstat := maxMainstatValues[baseCost+"C:"+mainstat]
+	if hasMainstat && mainstatValue > 0 {
 		propName := xwuidMainPropertyName(mainstat)
 		weight := template.MainProps[baseCost][propName]
-		score.MainstatScore = truncateScore(value * weight / maxScore * 50)
+		score.MainstatScore = truncateScore(mainstatValue * weight / maxScore * 50)
+	}
+	if hasMainstat {
+		if fixed, ok := fixedMainstatsByCost[baseCost]; ok {
+			weight := template.MainProps[baseCost][fixed.Name]
+			score.MainstatScore2 = truncateScore(fixed.Value * weight / maxScore * 50)
+		}
 	}
 	fields := []*float64{&score.Substat1, &score.Substat2, &score.Substat3, &score.Substat4, &score.Substat5}
 	substats := []int64{e.Substat1, e.Substat2, e.Substat3, e.Substat4, e.Substat5}
-	rawTotal := score.MainstatScore
+	rawTotal := score.MainstatScore + score.MainstatScore2
 	for i, substat := range substats {
 		if substat == 0 {
 			continue
