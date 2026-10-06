@@ -1,6 +1,6 @@
 <!-- 用多种按钮来记录不同的调谐记录 -->
 <template>
-  <div style="min-width: 750px">
+  <div ref="echoRoot" style="min-width: 750px">
     <!--<h1>调谐声骸</h1>-->
 
     <div class="template-row">
@@ -42,7 +42,7 @@
     </div>
 
     <div v-if="mainstatPickerOpen" class="mainstat-picker-backdrop" @click.self="mainstatPickerOpen = false">
-      <div class="mainstat-picker">
+      <div class="mainstat-picker" :style="mainstatPickerStyle">
         <div class="mainstat-picker-header">
           <div>
             <div class="mainstat-picker-eyebrow">Cost {{ scoreTemplate.cost }}</div>
@@ -563,6 +563,27 @@ export default {
       cost: route.query.cost || '',
       mainstat: route.query.mainstat || '',
     })
+    const echoRoot = ref(null)
+    const mainstatPickerStyle = ref({})
+    let mainstatResizeObserver = null
+    const updateMainstatPickerPosition = () => {
+      if (typeof window === 'undefined' || !echoRoot.value) {
+        return
+      }
+      const layout = echoRoot.value.closest('.container')
+      const rightColumn = layout
+        ? Array.from(layout.children).find((child) => child.classList?.contains('right-column'))
+        : null
+      const rightColumnLeft = rightColumn?.getBoundingClientRect().left ?? window.innerWidth
+      const safeGap = 20
+      const right = Math.max(16, Math.ceil(window.innerWidth - rightColumnLeft + safeGap))
+      mainstatPickerStyle.value = { right: `${right}px` }
+    }
+    const handleMainstatLayoutResize = () => {
+      if (mainstatPickerOpen.value) {
+        updateMainstatPickerPosition()
+      }
+    }
     setScoreTemplateContext(scoreTemplate.value)
     const normalizeUserId = (userId) => {
       if (userId === '' || userId === null || userId === undefined) {
@@ -621,6 +642,7 @@ export default {
     const setCost = (cost) => {
       if (scoreTemplate.value.cost === cost) {
         mainstatPickerOpen.value = true
+        updateMainstatPickerPosition()
         return
       }
       updateQueryParam('cost', cost)
@@ -631,6 +653,7 @@ export default {
       setScoreTemplateContext({ cost, mainstat: nextMainstat })
       publishScoreTemplateChange('cost', cost)
       mainstatPickerOpen.value = true
+      updateMainstatPickerPosition()
       fetchEchoAnalysis()
     }
     const mainstatPickerOpen = ref(false)
@@ -1133,6 +1156,17 @@ export default {
     }
     onMounted(() => {
       ensureScoreTemplatesLoaded()
+      window.addEventListener('resize', handleMainstatLayoutResize)
+      const layout = echoRoot.value?.closest('.container')
+      if (typeof ResizeObserver !== 'undefined' && layout) {
+        mainstatResizeObserver = new ResizeObserver(handleMainstatLayoutResize)
+        mainstatResizeObserver.observe(layout)
+      }
+    })
+    onUnmounted(() => {
+      window.removeEventListener('resize', handleMainstatLayoutResize)
+      mainstatResizeObserver?.disconnect()
+      mainstatResizeObserver = null
     })
 
     const isTuning = ref(false)
@@ -1483,6 +1517,8 @@ export default {
       echoAnalysis,
       isTuning,
       scoreTemplate,
+      echoRoot,
+      mainstatPickerStyle,
       applyScoreTemplate,
       template,
       setResonator,
@@ -1662,7 +1698,7 @@ export default {
   position: absolute;
   top: 52px;
   left: clamp(16px, 4vw, 80px);
-  right: 720px;
+  right: auto;
   width: auto;
   max-height: calc(100vh - 104px);
   overflow-y: auto;
@@ -1787,12 +1823,6 @@ export default {
 @media (max-width: 1180px) {
   .mainstat-picker {
     right: 16px;
-  }
-}
-
-@media (min-width: 1181px) and (max-width: 1500px) {
-  .mainstat-picker {
-    right: 680px;
   }
 }
 
