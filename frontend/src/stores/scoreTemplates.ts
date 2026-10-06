@@ -6,9 +6,31 @@ import type {ResonatorTemplate} from '@/utils/echoScore'
 
 const storageKey = 'wuwa-echo-score-template-config'
 const contextKey = 'wuwa-echo-score-template-context'
-const builtinVersion = 'builtin-xwuid-2026-09-14'
+const builtinVersion = 'builtin-xwuid-2026-09-14-compat-2026-10-06'
 
 const normalizeResonatorName = (resonator: string) => resonator === '清霄' ? '清宵' : resonator
+
+// Keep the UI-side calculator aligned with the legacy weight retained by the
+// backend when an older cached or fallback template is loaded.
+const substatWeightOverrides: Record<string, Record<string, number>> = {
+    丽贝卡: {攻击固定值: 0.11},
+}
+
+const applySubstatWeightOverrides = (templates: Record<string, ResonatorTemplate>) =>
+    Object.fromEntries(Object.entries(templates).map(([key, template]) => {
+        const name = normalizeResonatorName(template.name || key)
+        const overrides = substatWeightOverrides[name]
+        if (!overrides) {
+            return [key, template]
+        }
+        return [key, {
+            ...template,
+            substat_weight: {
+                ...(template.substat_weight || {}),
+                ...overrides,
+            },
+        }]
+    })) as Record<string, ResonatorTemplate>
 
 const buildTemplate = (
     name: string,
@@ -381,7 +403,7 @@ const applyTemplatePayload = (payload: RemoteTemplatePayload | null, source: str
         templates['清宵'] = {...templates['清霄'], name: '清宵'}
         delete templates['清霄']
     }
-    scoreTemplateState.templates = templates
+    scoreTemplateState.templates = applySubstatWeightOverrides(templates)
     scoreTemplateState.version = payload?.version || builtinVersion
     scoreTemplateState.updatedAt = payload?.updated_at || ''
     scoreTemplateState.source = source

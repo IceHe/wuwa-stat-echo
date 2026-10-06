@@ -119,13 +119,30 @@ func init() {
 			SourceName:       template.SourceName,
 			EchoMaxScore:     map[string]float64{"1": template.ScoreMax[0], "3": template.ScoreMax[1], "4": template.ScoreMax[2]},
 			MainstatMaxScore: map[string]float64{},
-			SubstatWeight:    template.SubProps,
+			SubstatWeight:    xwuidSubstatWeight(template.Name, template.SubProps),
 			MainProps:        template.MainProps,
 			SkillWeight:      template.SkillWeight,
 			PropsGrade:       template.PropsGrade,
 			TotalGrade:       template.TotalGrade,
 		}
 	}
+}
+
+// The imported XW-UID snapshot omits this legacy fixed-value weight, while the
+// existing Rebecca template and the editor both treat it as a scored substat.
+var xwuidSubstatWeightOverrides = map[string]map[string]float64{
+	"丽贝卡": {"攻击固定值": 0.11},
+}
+
+func xwuidSubstatWeight(name string, weights map[string]float64) map[string]float64 {
+	merged := make(map[string]float64, len(weights)+len(xwuidSubstatWeightOverrides[name]))
+	for key, value := range weights {
+		merged[key] = value
+	}
+	for key, value := range xwuidSubstatWeightOverrides[name] {
+		merged[key] = value
+	}
+	return merged
 }
 
 func defaultResonatorTemplate() resonatorTemplate {

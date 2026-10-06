@@ -84,7 +84,7 @@ func TestDaniyaTemplateConfigAndUnknownFallback(t *testing.T) {
 	if !ok {
 		t.Fatalf("expected 丽贝卡 score template")
 	}
-	if rebecca.EchoMaxScore["4"] != 86.518 || rebecca.SubstatWeight["技能伤害加成"] != 0.9 || rebecca.SubstatWeight["共鸣效率"] != 0.25 {
+	if rebecca.EchoMaxScore["4"] != 86.518 || rebecca.SubstatWeight["技能伤害加成"] != 0.9 || rebecca.SubstatWeight["共鸣效率"] != 0.25 || rebecca.SubstatWeight["攻击固定值"] != 0.11 {
 		t.Fatalf("unexpected 丽贝卡 template: %+v", rebecca)
 	}
 
@@ -142,6 +142,15 @@ func TestDaniyaTemplateConfigAndUnknownFallback(t *testing.T) {
 	score := scoreEcho(EchoLog{}, "未配置角色", "3C属伤", "")
 	if score.Resonator != "通用" {
 		t.Fatalf("expected unknown resonator to fall back to 通用, got %q", score.Resonator)
+	}
+}
+
+func TestRebeccaFixedAttackSubstatScore(t *testing.T) {
+	// 攻击固定值 60: substat number 5, value number 3.
+	echo := EchoLog{Substat1: (1 << 5) | (1 << (3 + substatBitWidth))}
+	score := scoreEcho(echo, "丽贝卡", "4C", "")
+	if score.Substat1 != 3.81 || score.SubstatAll != 3.81 {
+		t.Fatalf("expected 丽贝卡 攻击固定值 60 to score 3.81, got entry=%.2f total=%.2f", score.Substat1, score.SubstatAll)
 	}
 }
 
