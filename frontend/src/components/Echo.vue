@@ -1662,7 +1662,7 @@ export default {
   position: absolute;
   top: 52px;
   left: clamp(16px, 4vw, 80px);
-  right: 680px;
+  right: 720px;
   width: auto;
   max-height: calc(100vh - 104px);
   overflow-y: auto;
@@ -1792,7 +1792,7 @@ export default {
 
 @media (min-width: 1181px) and (max-width: 1500px) {
   .mainstat-picker {
-    right: 640px;
+    right: 680px;
   }
 }
 
