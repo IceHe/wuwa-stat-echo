@@ -543,14 +543,19 @@ export default {
         echoLog.value.pos === 5 ||
         !echoLog.value.operator_id,
     )
-    const updateQueryParam = (key, value) => {
-      router.replace({
-        query: {
-          ...route.query,
-          [key]: value,
-        },
-      })
+    let queryUpdateQueue = Promise.resolve()
+    const updateQueryParams = (params = {}) => {
+      queryUpdateQueue = queryUpdateQueue
+        .catch(() => {})
+        .then(() => router.replace({
+          query: {
+            ...route.query,
+            ...params,
+          },
+        }))
+      return queryUpdateQueue
     }
+    const updateQueryParam = (key, value) => updateQueryParams({ [key]: value })
     const updateEchoIdQuery = (value) => {
       if (!props.syncEchoIdQuery) {
         return
@@ -620,9 +625,11 @@ export default {
       if (!resonatorChanged && !costChanged && !mainstatChanged) {
         return
       }
-      updateQueryParam('resonator', nextResonator || undefined)
-      updateQueryParam('cost', nextCost || undefined)
-      updateQueryParam('mainstat', nextMainstat || undefined)
+      updateQueryParams({
+        resonator: nextResonator || undefined,
+        cost: nextCost || undefined,
+        mainstat: nextMainstat || undefined,
+      })
       scoreTemplate.value.resonator = nextResonator
       scoreTemplate.value.cost = nextCost
       scoreTemplate.value.mainstat = nextMainstat
@@ -645,11 +652,13 @@ export default {
         updateMainstatPickerPosition()
         return
       }
-      updateQueryParam('cost', cost)
-      scoreTemplate.value.cost = cost
       const nextMainstat = getMainstatOptions(cost).includes(scoreTemplate.value.mainstat) ? scoreTemplate.value.mainstat : ''
+      updateQueryParams({
+        cost,
+        mainstat: nextMainstat || undefined,
+      })
+      scoreTemplate.value.cost = cost
       scoreTemplate.value.mainstat = nextMainstat
-      updateQueryParam('mainstat', nextMainstat || undefined)
       setScoreTemplateContext({ cost, mainstat: nextMainstat })
       publishScoreTemplateChange('cost', cost)
       mainstatPickerOpen.value = true
