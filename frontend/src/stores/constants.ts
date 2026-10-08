@@ -320,7 +320,7 @@ export const ECHO_COST: string[] = ['4C', '3C', '1C']
 export const MAINSTAT_OPTIONS_BY_COST: Record<string, string[]> = {
     '1C': ['生命%', '攻击%', '防御%'],
     '3C': ['共鸣效率', '生命%', '攻击%', '防御%', '冷凝伤害加成', '热熔伤害加成', '导电伤害加成', '气动伤害加成', '衍射伤害加成', '湮灭伤害加成'],
-    '4C': ['暴击', '暴击伤害', '治疗效果加成'],
+    '4C': ['暴击', '暴击伤害', '治疗效果加成', '生命%', '攻击%', '防御%'],
 }
 
 export const getMainstatOptions = (cost: string) => {

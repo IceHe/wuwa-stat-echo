@@ -184,6 +184,32 @@ func TestMainstatScoresUseLevel25Values(t *testing.T) {
 	}
 }
 
+func TestCost4PercentageMainstatsUseLevel25Values(t *testing.T) {
+	for mainstat, wantValue := range map[string]float64{
+		"生命%": 33,
+		"攻击%": 33,
+		"防御%": 41.5,
+	} {
+		if got := maxMainstatValues["4C:"+mainstat]; got != wantValue {
+			t.Fatalf("expected 4C %s level-25 value %.1f, got %.1f", mainstat, wantValue, got)
+		}
+	}
+
+	// The main-stat options are valid even when this template assigns them zero
+	// weight; the fixed 4C attack must still be counted for each valid option.
+	for _, mainstat := range []string{"生命%", "攻击%", "防御%"} {
+		score := scoreEcho(EchoLog{}, "丽贝卡", "4C", mainstat)
+		if score.MainstatScore2 != 1.73 {
+			t.Errorf("expected 4C %s to include fixed attack score 1.73, got %.2f", mainstat, score.MainstatScore2)
+		}
+	}
+
+	score := scoreEcho(EchoLog{}, "丽贝卡", "4C", "攻击%")
+	if score.MainstatScore != 6.10 || score.SubstatAll != 7.83 {
+		t.Fatalf("expected 4C attack%% score 6.10 + fixed attack 1.73 = 7.83, got %.2f + %.2f = %.2f", score.MainstatScore, score.MainstatScore2, score.SubstatAll)
+	}
+}
+
 func TestXWUIDTemplateCountAndDuplicateNames(t *testing.T) {
 	if len(xwuidTemplates) != 68 {
 		t.Fatalf("expected 68 XW-UID templates, got %d", len(xwuidTemplates))

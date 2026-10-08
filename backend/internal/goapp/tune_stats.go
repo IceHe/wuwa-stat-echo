@@ -25,6 +25,9 @@ var maxMainstatValues = map[string]float64{
 	"4C:暴击":     22,
 	"4C:暴击伤害":   44,
 	"4C:治疗效果加成": 26,
+	"4C:生命%":    33,
+	"4C:攻击%":    33,
+	"4C:防御%":    41.5,
 }
 
 type fixedMainstat struct {
