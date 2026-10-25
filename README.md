@@ -108,6 +108,7 @@ npm run dev
 - `AGENTS.md`：每轮修改后的测试、文档、部署与 Git 完成 checklist
 - `docs/score-template-system.md`：评分模板来源、Cost/主词条、排序与颜色规则
 - `docs/change-log.md`：项目变更记录
+- `docs/data-corrections.md`：玩家归属等数据纠正记录
 
 - `backend/README.md`：后端说明与启动方式
 - `backend/docs/ARCHITECTURE.md`：系统架构与模块划分
